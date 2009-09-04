@@ -95,9 +95,9 @@ LFLAGS =
 LIBS =
  
 # If you are cross-compiling, you must use this:
-#OBJDIR = .
+OBJDIR = .
 # otherwise, you can save a little bit of disk space with this:
-OBJDIR = ../src
+#OBJDIR = ../src
 
 # yacc/lex programs to use to generate *_comp.h, *_lex.c, and *_yacc.c.
 # if, instead of yacc/lex you have bison/flex, comment/uncomment the following.
