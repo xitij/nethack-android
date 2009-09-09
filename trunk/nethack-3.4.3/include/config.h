@@ -16,6 +16,8 @@
 
 #define UNIX		/* delete if no fork(), exec() available */
 
+#define ANDROID		/* Google's Android OS for mobile devices*/
+
 /* #define MSDOS */	/* in case it's not auto-detected */
 
 /* #define OS2 */	/* define for OS/2 */
