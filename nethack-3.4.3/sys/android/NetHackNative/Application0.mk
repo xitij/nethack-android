@@ -1,0 +1,2 @@
+APP_MODULES := nethack
+APP_PROJECT_PATH := ABSOLUTE_PATH/NetHackNative
