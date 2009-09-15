@@ -124,6 +124,6 @@ public class NetHackApp extends Activity
 	 * installation time by the package manager.
 	 */
 	static {
-		System.loadLibrary("test1");
+		System.loadLibrary("nethack");
 	}
 }
