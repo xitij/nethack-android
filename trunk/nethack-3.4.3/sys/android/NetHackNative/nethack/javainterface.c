@@ -28,7 +28,7 @@ static void *sThreadFunc()
 }
 
 
-int Java_com_ff_nativetest2_NativeTest2_TestInit(JNIEnv *env, jobject thiz)
+int Java_com_nethackff_NetHackApp_TestInit(JNIEnv *env, jobject thiz)
 {
 	if(g_ThreadHandle)
 	{
@@ -47,7 +47,7 @@ int Java_com_ff_nativetest2_NativeTest2_TestInit(JNIEnv *env, jobject thiz)
 	return 1;
 }
 
-void Java_com_ff_nativetest2_NativeTest2_TestShutdown(JNIEnv *env, jobject thiz)
+void Java_com_nethackff_NetHackApp_TestShutdown(JNIEnv *env, jobject thiz)
 {
 	if(g_ThreadHandle)
 	{
@@ -58,7 +58,7 @@ void Java_com_ff_nativetest2_NativeTest2_TestShutdown(JNIEnv *env, jobject thiz)
 	}
 }
 
-void Java_com_ff_nativetest2_NativeTest2_TestUpdate(JNIEnv *env, jobject thiz)
+void Java_com_nethackff_NetHackApp_TestUpdate(JNIEnv *env, jobject thiz)
 {
 		usleep(2000*1000);	/* 2 s */
 }
@@ -70,7 +70,7 @@ void Java_com_ff_nativetest2_NativeTest2_TestUpdate(JNIEnv *env, jobject thiz)
  *   apps/samples/hello-jni/project/src/com/example/HelloJni/HelloJni.java
  */
 jstring
-Java_com_ff_nativetest2_NativeTest2_stringFromJNI( JNIEnv* env,
+Java_com_nethackff_NetHackApp_stringFromJNI( JNIEnv* env,
                                                   jobject thiz )
 {
 	char buff[256];
