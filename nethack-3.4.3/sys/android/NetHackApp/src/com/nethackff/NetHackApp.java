@@ -6,11 +6,11 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.view.View;
-import android.widget.TextView;
+//import android.widget.TextView;
 import android.os.Bundle;
-import android.util.Log;
+//import android.util.Log;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
+//import android.view.MotionEvent;
 import java.lang.Thread;
 
 class TerminalView extends View
@@ -30,6 +30,9 @@ class TerminalView extends View
 		{
 			currentRow++;
 			currentColumn = 0;
+
+			// TODO: Perhaps scroll here?
+
 			return;
 		}
 
@@ -58,27 +61,11 @@ class TerminalView extends View
 			textBuffer[i] = ' ';
 		}
 
-		write('a');
-		write('b');
-		write('\n');
-		write('0');
-		write('1');
-		write('2');
-		write('\n');
-		write('>');
-		write(' ');
-		/*
-		textBuffer[0] = 'A';
-		textBuffer[1] = 'B';
-		textBuffer[numColumns] = 'C';
-		textBuffer[numColumns + 1] = 'D';
-		textBuffer[2*numColumns] = 'E';
-		textBuffer[2*numColumns + 1] = 'F';
-		textBuffer[2*numColumns + 2] = '1';
-		textBuffer[2*numColumns + 3] = '2';
-*/
 		currentRow = 0;
 		currentColumn = 0;
+
+		write('>');
+		write(' ');
 	}
 
 	public String getContents()
@@ -144,8 +131,8 @@ public class NetHackApp extends Activity
 	
 	public void addText(String s)
 	{
-		screen.outputText += s;
-		screen.outputText += "\n";
+//		screen.outputText += s;
+//		screen.outputText += "\n";
 	}
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
@@ -153,35 +140,17 @@ public class NetHackApp extends Activity
 		{
 			return true;
 		}
-		String keyCodeString = Integer.toString(keyCode);
-		addText(keyCodeString);
-		tv.setText(screen.outputText);
-		setContentView(tv);
+		screen.write((char)event.getUnicodeChar());
+		screen.invalidate();
 		return true;
 	}
 
-	public boolean onTouchEvent(MotionEvent event)
-	{
-		if(super.onTouchEvent(event))
-		{
-			return true;
-		}
-		addText(stringFromJNI());
-		tv.setText(screen.outputText);
-		setContentView(tv);
-		return true;
-	}
-
-	TextView tv;
-  
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 
-		Log.i("TESTING LOG", "TEST");
- 
 		screen = new TerminalView(this, 80, 24);
 		screen.Test1();
 		
@@ -189,13 +158,8 @@ public class NetHackApp extends Activity
 		 * the text is retrieved by calling a native
 		 * function.
 		 */
-		tv = new TextView(this);
-		addText("Running");
 		if(TestInit(20, 10) == 0)
 		{
-			addText("Failed to initialize");
-			tv.setText(screen.outputText);
-			setContentView(tv);
 			return;
 		}
 
@@ -208,10 +172,8 @@ public class NetHackApp extends Activity
 		}
 
 		
-		addText(stringFromJNI());
+		//addText(stringFromJNI());
 
-		tv.setText(screen.outputText);
-//		setContentView(tv);
 		setContentView(screen);
 		
 		TestShutdown();
