@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#define RECEIVEBUFFSZ 255
+#define SENDBUFFSZ 1023
 
 static char *s_MainViewText;
 static int s_MainViewNumCols;
@@ -22,8 +24,17 @@ static int s_MainViewY = 0;
 
 static int s_MainViewChanged = 0;
 
+
+
+static char s_ReceiveBuff[RECEIVEBUFFSZ + 1];
+static char s_SendBuff[SENDBUFFSZ + 1];
+static int s_ReceiveCnt;
+static int s_SendCnt;
+
+
 void xputc(int c)
 {
+#if 0
 	if(s_MainViewX < s_MainViewNumCols && s_MainViewY < s_MainViewNumRows)
 	{
 		s_MainViewText[s_MainViewNumCols*s_MainViewY + s_MainViewX] = (char)c;
@@ -37,11 +48,22 @@ void xputc(int c)
 	}
 
 	s_MainViewChanged = 1;
+#endif
+
+	/* TODO: Thread protection */
+
+	/* TODO: Wait for space to be available. */
+	if(s_SendCnt < SENDBUFFSZ)
+	{
+		s_SendBuff[s_SendCnt++] = (char)c;
+	}
 }
 
 
 void xputs(const char *s)
 {
+	/* TODO: Thread protection */
+
 	const char *ptr = s;
 	while(*s)
 	{
@@ -53,20 +75,36 @@ pthread_t g_ThreadHandle;
 
 static void *sThreadFunc()
 {
+	int i;
+
 /*
 	xputc('');
 	xputc('B');
 */
 	char buff[256];
 
-	sprintf(buff, "%d x %d", s_MainViewNumCols, s_MainViewNumRows);
+	sprintf(buff, "-- %d x %d\n", s_MainViewNumCols, s_MainViewNumRows);
 	xputs(buff);
 
 
 	while(1)
 	{
+		if(s_ReceiveCnt > 0)
+		{
+			for(i = 0; i < s_ReceiveCnt; i++)
+			{
+				xputc((int)(s_ReceiveBuff[i]));
+			}
+			s_ReceiveCnt = 0;
+		}
 		g_Test1++;
+#if 1
+
 		usleep(1000);	/* 1 ms */
+#endif
+
+//		sleep(1);
+
 	}
 	return NULL;
 }
@@ -87,6 +125,9 @@ int Java_com_nethackff_NetHackApp_TestInit(JNIEnv *env, jobject thiz,
 	{
 		return 0;
 	}
+
+	s_ReceiveCnt = 0;
+	s_SendCnt = 0;
 
 	s_MainViewNumCols = numcols;
 	s_MainViewNumRows = numrows;
@@ -141,6 +182,43 @@ void Java_com_nethackff_NetHackApp_TestUpdate(JNIEnv *env, jobject thiz)
 {
 		usleep(2000*1000);	/* 2 s */
 }
+
+
+//void Java_com_nethackff_NetHackApp_TerminalSend(JNIEnv *env, jobject thiz,
+//		const char *buff)
+void Java_com_nethackff_NetHackApp_TerminalSend(JNIEnv *env, jobject thiz,
+		jstring str)
+{
+	/* TODO: Thread protection! */
+
+	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
+
+	const char *ptr = nativestr;
+	for(; *ptr; ptr++)
+	{
+		if(s_ReceiveCnt < RECEIVEBUFFSZ)
+		{
+			s_ReceiveBuff[s_ReceiveCnt++] = *ptr;
+//			s_ReceiveBuff[s_ReceiveCnt++] = 'Y';
+		}
+		/* TODO: Wait for consumption? */
+	}
+
+	(*env)->ReleaseStringUTFChars(env, str, nativestr);
+}
+
+jstring Java_com_nethackff_NetHackApp_TerminalReceive(JNIEnv *env,
+		jobject thiz)
+{
+	/* TODO: Thread protection! */
+
+	s_SendBuff[s_SendCnt] = '\0';
+	jstring str = (*env)->NewStringUTF(env, s_SendBuff);
+	s_SendCnt = 0;
+/* TODO: Possibly free the string somehow here? */
+	return str;
+}
+
 
 /* This is a trivial JNI example where we use a native method
  * to return a new VM String. See the corresponding Java source

@@ -10,7 +10,7 @@ import android.view.View;
 import android.os.Bundle;
 //import android.util.Log;
 import android.view.KeyEvent;
-//import android.view.MotionEvent;
+import android.view.MotionEvent;
 import java.lang.Thread;
 
 class TerminalView extends View
@@ -31,8 +31,21 @@ class TerminalView extends View
 			currentRow++;
 			currentColumn = 0;
 
-			// TODO: Perhaps scroll here?
-
+			if(currentRow >= numRows)
+			{
+				for(int row = 1; row < numRows; row++)
+				{
+					for(int col = 0; col < numColumns; col++)
+					{
+						textBuffer[(row - 1)*numColumns + col] = textBuffer[row*numColumns + col];
+					}
+				}
+				for(int col = 0; col < numColumns; col++)
+				{
+					textBuffer[(numRows - 1)*numColumns + col] = ' ';
+				}
+				currentRow--;
+			}
 			return;
 		}
 
@@ -44,8 +57,17 @@ class TerminalView extends View
 		}
 		currentColumn++;
 	}
+
+	public void write(String s)
+	{
+		int len = s.length();
+		for(int i = 0; i < len; i++)
+		{
+			write(s.charAt(i));
+		}
+	}
 	
-	public TerminalView(Context context, int rows, int columns)
+	public TerminalView(Context context, int columns, int rows)
 	{
 		super(context);
 
@@ -93,12 +115,16 @@ class TerminalView extends View
 	
 	public void Test1()
 	{
-		outputText += "TerminalView!\n";
+		outputText += "Working!\n";
 		outputText += getContents();
 	}
 	
 	protected void onDraw(Canvas canvas)
 	{
+		// TEMP - not the right place!
+
+//		String inp = TerminalReceive();
+		
 		Paint paint = new Paint();
 		paint.setARGB(255, 255, 255, 255);
 		paint.setTypeface(Typeface.MONOSPACE);
@@ -121,6 +147,9 @@ class TerminalView extends View
 			}
 			y += charheight;
 		}
+
+		// TEMP - this is probably no good!
+//		invalidate();
 	}
 }
 
@@ -140,18 +169,43 @@ public class NetHackApp extends Activity
 		{
 			return true;
 		}
-		screen.write((char)event.getUnicodeChar());
+/*
+		char []buff = { ' ', ' ' };
+//		buff[0] = (char)event.getUnicodeChar();
+	buff[0] = 'O';
+		buff[1] = '\0';
+		*/
+		String s = "";
+		s += (char)event.getUnicodeChar();
+		TerminalSend(s);
 		screen.invalidate();
 		return true;
 	}
 
+	public boolean onTouchEvent(MotionEvent event)
+	{
+		if(super.onTouchEvent(event))
+		{
+			return true;
+		}
+		
+		String s = TerminalReceive();
+		screen.write(s);
+		screen.invalidate();
+		return true;
+	}
+
+	public void onDestroy()
+	{
+		TestShutdown();
+	}
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 
-		screen = new TerminalView(this, 80, 24);
+		screen = new TerminalView(this, 80, 14);
 		screen.Test1();
 		
 		/* Create a TextView and set its content.
@@ -163,6 +217,7 @@ public class NetHackApp extends Activity
 			return;
 		}
 
+/*
 		try
 		{
 			Thread.sleep(2000);
@@ -170,36 +225,22 @@ public class NetHackApp extends Activity
 		{
 			throw new RuntimeException(e.getMessage());
 		}
-
+*/
 		
 		//addText(stringFromJNI());
 
 		setContentView(screen);
-		
-		TestShutdown();
-	}
 
-	/* A native method that is implemented by the
-	 * 'hello-jni' native library, which is packaged
-	 * with this application.
-	 */
-	public native String  stringFromJNI();
+		//TestShutdown();
+	}
 
 	public native int TestInit(int numrows, int numcols); 
 	public native void TestShutdown(); 
 	public native void TestUpdate();
-	
-	/* This is another native method declaration that is *not*
-	 * implemented by 'hello-jni'. This is simply to show that
-	 * you can declare as many native methods in your Java code
-	 * as you want, their implementation is searched in the
-	 * currently loaded native libraries only the first time
-	 * you call them.
-	 *
-	 * Trying to call this function will result in a
-	 * java.lang.UnsatisfiedLinkError exception !
-	 */
-	public native String  unimplementedStringFromJNI();
+
+	public native String TerminalReceive();
+//	public native void TerminalSend(char []str);
+	public native void TerminalSend(String str);
 
 	/* this is used to load the 'hello-jni' library on application
 	 * startup. The library has already been unpacked into
