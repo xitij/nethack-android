@@ -6,13 +6,10 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.view.View;
-//import android.widget.TextView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-//import android.util.Log;
 import android.view.KeyEvent;
-//import android.view.MotionEvent;
 import java.lang.Thread;
 
 class TerminalView extends View
@@ -123,10 +120,6 @@ class TerminalView extends View
 	
 	protected void onDraw(Canvas canvas)
 	{
-		// TEMP - not the right place!
-
-//		String inp = TerminalReceive();
-		
 		Paint paint = new Paint();
 		paint.setARGB(255, 255, 255, 255);
 		paint.setTypeface(Typeface.MONOSPACE);
@@ -149,9 +142,6 @@ class TerminalView extends View
 			}
 			y += charheight;
 		}
-
-		// TEMP - this is probably no good!
-//		invalidate();
 	}
 }
 
@@ -160,54 +150,18 @@ public class NetHackApp extends Activity implements Runnable
 {
 	TerminalView screen;
 	
-	public void addText(String s)
-	{
-//		screen.outputText += s;
-//		screen.outputText += "\n";
-	}
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
 		if(super.onKeyDown(keyCode, event))
 		{
 			return true;
 		}
-/*
-		char []buff = { ' ', ' ' };
-//		buff[0] = (char)event.getUnicodeChar();
-	buff[0] = 'O';
-		buff[1] = '\0';
-		*/
 		String s = "";
 		s += (char)event.getUnicodeChar();
 		TerminalSend(s);
 		screen.invalidate();
 		return true;
 	}
-
-	/*
-	public boolean onTouchEvent(MotionEvent event)
-	{
-		if(super.onTouchEvent(event))
-		{
-			return true;
-		}
-
-		String s = TerminalReceive();
-		screen.write(s);
-		screen.invalidate();
-		return true;
-	}
-*/
-	
-	/*
-	final Handler handler = new Handler(new Handler.Callback() {
-
-		@Override
-		public boolean handleMessage(Message msg) {
-		textView.setText("index="+index++);
-		return false;
-	}
-*/
 
 	private Handler handler = new Handler()
 	{
@@ -246,51 +200,29 @@ public class NetHackApp extends Activity implements Runnable
 	{
 		super.onCreate(savedInstanceState);
 
-		screen = new TerminalView(this, 80, 14);
+		int width = 80;
+		int height = 14;
+		
+		screen = new TerminalView(this, width, height);
 		screen.Test1();
 		
-		/* Create a TextView and set its content.
-		 * the text is retrieved by calling a native
-		 * function.
-		 */
-		if(TestInit(20, 10) == 0)
+		if(TestInit(width, height) == 0)
 		{
 			return;
 		}
-
-/*
-		try
-		{
-			Thread.sleep(2000);
-		} catch(InterruptedException e)
-		{
-			throw new RuntimeException(e.getMessage());
-		}
-*/
-		
-		//addText(stringFromJNI());
 
 		setContentView(screen);
 
         Thread thread = new Thread(this);
         thread.start();
- 
-		//TestShutdown();
-	}
+ 	}
 
-	public native int TestInit(int numrows, int numcols); 
+	public native int TestInit(int numcols, int numrows); 
 	public native void TestShutdown(); 
-	public native void TestUpdate();
 
 	public native String TerminalReceive();
-//	public native void TerminalSend(char []str);
 	public native void TerminalSend(String str);
 
-	/* this is used to load the 'hello-jni' library on application
-	 * startup. The library has already been unpacked into
-	 * /data/data/com.example.HelloJni/lib/libhello-jni.so at
-	 * installation time by the package manager.
-	 */
 	static {
 		System.loadLibrary("nethack");
 	}
