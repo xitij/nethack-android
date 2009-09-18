@@ -8,9 +8,11 @@ import android.graphics.Typeface;
 import android.view.View;
 //import android.widget.TextView;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 //import android.util.Log;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
+//import android.view.MotionEvent;
 import java.lang.Thread;
 
 class TerminalView extends View
@@ -154,7 +156,7 @@ class TerminalView extends View
 }
 
 
-public class NetHackApp extends Activity
+public class NetHackApp extends Activity implements Runnable
 {
 	TerminalView screen;
 	
@@ -182,25 +184,64 @@ public class NetHackApp extends Activity
 		return true;
 	}
 
+	/*
 	public boolean onTouchEvent(MotionEvent event)
 	{
 		if(super.onTouchEvent(event))
 		{
 			return true;
 		}
-		
+
 		String s = TerminalReceive();
 		screen.write(s);
 		screen.invalidate();
 		return true;
 	}
+*/
+	
+	/*
+	final Handler handler = new Handler(new Handler.Callback() {
 
-	public void onDestroy()
+		@Override
+		public boolean handleMessage(Message msg) {
+		textView.setText("index="+index++);
+		return false;
+	}
+*/
+
+	private Handler handler = new Handler()
+	{
+		public void handleMessage(Message msg)
+		{
+			String s = TerminalReceive();
+			if(s.length() != 0)
+			{
+				screen.write(s);
+				screen.invalidate();
+			}
+		}
+    };
+
+    public void run()
+    {
+    	while(true)
+    	{
+    		try
+    		{
+    			handler.sendEmptyMessage(0);
+    			Thread.sleep(100);
+    		} catch(InterruptedException e)
+    		{
+    			throw new RuntimeException(e.getMessage());
+    		}
+    	}
+    }
+
+    public void onDestroy()
 	{
 		TestShutdown();
 	}
-	/** Called when the activity is first created. */
-	@Override
+
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -231,6 +272,9 @@ public class NetHackApp extends Activity
 
 		setContentView(screen);
 
+        Thread thread = new Thread(this);
+        thread.start();
+ 
 		//TestShutdown();
 	}
 
