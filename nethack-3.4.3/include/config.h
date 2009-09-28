@@ -16,7 +16,10 @@
 
 #define UNIX		/* delete if no fork(), exec() available */
 
-#define ANDROID		/* Google's Android OS for mobile devices*/
+/* #define ANDROID */	/* Google's Android OS for mobile devices - probably
+						   no need to touch this, as it's somehow already
+						   defined through the command line by Android's
+						   build system. */
 
 /* #define MSDOS */	/* in case it's not auto-detected */
 
