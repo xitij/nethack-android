@@ -18,6 +18,10 @@ cd NetHackApp
 ln -s ../NetHackNative/libs
 cd ..
 
+cd NetHackNative/assets
+ln -s ../../../../dat
+cd ../../
+
 ANDROID_NDK_DIR=/home/astaroth/android/android-ndk-1.5_r1
 
 ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/apps/
