@@ -23,38 +23,171 @@ class TerminalView extends View
 	int currentRow;
 	int currentColumn;
 
-	public void write(char c)
+	public void lineFeed()
 	{
-		if(c == '\n')
-		{
-			currentRow++;
-			currentColumn = 0;
+		currentRow++;
+		currentColumn = 0;
 
-			if(currentRow >= numRows)
+		if(currentRow >= numRows)
+		{
+			for(int row = 1; row < numRows; row++)
 			{
-				for(int row = 1; row < numRows; row++)
-				{
-					for(int col = 0; col < numColumns; col++)
-					{
-						textBuffer[(row - 1)*numColumns + col] = textBuffer[row*numColumns + col];
-					}
-				}
 				for(int col = 0; col < numColumns; col++)
 				{
-					textBuffer[(numRows - 1)*numColumns + col] = ' ';
+					textBuffer[(row - 1)*numColumns + col] = textBuffer[row*numColumns + col];
 				}
-				currentRow--;
 			}
-			return;
+			for(int col = 0; col < numColumns; col++)
+			{
+				textBuffer[(numRows - 1)*numColumns + col] = ' ';
+			}
+			currentRow--;
 		}
+	}
 
-		// Should we wrap here?
+	public void writeRaw(char c)
+	{
+		if(currentColumn >= numColumns)
+		{
+			lineFeed();
+		}
 
 		if(currentColumn < numColumns && currentRow < numRows)
 		{
 			textBuffer[currentRow*numColumns + currentColumn] = c;
 		}
 		currentColumn++;
+	}
+
+	private static final int ESC_NONE = 0;
+	private static final int ESC = 1;
+	private static final int ESC_LEFT_SQUARE_BRACKET = 2;
+
+	private int escapeState;
+
+	public void startEscapeSequence(int state)
+	{
+		escapeState = state;
+	}
+
+	public void updateEscapeSequence(char c)
+	{
+		switch(escapeState)
+		{
+			case ESC:
+				updateEscapeSequenceEsc(c);
+				break;
+
+			case ESC_LEFT_SQUARE_BRACKET:
+				updateEscapeSequenceLeftSquareBracket(c);
+				break;
+
+			default:
+				// TODO
+				escapeState = ESC_NONE;
+				break;
+		}
+	}
+	public void updateEscapeSequenceEsc(char c)
+	{
+		switch(c)
+		{
+			case '[':
+				escapeState = ESC_LEFT_SQUARE_BRACKET;
+				escSeqArgVal[0] = 0;
+				escSeqArgCnt = -1;
+				break;
+
+			default:
+				escapeState = ESC_NONE;
+				break;
+		}
+	}
+
+	public static final int kMaxEscParam = 16;
+	public int []escSeqArgVal = new int[kMaxEscParam];
+	public int escSeqArgCnt = 0;
+
+	public void updateEscapeSequenceLeftSquareBracket(char c)
+	{
+		switch(c)
+		{
+			case 'B':
+				escapeState = ESC_NONE;
+				return;
+			case 'D':
+				escapeState = ESC_NONE;
+				return;
+			case 'H':	// Cursor Home
+				escapeState = ESC_NONE;
+				return;
+		}
+		if(c >= '0' && c <= '9')
+		{
+			if(escSeqArgCnt == -1)
+			{
+				escSeqArgCnt = 0;
+			}
+			escSeqArgVal[escSeqArgCnt] = escSeqArgVal[escSeqArgCnt]*10 + (c - '0');
+		}
+		else if(c == ';')
+		{
+			escSeqArgCnt++;
+		}
+		// else error?
+		escapeState = ESC_NONE;
+	}
+	public void write(char c)
+	{
+		switch(c)
+		{
+			case 0:	// NUL
+				break;
+			case 7: // BEL
+				break;
+			case 8:	// BS
+				// TODO
+				break;
+			case 9:	// HT
+				// TODO
+				break;
+			case 13:
+				// TODO
+				break;
+			case 10:	// CR
+			case 11:	// VT
+			case 12:	// LF
+				lineFeed();
+				break;
+			case 14:	// SO
+				// TODO
+				break;
+			case 15:	// SI
+				// TODO
+				break;
+			case 24:	// CAN
+			case 26:	// SUB
+				// TODO
+				break;
+			case 27:	// ESC
+				startEscapeSequence(ESC);
+				break;
+			case 0x9b:	// CSI
+				break;
+			default:
+				if(escapeState == ESC_NONE)
+				{
+					if(c >= 32)
+					{
+						writeRaw(c);
+					}
+				}
+				else
+				{
+					updateEscapeSequence(c);
+				}
+				break;
+		}
 	}
 
 	public void write(String s)
@@ -84,9 +217,6 @@ class TerminalView extends View
 
 		currentRow = 0;
 		currentColumn = 0;
-
-		write('>');
-		write(' ');
 	}
 
 	public String getContents()
@@ -112,18 +242,13 @@ class TerminalView extends View
 		return r;
 	}
 	
-	public void Test1()
-	{
-		outputText += "Working!\n";
-		outputText += getContents();
-	}
-	
 	protected void onDraw(Canvas canvas)
 	{
 		Paint paint = new Paint();
 		paint.setARGB(255, 255, 255, 255);
 		paint.setTypeface(Typeface.MONOSPACE);
-		paint.setTextSize(14);
+//		paint.setTextSize(14);
+		paint.setTextSize(10);
 		paint.setAntiAlias(true);
 		int charheight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
 		int charwidth = (int)paint.measureText("X", 0, 1);
@@ -201,10 +326,9 @@ public class NetHackApp extends Activity implements Runnable
 		super.onCreate(savedInstanceState);
 
 		int width = 80;
-		int height = 14;
-		
+		int height = 22;
+
 		screen = new TerminalView(this, width, height);
-		screen.Test1();
 		
 		if(TestInit(width, height) == 0)
 		{
