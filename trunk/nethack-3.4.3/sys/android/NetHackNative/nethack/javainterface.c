@@ -1,6 +1,9 @@
+#include "hack.h"
+
 #include <string.h>
 #include <jni.h>
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -16,6 +19,23 @@ static char s_SendBuff[SENDBUFFSZ + 1];
 static int s_ReceiveCnt;
 static int s_SendCnt;
 
+#if 0
+
+void error(int status, int errnum, const char *format, ...)
+{
+	fflush(stdout);
+	va_list args;
+	va_start(args, format);
+	fprintf(stderr, "nethack: ");
+	vfprintf(stderr, format, args);
+	if(errnum)
+	{
+		/* perror() ? */
+	}
+	va_end(args);
+}
+
+#endif
 
 void xputc(int c)
 {
@@ -40,14 +60,76 @@ void xputs(const char *s)
 	}
 }
 
+int android_getch(void)
+{
+	while(1)
+	{
+		if(s_ReceiveCnt > 0)
+		{
+			int ret = s_ReceiveBuff[0], i;
+			/* Hmm, no good! */
+			for(i = 0; i < s_ReceiveCnt - 1; i++)
+			{
+				s_ReceiveBuff[i] = s_ReceiveBuff[i + 1];
+			}
+			s_ReceiveCnt--;
+			return ret;
+		}
+		usleep(1000);	/* 1 ms */
+	}
+	/*return EOF;*/
+}
+
 pthread_t g_ThreadHandle;
 
 static void *sThreadFunc()
 {
-	int i;
+	int argc = 1;
+	char *argv[] = {	"nethack"	};
+
+	int i = 0;
 
 	char buff[256];
 
+	choose_windows(DEFAULT_WINDOW_SYS);
+	initoptions();
+
+	init_nhwindows(&argc,argv);
+
+/*
+xputs("process_options\n");
+	process_options(argc, argv);
+*/
+
+	askname();
+
+	/*
+	 * Initialization of the boundaries of the mazes
+	 * Both boundaries have to be even.
+	 */
+	x_maze_max = COLNO-1;
+	if (x_maze_max % 2)
+		x_maze_max--;
+	y_maze_max = ROWNO-1;
+	if (y_maze_max % 2)
+		y_maze_max--;
+
+	/*
+	 *  Initialize the vision system.  This must be before mklev() on a
+	 *  new game or before a level restore on a saved game.
+	 */
+	vision_init();
+
+
+	display_gamewindows();
+
+
+		player_selection();
+		newgame();
+
+xputs("Done!\n");
+
+#if 0
 	while(1)
 	{
 		if(s_ReceiveCnt > 0)
@@ -60,7 +142,11 @@ static void *sThreadFunc()
 		}
 
 		usleep(1000);	/* 1 ms */
+		sprintf(buff, "%d\n", i);
+		xputs(buff);
+		sleep(1);
 	}
+#endif
 	return NULL;
 }
 
