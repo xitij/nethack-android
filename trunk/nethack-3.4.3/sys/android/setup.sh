@@ -23,8 +23,19 @@ ANDROID_NDK_DIR=/home/astaroth/android/android-ndk-1.5_r1
 ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/apps/
 ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/sources/
 
-# Set up the src directory as project in the Android native directory.
+# Set up the 'src' directory as project in the Android native directory.
 ln -s $(pwd)/../../src NetHackNative/nethack
 
-# Put a link to the Android makefile in the src directory.
+# Put a link to the Android makefile in the 'src' directory.
 ln -s $(pwd)/NetHackNative/nethack_Android.mk ../../src/Android.mk
+
+# HACK! These are files which are supposed to be automatically generated,
+# but for now, we have stored off a copy in the 'gen' directory. We use
+# symbolic links to get them to the right place where they can be used
+# for the build - this has the benefit of making them easily distinguishable
+# from the true source files.
+ln -s $(pwd)/gen/date.h ../../include/
+ln -s $(pwd)/gen/onames.h ../../include/
+ln -s $(pwd)/gen/pm.h ../../include/
+ln -s $(pwd)/gen/monstr.c ../../src/
+ln -s $(pwd)/gen/vis_tab.c ../../src/
