@@ -2,6 +2,7 @@ package com.nethackff;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -10,7 +11,19 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.view.KeyEvent;
+
+import java.io.BufferedReader;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.Thread;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 class TerminalView extends View
 {
@@ -321,7 +334,97 @@ public class NetHackApp extends Activity implements Runnable
 		TestShutdown();
 	}
 
-	public void onCreate(Bundle savedInstanceState)
+    public void doCommand(String command, String arg0, String arg1)
+    {
+    	try {
+    		// android.os.Exec is not included in android.jar so we need to use reflection.
+    		Class execClass = Class.forName("android.os.Exec");
+    		Method createSubprocess = execClass.getMethod("createSubprocess",
+    		String.class, String.class, String.class, int[].class);
+    		Method waitFor = execClass.getMethod("waitFor", int.class);
+
+    		// Executes the command.
+    		// NOTE: createSubprocess() is asynchronous.
+    		int[] pid = new int[1];
+    		FileDescriptor fd = (FileDescriptor)createSubprocess.invoke(
+    				null, command, arg0, arg1, pid);
+
+    		// Reads stdout.
+    		// NOTE: You can write to stdin of the command using new FileOutputStream(fd).
+    		FileInputStream in = new FileInputStream(fd);
+    		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+    		String output = "";
+    		try {
+    			String line;
+    			while ((line = reader.readLine()) != null) {
+    				output += line + "\n";
+    			}
+    		} catch (IOException e) {
+    			// It seems IOException is thrown when it reaches EOF.
+    		}
+
+    		// Waits for the command to finish.
+    		waitFor.invoke(null, pid[0]);
+    		
+    		// send output to the textbox
+    		//screen.write(output);
+    	} catch (ClassNotFoundException e) {
+    		throw new RuntimeException(e.getMessage());
+    	} catch (SecurityException e) {
+    		throw new RuntimeException(e.getMessage());
+    	} catch (NoSuchMethodException e) {
+    		throw new RuntimeException(e.getMessage());
+    	} catch (IllegalArgumentException e) {
+    		throw new RuntimeException(e.getMessage());
+    	} catch (IllegalAccessException e) {
+    		throw new RuntimeException(e.getMessage());
+    	} catch (InvocationTargetException e) {
+    		throw new RuntimeException(e.getMessage());
+    	}
+	}
+
+    public void copyAsset(String assetname)
+    {
+    	String destname = "/data/data/com.nethackff/" + assetname;
+    	File newasset = new File(destname);
+		try {
+			newasset.createNewFile();
+			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(newasset));
+			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(assetname));
+			int b;
+			while ((b = in.read()) != -1) {
+				out.write(b);
+			}
+			out.flush();
+			out.close();
+			in.close();
+		}
+		catch (IOException ex)
+		{
+			screen.write("Failed to copy file '" + assetname + "'.\n");
+		}
+    }
+
+    public void copyNetHackData()
+    {
+    	AssetManager am = getResources().getAssets();
+    	String assets[] = null;
+    	try
+    	{
+    		assets = am.list("dat");
+
+       		for(int i = 0; i < assets.length; i++)
+       		{
+       			copyAsset("dat/" + assets[i]);
+        	}
+    	}
+    	catch(IOException e)
+    	{
+    		throw new RuntimeException(e.getMessage());
+    	}
+    }
+
+    public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 
@@ -329,7 +432,10 @@ public class NetHackApp extends Activity implements Runnable
 		int height = 22;
 
 		screen = new TerminalView(this, width, height);
-		
+
+		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
+		copyNetHackData();
+
 		if(TestInit(width, height) == 0)
 		{
 			return;
