@@ -31,13 +31,10 @@ ln -s $(pwd)/../../src NetHackNative/nethack
 ln -s $(pwd)/NetHackNative/nethack_Android.mk ../../src/Android.mk
 ln -s $(pwd)/NetHackNative/androidconf.h ../../include/androidconf.h
 
-# HACK! These are files which are supposed to be automatically generated,
-# but for now, we have stored off a copy in the 'gen' directory. We use
-# symbolic links to get them to the right place where they can be used
-# for the build - this has the benefit of making them easily distinguishable
-# from the true source files.
-ln -s $(pwd)/gen/date.h ../../include/
-ln -s $(pwd)/gen/onames.h ../../include/
-ln -s $(pwd)/gen/pm.h ../../include/
-ln -s $(pwd)/gen/monstr.c ../../src/
-ln -s $(pwd)/gen/vis_tab.c ../../src/
+
+# Current procedure:
+# 1. Run 'setup.sh'
+# 2. Go to 'dat' folder, type 'make'.
+# 3. Go to ANDROID_NDK_DIR, type 'make APP=NetHackNative'.
+# 4. Run Eclipse, import project from sys/android/NetHackApp.
+# 5. Build and launch application.
