@@ -18,10 +18,10 @@ HACKCSRC = allmain.c alloc.c apply.c artifact.c attrib.c ball.c bones.c \
 	   u_init.c uhitm.c vault.c version.c vision.c weapon.c were.c wield.c \
 	   windows.c wizard.c worm.c worn.c write.c zap.c \
 	   monstr.c vis_tab.c \
-	   ../../../unix/unixunix.c ../../../share/ioctl.c \
-	   ../../../share/unixtty.c \
-	   ../../../../win/tty/getline.c ../../../../win/tty/termcap.c \
-	   ../../../../win/tty/topl.c ../../../../win/tty/wintty.c
+	   ../sys/unix/unixunix.c ../sys/share/ioctl.c \
+	   ../sys/share/unixtty.c \
+	   ../win/tty/getline.c ../win/tty/termcap.c \
+	   ../win/tty/topl.c ../win/tty/wintty.c
 
 # - REMOVED FROM ABOVE: monst.c objects.c
 # - ADDED: monstr.c vis_tab.c
