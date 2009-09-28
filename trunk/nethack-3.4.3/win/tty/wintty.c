@@ -272,6 +272,7 @@ char** argv;
 #if defined(UNIX) || defined(VMS)
     setbuf(stdout,obuf);
 #endif
+
     gettty();
 
     /* to port dependant tty setup */
@@ -411,6 +412,7 @@ give_up:	/* Quit */
 			lastch = thisch;
 		    }
 		}
+
 		any.a_int = pick_role(flags.initrace, flags.initgend,
 				    flags.initalign, PICK_RANDOM)+1;
 		if (any.a_int == 0)	/* must be non-zero */
@@ -422,6 +424,7 @@ give_up:	/* Quit */
 				"Quit", MENU_UNSELECTED);
 		Sprintf(pbuf, "Pick a role for your %s", plbuf);
 		end_menu(win, pbuf);
+
 		n = select_menu(win, PICK_ONE, &selected);
 		destroy_nhwindow(win);
 
@@ -677,6 +680,7 @@ tty_askname()
 		 wins[BASE_WINDOW]->cury - 1);
 	ct = 0;
 	while((c = tty_nhgetch()) != '\n') {
+
 		if(c == EOF) error("End of input\n");
 		if (c == '\033') { ct = 0; break; }  /* continue outer loop */
 #if defined(WIN32CON)
@@ -2169,9 +2173,12 @@ tty_select_menu(window, how, menu_list)
     *menu_list = (menu_item *) 0;
     cw->how = (short) how;
     morc = 0;
+
     tty_display_nhwindow(window, TRUE);
     cancelled = !!(cw->flags & WIN_CANCELLED);
     tty_dismiss_nhwindow(window);	/* does not destroy window data */
+
+
 
     if (cancelled) {
 	n = -1;
@@ -2179,6 +2186,8 @@ tty_select_menu(window, how, menu_list)
 	for (n = 0, curr = cw->mlist; curr; curr = curr->next)
 	    if (curr->selected) n++;
     }
+
+
 
     if (n > 0) {
 	*menu_list = (menu_item *) alloc(n * sizeof(menu_item));
@@ -2189,6 +2198,8 @@ tty_select_menu(window, how, menu_list)
 		mi++;
 	    }
     }
+
+
 
     return n;
 }
@@ -2528,6 +2539,12 @@ tty_nhgetch()
      */
     if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
 	    wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
+
+#ifdef ANDROID
+
+	i = android_getch();
+#else
+
 #ifdef UNIX
     i = ((++nesting == 1) ? tgetch() :
 	 (read(fileno(stdin), (genericptr_t)&nestbuf,1) == 1 ? (int)nestbuf :
@@ -2536,6 +2553,9 @@ tty_nhgetch()
 #else
     i = tgetch();
 #endif
+
+#endif	/* ANDROID */
+
     if (!i) i = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
     if (ttyDisplay && ttyDisplay->toplin == 1)
 	ttyDisplay->toplin = 2;
