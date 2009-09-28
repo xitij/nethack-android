@@ -7,6 +7,7 @@ rm $ANDROID_NDK_DIR/apps/NetHackNative
 rm $ANDROID_NDK_DIR/sources/NetHackNative
 rm NetHackNative/nethack
 rm ../../src/Android.mk
+rm ../../include/androidconf.h
 
 # Automatically generated files, which we currently fake with
 # symbolic links.

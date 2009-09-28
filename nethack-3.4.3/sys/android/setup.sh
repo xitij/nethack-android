@@ -26,8 +26,10 @@ ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/sources/
 # Set up the 'src' directory as project in the Android native directory.
 ln -s $(pwd)/../../src NetHackNative/nethack
 
-# Put a link to the Android makefile in the 'src' directory.
+# Put a link to the Android makefile in the 'src' directory,
+# and link in other Android-specific files into the source tree.
 ln -s $(pwd)/NetHackNative/nethack_Android.mk ../../src/Android.mk
+ln -s $(pwd)/NetHackNative/androidconf.h ../../include/androidconf.h
 
 # HACK! These are files which are supposed to be automatically generated,
 # but for now, we have stored off a copy in the 'gen' directory. We use
