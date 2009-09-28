@@ -7,7 +7,7 @@
 #ifndef TCAP_H
 #define TCAP_H
 
-#ifndef MICRO
+#if !defined(MICRO) && !defined(ANDROID)
 # define TERMLIB	/* include termcap code */
 #endif
 
