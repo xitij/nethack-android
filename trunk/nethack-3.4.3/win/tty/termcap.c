@@ -114,6 +114,12 @@ int *wid, *hgt;
 #ifndef ANSI_DEFAULT
 		error("Can't get TERM.");
 #else
+
+#ifdef ANDROID
+	/* Not sure */
+	CO = 80; LI = 24;
+#endif
+
 # ifdef TOS
 	{
 		CO = 80; LI = 25;
@@ -727,7 +733,7 @@ static const short tmspc10[] = {		/* from termcap */
 void
 tty_delay_output()
 {
-#if defined(MICRO)
+#if defined(MICRO) || defined(ANDROID)
 	register int i;
 #endif
 #ifdef TIMED_DELAY
@@ -737,7 +743,7 @@ tty_delay_output()
 		return;
 	}
 #endif
-#if defined(MICRO)
+#if defined(MICRO) || defined(ANDROID)
 	/* simulate the delay with "cursor here" */
 	for (i = 0; i < 3; i++) {
 		cmov(ttyDisplay->curx, ttyDisplay->cury);
