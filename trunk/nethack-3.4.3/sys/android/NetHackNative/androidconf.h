@@ -51,9 +51,8 @@ extern int android_getch(void);
 #define putchar android_putchar
 #undef puts
 #define puts android_puts
-
 #undef getchar
-#define getchar UNDEFINED_getchar
+#define getchar android_getch
 
 #if 0
 #undef stdin
