@@ -37,7 +37,8 @@ void error(int status, int errnum, const char *format, ...)
 
 #endif
 
-void xputc(int c)
+
+void android_putchar(int c)
 {
 	/* TODO: Thread protection */
 
@@ -49,7 +50,7 @@ void xputc(int c)
 }
 
 
-void xputs(const char *s)
+void android_puts(const char *s)
 {
 	/* TODO: Thread protection */
 
@@ -59,6 +60,7 @@ void xputs(const char *s)
 		xputc((int)(*s++));
 	}
 }
+
 
 int android_getch(void)
 {
