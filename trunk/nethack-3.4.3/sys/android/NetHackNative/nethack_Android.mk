@@ -28,9 +28,11 @@ HACKCSRC = allmain.c alloc.c apply.c artifact.c attrib.c ball.c bones.c \
 # - ADDED: unixunix unixtty
 # - ADDED: ioctl.c
 LOCAL_MODULE    := nethack
-LOCAL_SRC_FILES := javainterface.c monst.c objects.c $(HACKCSRC)
 
-LOCAL_CFLAGS	:= -I$(LOCAL_PATH)/include
+ANDROID_NATIVE_DIR := ../sys/android/NetHackNative
+LOCAL_SRC_FILES :=  $(ANDROID_NATIVE_DIR)/androidmain.c monst.c objects.c $(HACKCSRC)
+
+LOCAL_CFLAGS	:= -I$(LOCAL_PATH)/../include
 
 
 include $(BUILD_SHARED_LIBRARY)
