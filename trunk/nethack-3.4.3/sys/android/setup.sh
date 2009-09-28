@@ -22,3 +22,9 @@ ANDROID_NDK_DIR=/home/astaroth/android/android-ndk-1.5_r1
 
 ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/apps/
 ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/sources/
+
+# Set up the src directory as project in the Android native directory.
+ln -s $(pwd)/../../src NetHackNative/nethack
+
+# Put a link to the Android makefile in the src directory.
+ln -s $(pwd)/NetHackNative/nethack_Android.mk ../../src/Android.mk
