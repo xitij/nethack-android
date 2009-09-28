@@ -42,13 +42,15 @@
 #endif
 
 
+extern void android_putchar(int c);
+extern void android_puts(const char *s);
+extern int android_getch(void);
+
 /* Is there a better way to remap this? I sure hope so. */
 #undef putchar
-#define putchar xputc
+#define putchar android_putchar
 #undef puts
-#define puts xputs
-
-extern int android_getch(void);
+#define puts android_puts
 
 #undef getchar
 #define getchar UNDEFINED_getchar
