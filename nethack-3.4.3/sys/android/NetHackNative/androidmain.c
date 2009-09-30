@@ -1,4 +1,5 @@
 #include "hack.h"
+#include "dlb.h"
 
 #include <string.h>
 #include <jni.h>
@@ -18,6 +19,11 @@ static char s_ReceiveBuff[RECEIVEBUFFSZ + 1];
 static char s_SendBuff[SENDBUFFSZ + 1];
 static int s_ReceiveCnt;
 static int s_SendCnt;
+
+static void NDECL(wd_message);
+#ifdef WIZARD
+static boolean wiz_error_flag = FALSE;
+#endif
 
 #if 0
 
@@ -86,6 +92,8 @@ pthread_t g_ThreadHandle;
 
 static void *sThreadFunc()
 {
+	int fd;
+
 	int argc = 1;
 	char *argv[] = {	"nethack"	};
 
@@ -100,12 +108,28 @@ static void *sThreadFunc()
 
 	init_nhwindows(&argc,argv);
 
-/*
-xputs("process_options\n");
-	process_options(argc, argv);
-*/
-
 	askname();
+
+#ifdef WIZARD
+	if(!wizard) {
+#endif
+		/*
+		 * check for multiple games under the same name
+		 * (if !locknum) or check max nr of players (otherwise)
+		 */
+		(void) signal(SIGQUIT,SIG_IGN);
+		(void) signal(SIGINT,SIG_IGN);
+		if(!locknum)
+			Sprintf(lock, "%d%s", (int)getuid(), plname);
+		getlock();
+#ifdef WIZARD
+	} else {
+		Sprintf(lock, "%d%s", (int)getuid(), plname);
+		getlock();
+	}
+#endif /* WIZARD */
+
+	dlb_init();	/* must be before newgame() */
 
 	/*
 	 * Initialization of the boundaries of the mazes
@@ -124,34 +148,60 @@ xputs("process_options\n");
 	 */
 	vision_init();
 
-
 	display_gamewindows();
 
+	if ((fd = restore_saved_game()) >= 0) {
 
-		player_selection();
-		newgame();
-
-xputs("Done!\n");
-
-#if 0
-	while(1)
-	{
-		if(s_ReceiveCnt > 0)
-		{
-			for(i = 0; i < s_ReceiveCnt; i++)
-			{
-				xputc((int)(s_ReceiveBuff[i]));
-			}
-			s_ReceiveCnt = 0;
-		}
-
-		usleep(1000);	/* 1 ms */
-		sprintf(buff, "%d\n", i);
-		xputs(buff);
-		sleep(1);
-	}
+#ifdef WIZARD
+		/* Since wizard is actually flags.debug, restoring might
+		 * overwrite it.
+		 */
+		boolean remember_wiz_mode = wizard;
 #endif
-	return NULL;
+		const char *fq_save = fqname(SAVEF, SAVEPREFIX, 1);
+
+		(void) chmod(fq_save,0);	/* disallow parallel restores */
+		(void) signal(SIGINT, (SIG_RET_TYPE) done1);
+#ifdef NEWS
+		if(iflags.news) {
+		    display_file(NEWS, FALSE);
+		    iflags.news = FALSE; /* in case dorecover() fails */
+		}
+#endif
+		pline("Restoring save file...");
+		mark_synch();	/* flush output */
+		if(!dorecover(fd))
+			goto not_recovered;
+#ifdef WIZARD
+		if(!wizard && remember_wiz_mode) wizard = TRUE;
+#endif
+		check_special_room(FALSE);
+		wd_message();
+
+		if (discover || wizard) {
+			if(yn("Do you want to keep the save file?") == 'n')
+			    (void) delete_savefile();
+			else {
+			    (void) chmod(fq_save,FCMASK); /* back to readable */
+			    compress(fq_save);
+			}
+		}
+		flags.move = 0;
+	} else {
+not_recovered:
+		player_selection();
+
+		newgame();
+		wd_message();
+
+		flags.move = 0;
+		set_wear();
+		(void) pickup(1);
+	}
+
+	moveloop();
+	exit(EXIT_SUCCESS);
+	return(0);
 }
 
 
@@ -222,6 +272,24 @@ jstring Java_com_nethackff_NetHackApp_TerminalReceive(JNIEnv *env,
 	jstring str = (*env)->NewStringUTF(env, s_SendBuff);
 	s_SendCnt = 0;
 	return str;
+}
+
+static void
+wd_message()
+{
+#ifdef WIZARD
+	if (wiz_error_flag) {
+		pline("Only user \"%s\" may access debug (wizard) mode.",
+# ifndef KR1ED
+			WIZARD);
+# else
+			WIZARD_NAME);
+# endif
+		pline("Entering discovery mode instead.");
+	} else
+#endif
+	if (discover)
+		You("are in non-scoring discovery mode.");
 }
 
 /* End of file */
