@@ -92,7 +92,7 @@ getlock()
 	register int i = 0, fd, c;
 	const char *fq_lock;
 
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) && !defined(ANDROID)
 	/* idea from rpick%ucqais@uccba.uc.edu
 	 * prevent automated rerolling of characters
 	 * test input (fd0) so that tee'ing output to get a screen dump still
