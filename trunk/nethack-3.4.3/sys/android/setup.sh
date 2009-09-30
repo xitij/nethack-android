@@ -18,8 +18,6 @@ cd NetHackApp
 ln -s ../NetHackNative/libs
 cd ..
 
-pwd
-
 cd NetHackApp/assets
 ln -s ../../../../dat
 cd ../../
