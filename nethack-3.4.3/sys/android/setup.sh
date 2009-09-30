@@ -40,7 +40,6 @@ ln -s $(pwd)/NetHackNative/androidconf.h ../../include/androidconf.h
 # idea to do the symbolic link thing to the 'dat' directory, maybe
 # we should treat the 'assets' directory for the application more
 # like the install directory?
-pwd
 touch ../../dat/perm
 touch ../../dat/record
 touch ../../dat/logfile
