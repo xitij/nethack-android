@@ -9,11 +9,3 @@ rm NetHackNative/nethack
 rm NetHackApp/assets/dat
 rm ../../src/Android.mk
 rm ../../include/androidconf.h
-
-# Automatically generated files, which we currently fake with
-# symbolic links.
-rm ../../include/date.h
-rm ../../include/onames.h
-rm ../../include/pm.h
-rm ../../src/monstr.c
-rm ../../src/vis_tab.c
