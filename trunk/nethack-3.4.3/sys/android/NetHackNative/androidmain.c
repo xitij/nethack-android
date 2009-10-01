@@ -63,7 +63,7 @@ void android_puts(const char *s)
 	const char *ptr = s;
 	while(*s)
 	{
-		xputc((int)(*s++));
+		android_putchar((int)(*s++));
 	}
 }
 
