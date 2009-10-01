@@ -577,7 +577,11 @@ xputs(s)
 const char *s;
 {
 # ifndef TERMLIB
+#  ifdef ANDROID
+	android_puts(s);
+#  else
 	(void) fputs(s, stdout);
+#  endif
 # else
 #  if defined(NHSTDC) || defined(ULTRIX_PROTO)
 	tputs(s, 1, (int (*)())xputc);
