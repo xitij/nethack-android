@@ -667,16 +667,41 @@ public class NetHackApp extends Activity implements Runnable
 	/* For debugging only. */
 	TerminalView dbgTerminalTranscript;
 
+	public boolean altKeyDown = false;
+	public boolean shiftKeyDown = false;
+	
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
-		if(super.onKeyDown(keyCode, event))
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
 		{
+			altKeyDown = true;
+			return true;
+		}
+		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
+		{
+			shiftKeyDown = true;
 			return true;
 		}
 		String s = "";
-		s += (char)event.getUnicodeChar();
+		s += (char)event.getUnicodeChar(
+				(shiftKeyDown ? KeyEvent.META_SHIFT_ON : 0) |
+				(altKeyDown ? KeyEvent.META_ALT_ON : 0)
+			);
 		TerminalSend(s);
 		screen.invalidate();
+		return true;
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent event)
+	{
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
+		{
+			altKeyDown = false;
+		}
+		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
+		{
+			shiftKeyDown = false;
+		}
 		return true;
 	}
 
