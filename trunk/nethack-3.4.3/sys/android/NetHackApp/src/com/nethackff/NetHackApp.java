@@ -683,12 +683,17 @@ public class NetHackApp extends Activity implements Runnable
 			return true;
 		}
 		String s = "";
-		s += (char)event.getUnicodeChar(
+
+		char c = (char)event.getUnicodeChar(
 				(shiftKeyDown ? KeyEvent.META_SHIFT_ON : 0) |
 				(altKeyDown ? KeyEvent.META_ALT_ON : 0)
 			);
-		TerminalSend(s);
-		screen.invalidate();
+		if(c != 0)
+		{
+			s += c;
+			TerminalSend(s);
+			screen.invalidate();
+		}
 		return true;
 	}
 
