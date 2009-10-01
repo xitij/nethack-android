@@ -6,11 +6,12 @@ import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
-import android.view.View;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.view.KeyEvent;
+import android.view.View;
+import android.widget.LinearLayout;
 
 import java.io.BufferedReader;
 import java.io.BufferedInputStream;
@@ -30,17 +31,102 @@ class TerminalView extends View
 	String outputText;
 
 	private char[] textBuffer;
+	private char[] fmtBuffer;
 	int numRows;
 	int numColumns;
 
 	int currentRow;
 	int currentColumn;
 
+	protected void onMeasure(int widthmeasurespec, int heightmeasurespec)
+	{
+		int minheight = getSuggestedMinimumHeight();
+		int minwidth = getSuggestedMinimumWidth(); 
+
+		// TODO: Prevent duplication
+		Paint paint = new Paint();
+		paint.setTypeface(Typeface.MONOSPACE);
+		paint.setTextSize(10);
+		paint.setAntiAlias(true);
+		int charheight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
+		int charwidth = (int)paint.measureText("X", 0, 1);
+
+		int width, height;
+		width = numColumns*charwidth;
+		height = numRows*charheight;
+
+		height += 2;	// MAGIC!
+		
+		if(width < minwidth)
+		{
+			width = minwidth;
+		}
+		if(height < minheight)
+		{
+			height = minheight;
+		}
+		
+		int modex = MeasureSpec.getMode(widthmeasurespec);
+		int modey = MeasureSpec.getMode(heightmeasurespec);
+		if(modex == MeasureSpec.AT_MOST)
+		{
+			width = Math.min(MeasureSpec.getSize(widthmeasurespec), width);
+		}
+		else if(modex == MeasureSpec.EXACTLY)
+		{
+			width = MeasureSpec.getSize(widthmeasurespec);
+		}
+		if(modey == MeasureSpec.AT_MOST)
+		{
+			height = Math.min(MeasureSpec.getSize(heightmeasurespec), height);
+		}
+		else if(modey == MeasureSpec.EXACTLY)
+		{
+			height = MeasureSpec.getSize(heightmeasurespec);
+		}
+		setMeasuredDimension(width, height);
+	}
+	
+	public static final int kColBlack = 0;
+	public static final int kColRed = 1;
+	public static final int kColGreen = 2;
+	public static final int kColYellow = 3;
+	public static final int kColBlue= 4;
+	public static final int kColMagenta = 5;
+	public static final int kColCyan = 6;
+	public static final int kColWhite = 7;
+
+	int colorForeground = kColWhite, colorBackground = kColBlack;
+
+	char encodeFormat(int foreground, int background, boolean reverse)
+	{
+		if(reverse)
+		{
+			foreground = 7 - foreground;
+			background = 7 - background;
+		}
+		return (char)((foreground << 3) + background);
+	}
+
+	int decodeFormatForeground(char fmt)
+	{
+		return (fmt >> 3) & 7;
+	}
+
+	int decodeFormatBackground(char fmt)
+	{
+		return fmt & 7;
+	}
+	char encodeCurrentFormat()
+	{
+		return encodeFormat(colorForeground, colorBackground, grReverseVideo);
+	}
 	void clearScreen()
 	{
 		for(int i = 0; i < numRows*numColumns; i++)
 		{
 			textBuffer[i] = ' ';
+			fmtBuffer[i] = encodeCurrentFormat();
 		}
 	}
 
@@ -91,11 +177,13 @@ class TerminalView extends View
 				for(int col = 0; col < numColumns; col++)
 				{
 					textBuffer[(row - 1)*numColumns + col] = textBuffer[row*numColumns + col];
+					fmtBuffer[(row - 1)*numColumns + col] = fmtBuffer[row*numColumns + col];
 				}
 			}
 			for(int col = 0; col < numColumns; col++)
 			{
 				textBuffer[(numRows - 1)*numColumns + col] = ' ';
+				fmtBuffer[(numRows - 1)*numColumns + col] = encodeCurrentFormat();
 			}
 			currentRow--;
 		}
@@ -111,6 +199,7 @@ class TerminalView extends View
 		if(currentColumn < numColumns && currentRow < numRows)
 		{
 			textBuffer[currentRow*numColumns + currentColumn] = c;
+			fmtBuffer[currentRow*numColumns + currentColumn] = encodeCurrentFormat();
 		}
 		currentColumn++;
 	}
@@ -120,6 +209,7 @@ class TerminalView extends View
 		if(col >= 0 && col < numColumns && row >= 0 && row < numRows)
 		{
 			textBuffer[row*numColumns + col] = c;
+			fmtBuffer[row*numColumns + col] = encodeCurrentFormat();
 		}
 	}
 	public void writeRawStr(String s)
@@ -226,15 +316,38 @@ class TerminalView extends View
 		}
 		lineFeed();
 	}
+
+	public boolean grReverseVideo = false;
 	
+	public void selectGraphicRendition()
+	{
+		int m = getEscSeqArgVal(0);
+		switch(m)
+		{
+			case 0:
+				grReverseVideo = false;
+				break;
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+				reportUnknownSequence();
+				break;
+			case 7:
+				grReverseVideo = true;
+				break;
+			default:
+				reportUnknownSequence();
+				break;
+		}
+	}
+
 	public void updateEscapeSequenceLeftSquareBracket(char c)
 	{
 		switch(c)
 		{
-/*
-TODO: [7m
-[0m
- */
 			case 'B':	// Move cursor down n lines
 				moveCursorRel(0, getEscSeqArgVal(1));
 				escapeState = ESC_NONE;
@@ -244,7 +357,7 @@ TODO: [7m
 				escapeState = ESC_NONE;
 				return;
 			case 'D':	// Move cursor left n lines 
-				moveCursorRel(getEscSeqArgVal(1), 0);
+				moveCursorRel(-getEscSeqArgVal(1), 0);
 				escapeState = ESC_NONE;
 				return;
 			case 'A':	// Move cursor up n lines
@@ -297,6 +410,10 @@ TODO: [7m
 				}
 				escapeState = ESC_NONE;
 				return;
+			case 'm':		// Select graphic rendition
+				selectGraphicRendition();
+				escapeState = ESC_NONE;
+				return;
 		}
 		if(c >= '0' && c <= '9')
 		{
@@ -309,6 +426,7 @@ TODO: [7m
 		else if(c == ';')
 		{
 			escSeqArgCnt++;
+			escSeqArgVal[escSeqArgCnt] = 0;
 		}
 		else
 		{
@@ -445,14 +563,12 @@ reportUnknownChar(c);
 		numColumns = columns;
 		
 		textBuffer = new char[rows*columns];
+		fmtBuffer = new char[rows*columns];
 
 		clearScreen();
 
 		currentRow = 0;
 		currentColumn = 0;
-
-		writeRawStr("TEST TEST");
-		lineFeed();
 	}
 
 	public String getContents()
@@ -477,11 +593,44 @@ reportUnknownChar(c);
 		}
 		return r;
 	}
+
+	void setPaintColor(Paint paint, int col)
+	{
+		switch(col)
+		{
+			case kColBlack:
+				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				break;
+			case kColRed:
+				paint.setARGB(0xff, 0xff, 0x00, 0x00);
+				break;
+			case kColGreen:
+				paint.setARGB(0xff, 0x00, 0xff, 0x00);
+				break;
+			case kColYellow:
+				paint.setARGB(0xff, 0xff, 0xff, 0x00);
+				break;
+			case kColBlue:
+				paint.setARGB(0xff, 0x00, 0x00, 0xff);
+				break;
+			case kColMagenta:
+				paint.setARGB(0xff, 0xff, 0x00, 0xff);
+				break;
+			case kColCyan:
+				paint.setARGB(0xff, 0x00, 0xff, 0xff);
+				break;
+			case kColWhite:
+				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				break;
+			default:
+				paint.setARGB(0x80, 0x80, 0x80, 0x80);
+				break;
+		}
+	}
 	
 	protected void onDraw(Canvas canvas)
 	{
 		Paint paint = new Paint();
-		paint.setARGB(255, 255, 255, 255);
 		paint.setTypeface(Typeface.MONOSPACE);
 		paint.setTextSize(10);
 		paint.setAntiAlias(true);
@@ -490,6 +639,7 @@ reportUnknownChar(c);
 		char tmp[] = {' ', ' '};
 		int x = 0, y = 0;
 		y += charheight;
+		int ybackgroffs = 3;
 		for(int row = 0; row < numRows; row++)
 		{
 			x = 0;
@@ -497,6 +647,10 @@ reportUnknownChar(c);
 			{
 				tmp[0] = textBuffer[row*numColumns + col];
 				tmp[1] = '\0';
+				char fmt = fmtBuffer[row*numColumns + col];
+				setPaintColor(paint, decodeFormatBackground(fmt));
+				canvas.drawRect(x, y - charheight + ybackgroffs, x + charwidth, y + ybackgroffs, paint);
+				setPaintColor(paint, decodeFormatForeground(fmt));
 				canvas.drawText(tmp, 0, 1, (float)x, (float)y, paint);
 				x += charwidth;
 			}
@@ -509,7 +663,10 @@ reportUnknownChar(c);
 public class NetHackApp extends Activity implements Runnable
 {
 	TerminalView screen;
-	
+
+	/* For debugging only. */
+	TerminalView dbgTerminalTranscript;
+
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
 		if(super.onKeyDown(keyCode, event))
@@ -530,6 +687,23 @@ public class NetHackApp extends Activity implements Runnable
 			String s = TerminalReceive();
 			if(s.length() != 0)
 			{
+				for(int i = 0; i < s.length(); i++)
+				{
+					char c = s.charAt(i);
+					if(c < 32)
+					{
+						dbgTerminalTranscript.writeRaw('^');
+						int a = c/10;
+						int b = c - a*10;
+						dbgTerminalTranscript.writeRaw((char)('0' + a));
+						dbgTerminalTranscript.writeRaw((char)('0' + b));
+					}
+					else
+					{
+						dbgTerminalTranscript.writeRaw(c);
+						dbgTerminalTranscript.invalidate();
+					}
+				}
 				screen.write(s);
 				screen.invalidate();
 			}
@@ -655,6 +829,15 @@ public class NetHackApp extends Activity implements Runnable
 
 		screen = new TerminalView(this, width, height);
 
+		dbgTerminalTranscript = new TerminalView(this, 80, 2);
+		dbgTerminalTranscript.colorForeground = TerminalView.kColRed;
+
+		LinearLayout layout = new LinearLayout(this);
+		layout.setOrientation(LinearLayout.VERTICAL);
+
+		//layout.addView(dbgTerminalTranscript);
+		layout.addView(screen);
+		
 		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
 		copyNetHackData();
 
@@ -663,7 +846,7 @@ public class NetHackApp extends Activity implements Runnable
 			return;
 		}
 
-		setContentView(screen);
+		setContentView(layout);
 
         Thread thread = new Thread(this);
         thread.start();
