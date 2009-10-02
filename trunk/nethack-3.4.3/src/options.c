@@ -69,7 +69,7 @@ static struct Bool_Opt
 	{"checkspace", (boolean *)0, FALSE, SET_IN_FILE},
 #endif
 	{"cmdassist", &iflags.cmdassist, TRUE, SET_IN_GAME},
-# if defined(MICRO) || defined(WIN32)
+# if defined(MICRO) || defined(WIN32) || defined(ANDROID)
 	{"color",         &iflags.wc_color,TRUE, SET_IN_GAME},		/*WC*/
 # else	/* systems that support multiple terminals, many monochrome */
 	{"color",         &iflags.wc_color, FALSE, SET_IN_GAME},	/*WC*/
