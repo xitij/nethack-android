@@ -1,14 +1,10 @@
 #ifndef ANDROIDCONF_H
 #define ANDROIDCONF_H
 
-#if 0
-#define MICRO		/* prevents TERMLIB from being defined, maybe */
-#endif
+#define TEXTCOLOR		/* Use colored monsters and objects */
 
 // TODO
 #if 0
-
-#define TEXTCOLOR		/* Use colored monsters and objects */
 #define HACKFONT		/* Use special hack.font */
 #define SHELL			/* Have a shell escape command (!) */
 #define MAIL			/* Get mail at unexpected occasions */
@@ -41,6 +37,10 @@
 # define ANSI_DEFAULT
 #endif
 
+#undef COMPRESS
+#undef COMPRESS_EXTENSION
+#define COMPRESS "/system/bin/gzip"		/* gzip compression */
+#define COMPRESS_EXTENSION ".gz" 		/* normal gzip extension */
 
 extern void android_putchar(int c);
 extern void android_puts(const char *s);
