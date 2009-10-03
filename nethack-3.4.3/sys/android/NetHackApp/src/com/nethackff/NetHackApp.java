@@ -98,19 +98,27 @@ class TerminalView extends View
 
 	int colorForeground = kColWhite, colorBackground = kColBlack;
 
-	char encodeFormat(int foreground, int background, boolean reverse)
+	char encodeFormat(int foreground, int background, boolean reverse, boolean bright, boolean underline)
 	{
 		if(reverse)
 		{
 			foreground = 7 - foreground;
 			background = 7 - background;
 		}
+		if(bright)
+		{
+			foreground += 8;
+		}
+		if(underline)
+		{
+			foreground += 16;
+		}
 		return (char)((foreground << 3) + background);
 	}
 
 	int decodeFormatForeground(char fmt)
 	{
-		return (fmt >> 3) & 7;
+		return (fmt >> 3) & 31;
 	}
 
 	int decodeFormatBackground(char fmt)
@@ -119,7 +127,7 @@ class TerminalView extends View
 	}
 	char encodeCurrentFormat()
 	{
-		return encodeFormat(colorForeground, colorBackground, grReverseVideo);
+		return encodeFormat(colorForeground, colorBackground, grReverseVideo, grBright, grUnderline);
 	}
 	void clearScreen()
 	{
@@ -187,6 +195,8 @@ class TerminalView extends View
 			}
 			currentRow--;
 		}
+
+
 	}
 
 	public void writeRaw(char c)
@@ -319,6 +329,7 @@ class TerminalView extends View
 
 	public boolean grReverseVideo = false;
 	public boolean grBright = false;
+	public boolean grUnderline = false;
 
 	public void selectGraphicRendition(int arg)
 	{
@@ -339,6 +350,7 @@ class TerminalView extends View
 				colorForeground = kColWhite;
 				colorBackground = kColBlack;
 				grBright = false;	// Not sure
+				grUnderline = false;
 				break;
 			case 1:
 				grBright = true;
@@ -347,7 +359,11 @@ class TerminalView extends View
 				grBright = false;
 				break;
 			case 3:
+				reportUnknownSequence();
+				break;
 			case 4:
+				grUnderline = true;
+				break;
 			case 5:
 			case 6:
 				reportUnknownSequence();
@@ -528,52 +544,6 @@ reportUnknownChar(c);
 		{
 			updateEscapeSequence(c);
 		}
-/*
-			case 0:	// NUL
-				break;
-			case 7: // BEL
-				break;
-			case 8:	// BS
-				// TODO
-				break;
-			case 9:	// HT
-				// TODO
-				break;
-			case 13:
-				// TODO
-				break;
-			case 10:	// CR
-			case 11:	// VT
-			case 12:	// LF
-				lineFeed();
-				break;
-			case 14:	// SO
-				// TODO
-				break;
-			case 15:	// SI
-				// TODO
-				break;
-			case 24:	// CAN
-			case 26:	// SUB
-				// TODO
-				break;
-			case 0x9b:	// CSI
-				break;
-			default:
-				if(escapeState == ESC_NONE)
-				{
-					if(c >= 32)
-					{
-						writeRaw(c);
-					}
-				}
-				else
-				{
-					updateEscapeSequence(c);
-				}
-				break;
-		}
-*/
 	}
 
 	public void write(String s)
@@ -626,7 +596,59 @@ reportUnknownChar(c);
 		return r;
 	}
 
-	void setPaintColor(Paint paint, int col)
+	void setPaintColorForeground(Paint paint, int col)
+	{
+		if((col & 8) != 0)
+		{
+			paint.setFakeBoldText(true);
+			col &= ~8;
+		}
+		else
+		{
+			paint.setFakeBoldText(false);
+		}
+		if((col & 16) != 0)
+		{
+			paint.setUnderlineText(true);
+			col &= ~16;
+		}
+		else
+		{
+			paint.setUnderlineText(false);
+		}
+		switch(col)
+		{
+			case kColBlack:
+				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				break;
+			case kColRed:
+				paint.setARGB(0xff, 0xff, 0x00, 0x00);
+				break;
+			case kColGreen:
+				paint.setARGB(0xff, 0x00, 0xff, 0x00);
+				break;
+			case kColYellow:
+				paint.setARGB(0xff, 0xff, 0xff, 0x00);
+				break;
+			case kColBlue:
+				paint.setARGB(0xff, 0x00, 0x00, 0xff);
+				break;
+			case kColMagenta:
+				paint.setARGB(0xff, 0xff, 0x00, 0xff);
+				break;
+			case kColCyan:
+				paint.setARGB(0xff, 0x00, 0xff, 0xff);
+				break;
+			case kColWhite:
+				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				break;
+			default:
+				paint.setARGB(0x80, 0x80, 0x80, 0x80);
+				break;
+		}
+	}
+
+	void setPaintColorBackground(Paint paint, int col)
 	{
 		switch(col)
 		{
@@ -659,7 +681,7 @@ reportUnknownChar(c);
 				break;
 		}
 	}
-	
+
 	protected void onDraw(Canvas canvas)
 	{
 		Paint paint = new Paint();
@@ -668,28 +690,70 @@ reportUnknownChar(c);
 		paint.setAntiAlias(true);
 		int charheight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
 		int charwidth = (int)paint.measureText("X", 0, 1);
-		char tmp[] = {' ', ' '};
-		int x = 0, y = 0;
-		y += charheight;
+//		char tmp[] = {' ', ' '};
+		int x, y;
+		x = 0;
+		y = charheight;
 		int ybackgroffs = 3;
+
 		for(int row = 0; row < numRows; row++)
 		{
 			x = 0;
-			for(int col = 0; col < numColumns; col++)
+			int currentx1 = -1;
+			int currentcolor = -1;
+			for(int col = 0; col < numColumns; col++, x += charwidth)
 			{
-				tmp[0] = textBuffer[row*numColumns + col];
-				tmp[1] = '\0';
 				char fmt = fmtBuffer[row*numColumns + col];
-// TEMP - disabled for now for speed
-//				setPaintColor(paint, decodeFormatBackground(fmt));
-//				canvas.drawRect(x, y - charheight + ybackgroffs, x + charwidth, y + ybackgroffs, paint);
-				setPaintColor(paint, decodeFormatForeground(fmt));
-				canvas.drawText(tmp, 0, 1, (float)x, (float)y, paint);
-				x += charwidth;
+				int color = decodeFormatBackground(fmt);
+				if(color == currentcolor)
+				{
+					continue;
+				}
+				if(currentx1 >= 0)
+				{
+					setPaintColorBackground(paint, currentcolor);
+					canvas.drawRect(currentx1, y - charheight + ybackgroffs, x, y + ybackgroffs, paint);
+				}
+				currentx1 = x;
+				currentcolor = color;
 			}
+			setPaintColorBackground(paint, currentcolor);
+			canvas.drawRect(currentx1, y - charheight + ybackgroffs, x, y + ybackgroffs, paint);
 			y += charheight;
 		}
-	}
+
+		x = 0;
+		y = charheight;
+		for(int row = 0; row < numRows; row++)
+		{
+			x = 0;
+			int currentx1 = -1;
+			int currentcolor = -1;
+			String currentstr = "";
+			for(int col = 0; col < numColumns; col++, x += charwidth)
+			{
+				char fmt = fmtBuffer[row*numColumns + col];
+				int color = decodeFormatForeground(fmt);
+				char c = textBuffer[row*numColumns + col];
+				if(color == currentcolor)
+				{
+					currentstr += c; 
+					continue;
+				}
+				if(currentx1 >= 0)
+				{
+					setPaintColorForeground(paint, currentcolor);
+					canvas.drawText(currentstr, 0, currentstr.length(), (float)currentx1, (float)y, paint);
+				}
+				currentx1 = x;
+				currentcolor = color;
+				currentstr = "" + c;
+			}
+			setPaintColorForeground(paint, currentcolor);
+			canvas.drawText(currentstr, 0, currentstr.length(), (float)currentx1, (float)y, paint);
+			y += charheight;
+		}
+}
 }
 
 
@@ -900,7 +964,7 @@ public class NetHackApp extends Activity implements Runnable
 
 		//layout.addView(dbgTerminalTranscript);
 		layout.addView(screen);
-		
+
 		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
 		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat/save", "");
 		copyNetHackData();
@@ -912,8 +976,8 @@ public class NetHackApp extends Activity implements Runnable
 
 		setContentView(layout);
 
-        Thread thread = new Thread(this);
-        thread.start();
+		Thread thread = new Thread(this);
+		thread.start();
  	}
 
 	public native int TestInit(int numcols, int numrows); 
