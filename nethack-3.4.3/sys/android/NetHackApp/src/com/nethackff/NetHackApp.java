@@ -318,17 +318,34 @@ class TerminalView extends View
 	}
 
 	public boolean grReverseVideo = false;
-	
-	public void selectGraphicRendition()
+	public boolean grBright = false;
+
+	public void selectGraphicRendition(int arg)
 	{
-		int m = getEscSeqArgVal(0);
-		switch(m)
+		if(arg >= 30 && arg <= 37)
+		{
+			colorForeground = arg - 30;
+			return;
+		}
+		if(arg >= 40 && arg <= 47)
+		{
+			colorBackground = arg - 40;
+			return;
+		}
+		switch(arg)
 		{
 			case 0:
 				grReverseVideo = false;
+				colorForeground = kColWhite;
+				colorBackground = kColBlack;
+				grBright = false;	// Not sure
 				break;
 			case 1:
+				grBright = true;
+				break;
 			case 2:
+				grBright = false;
+				break;
 			case 3:
 			case 4:
 			case 5:
@@ -341,6 +358,21 @@ class TerminalView extends View
 			default:
 				reportUnknownSequence();
 				break;
+		}
+	}
+	
+	public void selectGraphicRendition()
+	{
+		if(escSeqArgCnt < 0)
+		{
+			selectGraphicRendition(0);
+		}
+		else
+		{
+			for(int i = 0; i <= escSeqArgCnt; i++)
+			{
+				selectGraphicRendition(escSeqArgVal[i]);
+			}
 		}
 	}
 
@@ -460,10 +492,10 @@ reportUnknownChar(c);
 				return;
 			case 14:	// SO
 				// TODO
-//				break;
+				break;
 			case 15:	// SI
 				// TODO
-//				break;
+				break;
 			case 24:	// CAN
 			case 26:	// SUB
 				// TODO
@@ -648,8 +680,9 @@ reportUnknownChar(c);
 				tmp[0] = textBuffer[row*numColumns + col];
 				tmp[1] = '\0';
 				char fmt = fmtBuffer[row*numColumns + col];
-				setPaintColor(paint, decodeFormatBackground(fmt));
-				canvas.drawRect(x, y - charheight + ybackgroffs, x + charwidth, y + ybackgroffs, paint);
+// TEMP - disabled for now for speed
+//				setPaintColor(paint, decodeFormatBackground(fmt));
+//				canvas.drawRect(x, y - charheight + ybackgroffs, x + charwidth, y + ybackgroffs, paint);
 				setPaintColor(paint, decodeFormatForeground(fmt));
 				canvas.drawText(tmp, 0, 1, (float)x, (float)y, paint);
 				x += charwidth;
@@ -869,6 +902,7 @@ public class NetHackApp extends Activity implements Runnable
 		layout.addView(screen);
 		
 		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
+		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat/save", "");
 		copyNetHackData();
 
 		if(TestInit(width, height) == 0)
