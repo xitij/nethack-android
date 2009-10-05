@@ -8,17 +8,25 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #define RECEIVEBUFFSZ 255
 #define SENDBUFFSZ 1023
-
-static int s_MainViewNumCols;
-static int s_MainViewNumRows;
 
 static char s_ReceiveBuff[RECEIVEBUFFSZ + 1];
 static char s_SendBuff[SENDBUFFSZ + 1];
 static int s_ReceiveCnt;
 static int s_SendCnt;
+
+static pthread_mutex_t s_ReceiveMutex;
+static pthread_mutex_t s_SendMutex;
+static sem_t s_ReceiveWaitingForDataSema;
+static sem_t s_ReceiveWaitingForConsumptionSema;
+static sem_t s_SendNotFullSema;
+
+static int s_SendWaitingForNotFull;
+static int s_ReceiveWaitingForData;
+static int s_ReceiveWaitingForConsumption;
 
 static void NDECL(wd_message);
 #ifdef WIZARD
@@ -44,27 +52,54 @@ void error(int status, int errnum, const char *format, ...)
 #endif
 
 
+static void android_putchar_internal(int c)
+{
+	while(1)
+	{
+		pthread_mutex_lock(&s_SendMutex);
+
+		if(s_SendCnt < SENDBUFFSZ)
+		{
+			s_SendBuff[s_SendCnt++] = (char)c;
+
+			pthread_mutex_unlock(&s_SendMutex);
+
+			return;
+		}
+
+		s_SendWaitingForNotFull = 1;
+
+		pthread_mutex_unlock(&s_SendMutex);
+
+		sem_wait(&s_SendNotFullSema);
+	}
+}
+
+
 void android_putchar(int c)
 {
-	/* TODO: Thread protection */
 
-	/* TODO: Wait for space to be available. */
-	if(s_SendCnt < SENDBUFFSZ)
-	{
-		s_SendBuff[s_SendCnt++] = (char)c;
-	}
+	android_putchar_internal(c);
+
 }
 
 
 void android_puts(const char *s)
 {
-	/* TODO: Thread protection */
-
 	const char *ptr = s;
+
+#if 0
+	pthread_mutex_lock(&s_SendMutex);
+#endif
+
 	while(*s)
 	{
-		android_putchar((int)(*s++));
+		android_putchar_internal((int)(*s++));
 	}
+
+#if 0
+	pthread_mutex_unlock(&s_SendMutex);
+#endif
 }
 
 
@@ -72,6 +107,7 @@ int android_getch(void)
 {
 	while(1)
 	{
+		pthread_mutex_lock(&s_ReceiveMutex);
 		if(s_ReceiveCnt > 0)
 		{
 			int ret = s_ReceiveBuff[0], i;
@@ -81,9 +117,22 @@ int android_getch(void)
 				s_ReceiveBuff[i] = s_ReceiveBuff[i + 1];
 			}
 			s_ReceiveCnt--;
+
+			if(s_ReceiveWaitingForConsumption)
+			{
+				s_ReceiveWaitingForConsumption = 0;
+				sem_post(&s_ReceiveWaitingForConsumptionSema);
+			}
+
+			pthread_mutex_unlock(&s_ReceiveMutex);
 			return ret;
 		}
-		usleep(1000);	/* 1 ms */
+
+		s_ReceiveWaitingForData = 1;
+
+		pthread_mutex_unlock(&s_ReceiveMutex);
+
+		sem_wait(&s_ReceiveWaitingForDataSema);
 	}
 	/*return EOF;*/
 }
@@ -219,11 +268,49 @@ int Java_com_nethackff_NetHackApp_TestInit(JNIEnv *env, jobject thiz,
 	s_ReceiveCnt = 0;
 	s_SendCnt = 0;
 
-	s_MainViewNumCols = numcols;
-	s_MainViewNumRows = numrows;
+	if(pthread_mutex_init(&s_SendMutex, 0) != 0)
+	{
+		return 0;
+	}
+
+	if(pthread_mutex_init(&s_ReceiveMutex, 0) != 0)
+	{
+		pthread_mutex_destroy(&s_SendMutex);
+		return 0;
+	}
+
+	if(sem_init(&s_ReceiveWaitingForDataSema, 0, 0) != 0)
+	{
+		pthread_mutex_destroy(&s_ReceiveMutex);
+		pthread_mutex_destroy(&s_SendMutex);
+		return 0;
+	}
+
+	if(sem_init(&s_ReceiveWaitingForConsumptionSema, 0, 0) != 0)
+	{
+		pthread_mutex_destroy(&s_ReceiveMutex);
+		pthread_mutex_destroy(&s_SendMutex);
+		return 0;
+	}
+
+	if(sem_init(&s_SendNotFullSema, 0, 0) != 0)
+	{
+		pthread_mutex_destroy(&s_ReceiveMutex);
+		pthread_mutex_destroy(&s_SendMutex);
+		sem_destroy(&s_ReceiveWaitingForConsumptionSema);
+		sem_destroy(&s_ReceiveWaitingForDataSema);
+
+		return 0;
+	}
 
 	if(pthread_create(&g_ThreadHandle, NULL, sThreadFunc, NULL) != 0)
 	{
+		pthread_mutex_destroy(&s_ReceiveMutex);
+		pthread_mutex_destroy(&s_SendMutex);
+		sem_destroy(&s_ReceiveWaitingForConsumptionSema);
+		sem_destroy(&s_ReceiveWaitingForDataSema);
+		sem_destroy(&s_SendNotFullSema);
+
 		g_ThreadHandle = 0;
 		return 0;	/* Failure. */
 	}
@@ -238,6 +325,12 @@ void Java_com_nethackff_NetHackApp_TestShutdown(JNIEnv *env, jobject thiz)
 #if 0
 		pthread_cancel(g_ThreadHandle);	/* Would return 0 on success. */
 #endif
+
+		pthread_mutex_destroy(&s_SendMutex);
+		pthread_mutex_destroy(&s_ReceiveMutex);
+		sem_destroy(&s_ReceiveWaitingForConsumptionSema);
+		sem_destroy(&s_ReceiveWaitingForDataSema);
+		sem_destroy(&s_SendNotFullSema);
 		g_ThreadHandle = 0;
 	}
 }
@@ -246,19 +339,36 @@ void Java_com_nethackff_NetHackApp_TestShutdown(JNIEnv *env, jobject thiz)
 void Java_com_nethackff_NetHackApp_TerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
-	/* TODO: Thread protection! */
-
 	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
 
+	pthread_mutex_lock(&s_ReceiveMutex);
+
 	const char *ptr = nativestr;
-	for(; *ptr; ptr++)
+	for(; *ptr;)
 	{
 		if(s_ReceiveCnt < RECEIVEBUFFSZ)
 		{
-			s_ReceiveBuff[s_ReceiveCnt++] = *ptr;
+			s_ReceiveBuff[s_ReceiveCnt++] = *ptr++;
 		}
-		/* TODO: Wait for consumption? */
+		else
+		{
+			s_ReceiveWaitingForConsumption = 1;
+
+			pthread_mutex_unlock(&s_ReceiveMutex);
+
+			sem_wait(&s_ReceiveWaitingForConsumptionSema);
+
+			pthread_mutex_lock(&s_ReceiveMutex);
+		}
 	}
+
+	if(s_ReceiveWaitingForData)
+	{
+		s_ReceiveWaitingForData = 0;
+		sem_post(&s_ReceiveWaitingForDataSema);
+	}
+
+	pthread_mutex_unlock(&s_ReceiveMutex);
 
 	(*env)->ReleaseStringUTFChars(env, str, nativestr);
 }
@@ -266,11 +376,20 @@ void Java_com_nethackff_NetHackApp_TerminalSend(JNIEnv *env, jobject thiz,
 jstring Java_com_nethackff_NetHackApp_TerminalReceive(JNIEnv *env,
 		jobject thiz)
 {
-	/* TODO: Thread protection! */
+	pthread_mutex_lock(&s_SendMutex);
 
 	s_SendBuff[s_SendCnt] = '\0';
 	jstring str = (*env)->NewStringUTF(env, s_SendBuff);
 	s_SendCnt = 0;
+
+	if(s_SendWaitingForNotFull)
+	{
+		s_SendWaitingForNotFull = 0;
+		sem_post(&s_SendNotFullSema);
+	}
+
+	pthread_mutex_unlock(&s_SendMutex);
+
 	return str;
 }
 
