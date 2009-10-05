@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -38,6 +39,39 @@ class TerminalView extends View
 	int currentRow;
 	int currentColumn;
 
+	int changeColumn1, changeColumn2;
+	int changeRow1, changeRow2;
+
+	Paint textPaint;
+	
+	protected void clearChange()
+	{
+		changeColumn1 = numColumns;
+		changeColumn2 = -1;
+		changeRow1 = numRows;
+		changeRow2 = -1;
+	}
+	
+	protected void registerChange(int column, int row)
+	{
+		if(column < changeColumn1)
+		{
+			changeColumn1 = column;
+		}
+		if(column > changeColumn2)
+		{
+			changeColumn2 = column;
+		}
+		if(row < changeRow1)
+		{
+			changeRow1 = row;
+		}
+		if(row > changeRow2)
+		{
+			changeRow2 = row;
+		}
+	}
+	
 	protected void onMeasure(int widthmeasurespec, int heightmeasurespec)
 	{
 		int minheight = getSuggestedMinimumHeight();
@@ -194,6 +228,11 @@ class TerminalView extends View
 				fmtBuffer[(numRows - 1)*numColumns + col] = encodeCurrentFormat();
 			}
 			currentRow--;
+
+			changeColumn1 = 0;
+			changeColumn2 = numColumns - 1;
+			changeRow1 = 0;
+			changeRow2 = numRows - 1;
 		}
 
 
@@ -210,6 +249,8 @@ class TerminalView extends View
 		{
 			textBuffer[currentRow*numColumns + currentColumn] = c;
 			fmtBuffer[currentRow*numColumns + currentColumn] = encodeCurrentFormat();
+
+			registerChange(currentColumn, currentRow);
 		}
 		currentColumn++;
 	}
@@ -220,6 +261,7 @@ class TerminalView extends View
 		{
 			textBuffer[row*numColumns + col] = c;
 			fmtBuffer[row*numColumns + col] = encodeCurrentFormat();
+			registerChange(col, row);
 		}
 	}
 	public void writeRawStr(String s)
@@ -567,6 +609,15 @@ reportUnknownChar(c);
 		textBuffer = new char[rows*columns];
 		fmtBuffer = new char[rows*columns];
 
+//		Paint paint = createPaint();
+		textPaint = new Paint();
+		textPaint.setTypeface(Typeface.MONOSPACE);
+		textPaint.setTextSize(10);
+		textPaint.setAntiAlias(true);
+
+		charHeight = (int)Math.ceil(textPaint.getFontSpacing());
+		charWidth = (int)textPaint.measureText("X", 0, 1);
+
 		clearScreen();
 
 		currentRow = 0;
@@ -682,26 +733,73 @@ reportUnknownChar(c);
 		}
 	}
 
-	protected void onDraw(Canvas canvas)
+// TODO
+	int charHeight = 0;
+	int charWidth = 0;
+
+	int computeCoordX(int column)
+	{
+		return charWidth*column;
+	}
+	int computeCoordY(int row)
+	{
+		int ybackgroffs = 0;
+		return row*charHeight + ybackgroffs;
+	}
+	int computeColumnFromCoordX(int coordx)
+	{
+		return coordx/charWidth;
+	}
+	int computeRowFromCoordY(int coordy)
+	{
+		int ybackgroffs = 0;
+		return (coordy - ybackgroffs)/charHeight;
+	}
+/*
+	Paint createPaint()
 	{
 		Paint paint = new Paint();
 		paint.setTypeface(Typeface.MONOSPACE);
 		paint.setTextSize(10);
 		paint.setAntiAlias(true);
-		int charheight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
-		int charwidth = (int)paint.measureText("X", 0, 1);
+		return paint;
+	}
+*/
+	protected void onDraw(Canvas canvas)
+	{
+/*
+		Paint paint = createPaint();
+		if(charHeight == 0)
+		{
+			charHeight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
+			charWidth = (int)paint.measureText("X", 0, 1);
+		}
+*/
 //		char tmp[] = {' ', ' '};
 		int x, y;
-		x = 0;
-		y = charheight;
-		int ybackgroffs = 3;
 
-		for(int row = 0; row < numRows; row++)
+		int row1 = 0;
+		int row2 = numRows;
+		int col1 = 0;
+		int col2 = numColumns;
+
+		Rect cliprect = new Rect();
+		if(canvas.getClipBounds(cliprect))
 		{
-			x = 0;
+			col1 = Math.max(computeColumnFromCoordX(cliprect.left), 0);
+			col2 = Math.min(computeColumnFromCoordX(cliprect.right + charWidth - 1), numColumns);
+			row1 = Math.max(computeRowFromCoordY(cliprect.top), 0);
+			row2 = Math.min(computeRowFromCoordY(cliprect.bottom + charHeight - 1), numRows);
+		}
+
+		x = 0;
+		y = computeCoordY(row1);
+		for(int row = row1; row < row2; row++)
+		{
+			x = computeCoordX(col1);
 			int currentx1 = -1;
 			int currentcolor = -1;
-			for(int col = 0; col < numColumns; col++, x += charwidth)
+			for(int col = col1; col < col2; col++, x += charWidth)
 			{
 				char fmt = fmtBuffer[row*numColumns + col];
 				int color = decodeFormatBackground(fmt);
@@ -711,26 +809,28 @@ reportUnknownChar(c);
 				}
 				if(currentx1 >= 0)
 				{
-					setPaintColorBackground(paint, currentcolor);
-					canvas.drawRect(currentx1, y - charheight + ybackgroffs, x, y + ybackgroffs, paint);
+					setPaintColorBackground(textPaint, currentcolor);
+					canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
 				}
 				currentx1 = x;
 				currentcolor = color;
 			}
-			setPaintColorBackground(paint, currentcolor);
-			canvas.drawRect(currentx1, y - charheight + ybackgroffs, x, y + ybackgroffs, paint);
-			y += charheight;
+			setPaintColorBackground(textPaint, currentcolor);
+			canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
+			y += charHeight;
 		}
 
 		x = 0;
-		y = charheight;
-		for(int row = 0; row < numRows; row++)
+
+		int ybackgroffs = 3;
+		y = charHeight + computeCoordY(row1) - ybackgroffs;
+		for(int row = row1; row < row2; row++)
 		{
-			x = 0;
+			x = computeCoordX(col1);
 			int currentx1 = -1;
 			int currentcolor = -1;
 			String currentstr = "";
-			for(int col = 0; col < numColumns; col++, x += charwidth)
+			for(int col = col1; col < col2; col++, x += charWidth)
 			{
 				char fmt = fmtBuffer[row*numColumns + col];
 				int color = decodeFormatForeground(fmt);
@@ -742,18 +842,20 @@ reportUnknownChar(c);
 				}
 				if(currentx1 >= 0)
 				{
-					setPaintColorForeground(paint, currentcolor);
-					canvas.drawText(currentstr, 0, currentstr.length(), (float)currentx1, (float)y, paint);
+					setPaintColorForeground(textPaint, currentcolor);
+					canvas.drawText(currentstr, 0, currentstr.length(), (float)currentx1, (float)y, textPaint);
 				}
 				currentx1 = x;
 				currentcolor = color;
 				currentstr = "" + c;
 			}
-			setPaintColorForeground(paint, currentcolor);
-			canvas.drawText(currentstr, 0, currentstr.length(), (float)currentx1, (float)y, paint);
-			y += charheight;
+			setPaintColorForeground(textPaint, currentcolor);
+			canvas.drawText(currentstr, 0, currentstr.length(), (float)currentx1, (float)y, textPaint);
+			y += charHeight;
 		}
-}
+
+		clearChange();
+	}
 }
 
 
@@ -789,7 +891,6 @@ public class NetHackApp extends Activity implements Runnable
 		{
 			s += c;
 			TerminalSend(s);
-			screen.invalidate();
 		}
 		return true;
 	}
@@ -832,7 +933,15 @@ public class NetHackApp extends Activity implements Runnable
 					}
 				}
 				screen.write(s);
-				screen.invalidate();
+				if(screen.changeColumn1 <= screen.changeColumn2)
+				{
+					Rect cliprect = new Rect();
+					cliprect.bottom = screen.computeCoordY(screen.changeRow2) + screen.charHeight;
+					cliprect.top = screen.computeCoordY(screen.changeRow1);
+					cliprect.right = screen.computeCoordX(screen.changeColumn2) + screen.charWidth;
+					cliprect.left = screen.computeCoordX(screen.changeColumn1);
+					screen.invalidate(cliprect);
+				}
 			}
 		}
     };
