@@ -10,6 +10,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -872,28 +873,75 @@ public class NetHackApp extends Activity implements Runnable {
 		}
 	};
 
+	public synchronized boolean checkQuitCommThread()
+	{
+		if(shouldStopCommThread)
+		{
+			commThreadStopped = true;
+			notify();
+			return true;
+		}
+		return false;
+	}
+
 	public void run() {
-		while (true) {
-			try {
+		while(true)
+		{
+			if(checkQuitCommThread())
+			{
+// TEMP
+				Log.i("Threads", "Thread stopped");
+				return;
+			}
+			try
+			{
 				handler.sendEmptyMessage(0);
 				Thread.sleep(10);
-			} catch (InterruptedException e) {
+			}
+			catch(InterruptedException e)
+			{
 				throw new RuntimeException(e.getMessage());
 			}
 		}
 	}
 
+	boolean shouldStopCommThread = false;
+	boolean commThreadStopped = false;
+
+	public synchronized void stopCommThread()
+	{
+		if(commThreadStopped)
+		{
+			return;
+		}
+		shouldStopCommThread = true;
+		try
+		{
+			wait();
+		}
+		catch(InterruptedException e)
+		{
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+/*	
 	public void onPause()
 	{
+		Log.i("Threads", "onPause");
+		
 		// TODO: See if this can be done more gracefully.
-		commThread.stop();
+		stopCommThread();
 
 		super.onPause();
 	}
+*/
 	public void onDestroy() {
 		// TODO: See if this can be done more gracefully.
 		//commThread.stop();
+		Log.i("Threads", "onDestroy");
+		stopCommThread();
 
+		
 		super.onDestroy();
 		//TestShutdown();
 	}
@@ -1027,6 +1075,7 @@ public class NetHackApp extends Activity implements Runnable {
 			gameInitialized = true;
 		}
 
+		Log.i("Thread", "Starting new thread");
 		commThread = new Thread(this);
 		commThread.start();
 	}
