@@ -27,11 +27,27 @@ import java.lang.Thread;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-class TerminalView extends View {
-	String outputText;
+class TerminalState
+{
+	public TerminalState(int columns, int rows)
+	{
+		numRows = rows;
+		numColumns = columns;
 
-	private char[] textBuffer;
-	private char[] fmtBuffer;
+		textBuffer = new char[rows*columns];
+		fmtBuffer = new char[rows*columns];
+
+		clearScreen();
+
+		clearChange();
+		currentRow = 0;
+		currentColumn = 0;
+	}
+
+	// TODO: Add protection and stuff...
+	public char[] textBuffer;
+	public char[] fmtBuffer;
+
 	int numRows;
 	int numColumns;
 
@@ -40,8 +56,6 @@ class TerminalView extends View {
 
 	int changeColumn1, changeColumn2;
 	int changeRow1, changeRow2;
-
-	Paint textPaint;
 
 	protected void clearChange() {
 		changeColumn1 = numColumns;
@@ -63,47 +77,6 @@ class TerminalView extends View {
 		if (row > changeRow2) {
 			changeRow2 = row;
 		}
-	}
-
-	protected void onMeasure(int widthmeasurespec, int heightmeasurespec) {
-		int minheight = getSuggestedMinimumHeight();
-		int minwidth = getSuggestedMinimumWidth();
-
-		// TODO: Prevent duplication
-		Paint paint = new Paint();
-		paint.setTypeface(Typeface.MONOSPACE);
-		paint.setTextSize(10);
-		paint.setAntiAlias(true);
-		int charheight = (int) Math.ceil(paint.getFontSpacing());// +
-		// paint.ascent());
-		int charwidth = (int) paint.measureText("X", 0, 1);
-
-		int width, height;
-		width = numColumns * charwidth;
-		height = numRows * charheight;
-
-		height += 2; // MAGIC!
-
-		if (width < minwidth) {
-			width = minwidth;
-		}
-		if (height < minheight) {
-			height = minheight;
-		}
-
-		int modex = MeasureSpec.getMode(widthmeasurespec);
-		int modey = MeasureSpec.getMode(heightmeasurespec);
-		if (modex == MeasureSpec.AT_MOST) {
-			width = Math.min(MeasureSpec.getSize(widthmeasurespec), width);
-		} else if (modex == MeasureSpec.EXACTLY) {
-			width = MeasureSpec.getSize(widthmeasurespec);
-		}
-		if (modey == MeasureSpec.AT_MOST) {
-			height = Math.min(MeasureSpec.getSize(heightmeasurespec), height);
-		} else if (modey == MeasureSpec.EXACTLY) {
-			height = MeasureSpec.getSize(heightmeasurespec);
-		}
-		setMeasuredDimension(width, height);
 	}
 
 	public static final int kColBlack = 0;
@@ -503,32 +476,6 @@ class TerminalView extends View {
 		}
 	}
 
-	public TerminalView(Context context, int columns, int rows) {
-		super(context);
-
-		outputText = "";
-
-		numRows = rows;
-		numColumns = columns;
-
-		textBuffer = new char[rows * columns];
-		fmtBuffer = new char[rows * columns];
-
-		// Paint paint = createPaint();
-		textPaint = new Paint();
-		textPaint.setTypeface(Typeface.MONOSPACE);
-		textPaint.setTextSize(10);
-		textPaint.setAntiAlias(true);
-
-		charHeight = (int) Math.ceil(textPaint.getFontSpacing());
-		charWidth = (int) textPaint.measureText("X", 0, 1);
-
-		clearScreen();
-
-		currentRow = 0;
-		currentColumn = 0;
-	}
-
 	public String getContents() {
 		String r = "";
 		for (int i = 0; i < numRows; i++) {
@@ -547,80 +494,153 @@ class TerminalView extends View {
 		}
 		return r;
 	}
+};
 
-	void setPaintColorForeground(Paint paint, int col) {
-		if ((col & 8) != 0) {
+class TerminalView extends View
+{
+	Paint textPaint;
+
+	protected void onMeasure(int widthmeasurespec, int heightmeasurespec) {
+		int minheight = getSuggestedMinimumHeight();
+		int minwidth = getSuggestedMinimumWidth();
+
+		// TODO: Prevent duplication
+		Paint paint = new Paint();
+		paint.setTypeface(Typeface.MONOSPACE);
+		paint.setTextSize(10);
+		paint.setAntiAlias(true);
+		int charheight = (int) Math.ceil(paint.getFontSpacing());// +
+		// paint.ascent());
+		int charwidth = (int) paint.measureText("X", 0, 1);
+
+		int width, height;
+		width = terminal.numColumns*charwidth;
+		height = terminal.numRows*charheight;
+
+		height += 2; // MAGIC!
+
+		if (width < minwidth) {
+			width = minwidth;
+		}
+		if (height < minheight) {
+			height = minheight;
+		}
+
+		int modex = MeasureSpec.getMode(widthmeasurespec);
+		int modey = MeasureSpec.getMode(heightmeasurespec);
+		if (modex == MeasureSpec.AT_MOST) {
+			width = Math.min(MeasureSpec.getSize(widthmeasurespec), width);
+		} else if (modex == MeasureSpec.EXACTLY) {
+			width = MeasureSpec.getSize(widthmeasurespec);
+		}
+		if (modey == MeasureSpec.AT_MOST) {
+			height = Math.min(MeasureSpec.getSize(heightmeasurespec), height);
+		} else if (modey == MeasureSpec.EXACTLY) {
+			height = MeasureSpec.getSize(heightmeasurespec);
+		}
+		setMeasuredDimension(width, height);
+	}
+
+	TerminalState terminal;
+
+	public TerminalView(Context context, TerminalState term) {
+		super(context);
+
+		terminal = term;
+
+		// Paint paint = createPaint();
+		textPaint = new Paint();
+		textPaint.setTypeface(Typeface.MONOSPACE);
+		textPaint.setTextSize(10);
+		textPaint.setAntiAlias(true);
+
+		charHeight = (int) Math.ceil(textPaint.getFontSpacing());
+		charWidth = (int) textPaint.measureText("X", 0, 1);
+	}
+
+
+	void setPaintColorForeground(Paint paint, int col)
+	{
+		if((col & 8) != 0)
+		{
 			paint.setFakeBoldText(true);
 			col &= ~8;
-		} else {
+		} else
+		{
 			paint.setFakeBoldText(false);
 		}
-		if ((col & 16) != 0) {
+		if((col & 16) != 0)
+		{
 			paint.setUnderlineText(true);
 			col &= ~16;
-		} else {
+		}
+		else
+		{
 			paint.setUnderlineText(false);
 		}
-		switch (col) {
-		case kColBlack:
-			paint.setARGB(0xff, 0x00, 0x00, 0x00);
-			break;
-		case kColRed:
-			paint.setARGB(0xff, 0xff, 0x00, 0x00);
-			break;
-		case kColGreen:
-			paint.setARGB(0xff, 0x00, 0xff, 0x00);
-			break;
-		case kColYellow:
-			paint.setARGB(0xff, 0xff, 0xff, 0x00);
-			break;
-		case kColBlue:
-			paint.setARGB(0xff, 0x00, 0x00, 0xff);
-			break;
-		case kColMagenta:
-			paint.setARGB(0xff, 0xff, 0x00, 0xff);
-			break;
-		case kColCyan:
-			paint.setARGB(0xff, 0x00, 0xff, 0xff);
-			break;
-		case kColWhite:
-			paint.setARGB(0xff, 0xff, 0xff, 0xff);
-			break;
-		default:
-			paint.setARGB(0x80, 0x80, 0x80, 0x80);
-			break;
+		switch(col)
+		{
+			case TerminalState.kColBlack:
+				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				break;
+			case TerminalState.kColRed:
+				paint.setARGB(0xff, 0xff, 0x00, 0x00);
+				break;
+			case TerminalState.kColGreen:
+				paint.setARGB(0xff, 0x00, 0xff, 0x00);
+				break;
+			case TerminalState.kColYellow:
+				paint.setARGB(0xff, 0xff, 0xff, 0x00);
+				break;
+			case TerminalState.kColBlue:
+				paint.setARGB(0xff, 0x00, 0x00, 0xff);
+				break;
+			case TerminalState.kColMagenta:
+				paint.setARGB(0xff, 0xff, 0x00, 0xff);
+				break;
+			case TerminalState.kColCyan:
+				paint.setARGB(0xff, 0x00, 0xff, 0xff);
+				break;
+			case TerminalState.kColWhite:
+				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				break;
+			default:
+				paint.setARGB(0x80, 0x80, 0x80, 0x80);
+				break;
 		}
 	}
 
-	void setPaintColorBackground(Paint paint, int col) {
-		switch (col) {
-		case kColBlack:
-			paint.setARGB(0xff, 0x00, 0x00, 0x00);
-			break;
-		case kColRed:
-			paint.setARGB(0xff, 0xff, 0x00, 0x00);
-			break;
-		case kColGreen:
-			paint.setARGB(0xff, 0x00, 0xff, 0x00);
-			break;
-		case kColYellow:
-			paint.setARGB(0xff, 0xff, 0xff, 0x00);
-			break;
-		case kColBlue:
-			paint.setARGB(0xff, 0x00, 0x00, 0xff);
-			break;
-		case kColMagenta:
-			paint.setARGB(0xff, 0xff, 0x00, 0xff);
-			break;
-		case kColCyan:
-			paint.setARGB(0xff, 0x00, 0xff, 0xff);
-			break;
-		case kColWhite:
-			paint.setARGB(0xff, 0xff, 0xff, 0xff);
-			break;
-		default:
-			paint.setARGB(0x80, 0x80, 0x80, 0x80);
-			break;
+	void setPaintColorBackground(Paint paint, int col)
+	{
+		switch (col)
+		{
+			case TerminalState.kColBlack:
+				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				break;
+			case TerminalState.kColRed:
+				paint.setARGB(0xff, 0xff, 0x00, 0x00);
+				break;
+			case TerminalState.kColGreen:
+				paint.setARGB(0xff, 0x00, 0xff, 0x00);
+				break;
+			case TerminalState.kColYellow:
+				paint.setARGB(0xff, 0xff, 0xff, 0x00);
+				break;
+			case TerminalState.kColBlue:
+				paint.setARGB(0xff, 0x00, 0x00, 0xff);
+				break;
+			case TerminalState.kColMagenta:
+				paint.setARGB(0xff, 0xff, 0x00, 0xff);
+				break;
+			case TerminalState.kColCyan:
+				paint.setARGB(0xff, 0x00, 0xff, 0xff);
+				break;
+			case TerminalState.kColWhite:
+				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				break;
+			default:
+				paint.setARGB(0x80, 0x80, 0x80, 0x80);
+				break;
 		}
 	}
 
@@ -661,18 +681,18 @@ class TerminalView extends View {
 		int x, y;
 
 		int row1 = 0;
-		int row2 = numRows;
+		int row2 = terminal.numRows;
 		int col1 = 0;
-		int col2 = numColumns;
+		int col2 = terminal.numColumns;
 
 		Rect cliprect = new Rect();
 		if (canvas.getClipBounds(cliprect)) {
 			col1 = Math.max(computeColumnFromCoordX(cliprect.left), 0);
 			col2 = Math.min(computeColumnFromCoordX(cliprect.right + charWidth
-					- 1), numColumns);
+					- 1), terminal.numColumns);
 			row1 = Math.max(computeRowFromCoordY(cliprect.top), 0);
 			row2 = Math.min(computeRowFromCoordY(cliprect.bottom + charHeight
-					- 1), numRows);
+					- 1), terminal.numRows);
 		}
 
 		x = 0;
@@ -682,8 +702,8 @@ class TerminalView extends View {
 			int currentx1 = -1;
 			int currentcolor = -1;
 			for (int col = col1; col < col2; col++, x += charWidth) {
-				char fmt = fmtBuffer[row * numColumns + col];
-				int color = decodeFormatBackground(fmt);
+				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
+				int color = terminal.decodeFormatBackground(fmt);
 				if (color == currentcolor) {
 					continue;
 				}
@@ -709,9 +729,9 @@ class TerminalView extends View {
 			int currentcolor = -1;
 			String currentstr = "";
 			for (int col = col1; col < col2; col++, x += charWidth) {
-				char fmt = fmtBuffer[row * numColumns + col];
-				int color = decodeFormatForeground(fmt);
-				char c = textBuffer[row * numColumns + col];
+				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
+				int color = terminal.decodeFormatForeground(fmt);
+				char c = terminal.textBuffer[row*terminal.numColumns + col];
 				if (color == currentcolor) {
 					currentstr += c;
 					continue;
@@ -731,7 +751,7 @@ class TerminalView extends View {
 			y += charHeight;
 		}
 
-		clearChange();
+		terminal.clearChange();
 	}
 }
 
@@ -739,7 +759,7 @@ public class NetHackApp extends Activity implements Runnable {
 	TerminalView screen;
 
 	/* For debugging only. */
-	TerminalView dbgTerminalTranscript;
+	//TerminalView dbgTerminalTranscript;
 
 	public boolean altKeyDown = false;
 	public boolean shiftKeyDown = false;
@@ -821,30 +841,31 @@ public class NetHackApp extends Activity implements Runnable {
 		public void handleMessage(Message msg) {
 			String s = TerminalReceive();
 			if (s.length() != 0) {
-
+/*
 				for (int i = 0; i < s.length(); i++) {
 					char c = s.charAt(i);
 					if (c < 32) {
-						dbgTerminalTranscript.writeRaw('^');
+						dbgTerminalTranscript.terminal.writeRaw('^');
 						int a = c / 10;
 						int b = c - a * 10;
-						dbgTerminalTranscript.writeRaw((char) ('0' + a));
-						dbgTerminalTranscript.writeRaw((char) ('0' + b));
+						dbgTerminalTranscript.terminal.writeRaw((char) ('0' + a));
+						dbgTerminalTranscript.terminal.writeRaw((char) ('0' + b));
 					} else {
-						dbgTerminalTranscript.writeRaw(c);
+						dbgTerminalTranscript.terminal.writeRaw(c);
 						dbgTerminalTranscript.invalidate();
 					}
 				}
+*/
 
-				screen.write(s);
-				if (screen.changeColumn1 <= screen.changeColumn2) {
+				screen.terminal.write(s);
+				if(screen.terminal.changeColumn1 <= screen.terminal.changeColumn2) {
 					Rect cliprect = new Rect();
-					cliprect.bottom = screen.computeCoordY(screen.changeRow2)
+					cliprect.bottom = screen.computeCoordY(screen.terminal.changeRow2)
 							+ screen.charHeight;
-					cliprect.top = screen.computeCoordY(screen.changeRow1);
-					cliprect.right = screen.computeCoordX(screen.changeColumn2)
+					cliprect.top = screen.computeCoordY(screen.terminal.changeRow1);
+					cliprect.right = screen.computeCoordX(screen.terminal.changeColumn2)
 							+ screen.charWidth;
-					cliprect.left = screen.computeCoordX(screen.changeColumn1);
+					cliprect.left = screen.computeCoordX(screen.terminal.changeColumn1);
 					screen.invalidate(cliprect);
 				}
 			}
@@ -862,8 +883,19 @@ public class NetHackApp extends Activity implements Runnable {
 		}
 	}
 
+	public void onPause()
+	{
+		// TODO: See if this can be done more gracefully.
+		commThread.stop();
+
+		super.onPause();
+	}
 	public void onDestroy() {
-		TestShutdown();
+		// TODO: See if this can be done more gracefully.
+		//commThread.stop();
+
+		super.onDestroy();
+		//TestShutdown();
 	}
 
 	public void doCommand(String command, String arg0, String arg1) {
@@ -934,7 +966,7 @@ public class NetHackApp extends Activity implements Runnable {
 			out.close();
 			in.close();
 		} catch (IOException ex) {
-			screen.write("Failed to copy file '" + assetname + "'.\n");
+			screen.terminal.write("Failed to copy file '" + assetname + "'.\n");
 		}
 	}
 
@@ -952,15 +984,22 @@ public class NetHackApp extends Activity implements Runnable {
 		}
 	}
 
+	Thread commThread;
+	
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
 		int width = 80;
 		int height = 22;
 
-		screen = new TerminalView(this, width, height);
+		if(!gameInitialized)
+		{
+			terminalState = new TerminalState(width, height);
+		}
 
-		dbgTerminalTranscript = new TerminalView(this, 80, 2);
+		screen = new TerminalView(this, terminalState);
+
+		//dbgTerminalTranscript = new TerminalView(this, 80, 2);
 		//dbgTerminalTranscript.colorForeground = TerminalView.kColRed;
 
 		LinearLayout layout = new LinearLayout(this);
@@ -969,21 +1008,33 @@ public class NetHackApp extends Activity implements Runnable {
 		//layout.addView(dbgTerminalTranscript);
 		layout.addView(screen);
 
-		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
-		doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat/save", "");
-		copyNetHackData();
-
-		if (TestInit(width, height) == 0) {
-			return;
-		}
-
 		setContentView(layout);
 
-		Thread thread = new Thread(this);
-		thread.start();
+		if(!gameInitialized)
+		{
+//			terminalState.write("TEST\n");
+//			screen.invalidate();
+
+			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
+			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat/save", "");
+			copyNetHackData();
+
+			if(TestInit() == 0)
+			{
+				// TODO
+				return;
+			}
+			gameInitialized = true;
+		}
+
+		commThread = new Thread(this);
+		commThread.start();
 	}
 
-	public native int TestInit(int numcols, int numrows);
+	public static boolean gameInitialized = false;
+	public static TerminalState terminalState;
+	
+	public native int TestInit();
 
 	public native void TestShutdown();
 
