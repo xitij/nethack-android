@@ -32,7 +32,11 @@ LOCAL_MODULE    := nethack
 ANDROID_NATIVE_DIR := ../sys/android/NetHackNative
 LOCAL_SRC_FILES :=  $(ANDROID_NATIVE_DIR)/androidmain.c monst.c objects.c $(HACKCSRC)
 
-LOCAL_CFLAGS	:= -I$(LOCAL_PATH)/../include
+# The -fno-builtin-printf stuff is here so that out #define remapping
+# it to android_printf() works. Would be nice to not rely on #defines
+# for this, but even if it was done at link time, we probably still
+# would need to use -fno-builtin-printf, maybe.
+LOCAL_CFLAGS	:= -I$(LOCAL_PATH)/../include -fno-builtin-printf
 
 
 include $(BUILD_SHARED_LIBRARY)

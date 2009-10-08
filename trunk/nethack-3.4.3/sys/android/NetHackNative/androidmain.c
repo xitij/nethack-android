@@ -103,6 +103,22 @@ void android_puts(const char *s)
 }
 
 
+int android_printf(const char *fmt, ...)
+{
+	char buff[1024];
+	int r;
+
+	va_list args;
+	va_start(args, fmt);
+	r = vsnprintf(buff, sizeof(buff), fmt, args);
+	va_end(args);
+
+	android_puts(buff);
+
+	return r;
+}
+
+
 int android_getch(void)
 {
 	while(1)
