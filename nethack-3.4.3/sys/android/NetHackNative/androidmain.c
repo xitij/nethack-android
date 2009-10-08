@@ -254,8 +254,7 @@ not_recovered:
 }
 
 
-int Java_com_nethackff_NetHackApp_TestInit(JNIEnv *env, jobject thiz,
-		int numcols, int numrows)
+int Java_com_nethackff_NetHackApp_TestInit(JNIEnv *env, jobject thiz)
 {
 	char *p;
 	int x, y;
