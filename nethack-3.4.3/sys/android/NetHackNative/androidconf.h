@@ -44,19 +44,28 @@
 
 extern void android_putchar(int c);
 extern void android_puts(const char *s);
+extern int android_printf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
 extern int android_getch(void);
 
-/* Is there a better way to remap this? I sure hope so. */
+/* Is there a better way to remap these? I sure hope so. */
 #undef putchar
 #define putchar android_putchar
 #undef puts
 #define puts android_puts
 #undef getchar
 #define getchar android_getch
+#undef printf
+#define printf android_printf
 
-#if 0
-#undef stdin
-#define stdin UNDEFINED_stdin
-#endif
+/* This is for __attribte__ ((format...)) under GCC, I think, which
+   otherwise gets confused and produces a bunch of
+   "'android_printf' is an unrecognized format function type"
+   warnings.
+*/
+#undef PRINTF_F
+#define PRINTF_F(a, b)
 
 #endif /* ANDROIDCONF_H */
+
+/* End of file androidconf.h */
