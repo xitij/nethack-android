@@ -270,7 +270,7 @@ not_recovered:
 }
 
 
-int Java_com_nethackff_NetHackApp_TestInit(JNIEnv *env, jobject thiz)
+int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
 {
 	char *p;
 	int x, y;
@@ -333,7 +333,7 @@ int Java_com_nethackff_NetHackApp_TestInit(JNIEnv *env, jobject thiz)
 	return 1;
 }
 
-void Java_com_nethackff_NetHackApp_TestShutdown(JNIEnv *env, jobject thiz)
+void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 {
 	if(g_ThreadHandle)
 	{
@@ -351,7 +351,7 @@ void Java_com_nethackff_NetHackApp_TestShutdown(JNIEnv *env, jobject thiz)
 }
 
 
-void Java_com_nethackff_NetHackApp_TerminalSend(JNIEnv *env, jobject thiz,
+void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
 	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
@@ -388,7 +388,7 @@ void Java_com_nethackff_NetHackApp_TerminalSend(JNIEnv *env, jobject thiz,
 	(*env)->ReleaseStringUTFChars(env, str, nativestr);
 }
 
-jstring Java_com_nethackff_NetHackApp_TerminalReceive(JNIEnv *env,
+jstring Java_com_nethackff_NetHackApp_NetHackTerminalReceive(JNIEnv *env,
 		jobject thiz)
 {
 	pthread_mutex_lock(&s_SendMutex);
