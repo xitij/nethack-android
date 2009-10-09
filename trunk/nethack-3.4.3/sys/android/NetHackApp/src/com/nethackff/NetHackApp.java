@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.Window;
 import android.widget.LinearLayout;
 
 import java.io.BufferedReader;
@@ -487,7 +488,7 @@ class TerminalState
 
 	public String getRow(int row) {
 		String r;
-		int offs = row * numColumns;
+		int offs = row*numColumns;
 		r = "";
 		for (int i = 0; i < numColumns; i++) {
 			r += textBuffer[offs + i];
@@ -526,6 +527,8 @@ class TerminalView extends View
 			height = minheight;
 		}
 
+//height += 25;
+
 		int modex = MeasureSpec.getMode(widthmeasurespec);
 		int modey = MeasureSpec.getMode(heightmeasurespec);
 		if (modex == MeasureSpec.AT_MOST) {
@@ -538,6 +541,11 @@ class TerminalView extends View
 		} else if (modey == MeasureSpec.EXACTLY) {
 			height = MeasureSpec.getSize(heightmeasurespec);
 		}
+/*		
+terminal.write(width + " x " + height + "\n");
+terminal.write(terminal.numColumns + " x " + charwidth + "\n");
+terminal.write(terminal.numRows + " x " + charheight + "\n");
+*/
 		setMeasuredDimension(width, height);
 	}
 
@@ -653,8 +661,7 @@ class TerminalView extends View
 	}
 
 	int computeCoordY(int row) {
-		int ybackgroffs = 0;
-		return row * charHeight + ybackgroffs;
+		return row * charHeight;
 	}
 
 	int computeColumnFromCoordX(int coordx) {
@@ -662,8 +669,7 @@ class TerminalView extends View
 	}
 
 	int computeRowFromCoordY(int coordy) {
-		int ybackgroffs = 0;
-		return (coordy - ybackgroffs) / charHeight;
+		return coordy / charHeight;
 	}
 
 	/*
@@ -721,7 +727,7 @@ class TerminalView extends View
 
 		x = 0;
 
-		int ybackgroffs = 3;
+		int ybackgroffs = 2;
 		y = charHeight + computeCoordY(row1) - ybackgroffs;
 		for (int row = row1; row < row2; row++) {
 			x = computeCoordX(col1);
@@ -1021,8 +1027,12 @@ public class NetHackApp extends Activity implements Runnable {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+//        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NO_STATUS_BAR,
+//      		WindowManager.LayoutParams.FLAG_NO_STATUS_BAR);
+
 		int width = 80;
-		int height = 22;
+		int height = 24;		// 26
 
 		if(!gameInitialized)
 		{
@@ -1057,6 +1067,7 @@ public class NetHackApp extends Activity implements Runnable {
 		}
 		commThread = new Thread(this);
 		commThread.start();
+
 	}
 
 	public static boolean gameInitialized = false;
