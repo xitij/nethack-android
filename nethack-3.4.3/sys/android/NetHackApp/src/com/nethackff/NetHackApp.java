@@ -10,7 +10,6 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -813,7 +812,7 @@ public class NetHackApp extends Activity implements Runnable {
 		if (c != 0)
 		{
 			s += c;
-			TerminalSend(s);
+			NetHackTerminalSend(s);
 		}
 
 		return true;
@@ -840,7 +839,7 @@ public class NetHackApp extends Activity implements Runnable {
 
 	private Handler handler = new Handler() {
 		public void handleMessage(Message msg) {
-			String s = TerminalReceive();
+			String s = NetHackTerminalReceive();
 			if (s.length() != 0) {
 /*
 				for (int i = 0; i < s.length(); i++) {
@@ -889,8 +888,6 @@ public class NetHackApp extends Activity implements Runnable {
 		{
 			if(checkQuitCommThread())
 			{
-// TEMP
-				Log.i("Threads", "Thread stopped");
 				return;
 			}
 			try
@@ -924,23 +921,10 @@ public class NetHackApp extends Activity implements Runnable {
 			throw new RuntimeException(e.getMessage());
 		}
 	}
-/*	
-	public void onPause()
+
+	public void onDestroy()
 	{
-		Log.i("Threads", "onPause");
-		
-		// TODO: See if this can be done more gracefully.
 		stopCommThread();
-
-		super.onPause();
-	}
-*/
-	public void onDestroy() {
-		// TODO: See if this can be done more gracefully.
-		//commThread.stop();
-		Log.i("Threads", "onDestroy");
-		stopCommThread();
-
 		
 		super.onDestroy();
 		//TestShutdown();
@@ -1060,22 +1044,17 @@ public class NetHackApp extends Activity implements Runnable {
 
 		if(!gameInitialized)
 		{
-//			terminalState.write("TEST\n");
-//			screen.invalidate();
-
 			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
 			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat/save", "");
 			copyNetHackData();
 
-			if(TestInit() == 0)
+			if(NetHackInit() == 0)
 			{
 				// TODO
 				return;
 			}
 			gameInitialized = true;
 		}
-
-		Log.i("Thread", "Starting new thread");
 		commThread = new Thread(this);
 		commThread.start();
 	}
@@ -1083,13 +1062,10 @@ public class NetHackApp extends Activity implements Runnable {
 	public static boolean gameInitialized = false;
 	public static TerminalState terminalState;
 	
-	public native int TestInit();
-
-	public native void TestShutdown();
-
-	public native String TerminalReceive();
-
-	public native void TerminalSend(String str);
+	public native int NetHackInit();
+	public native void NetHackShutdown();
+	public native String NetHackTerminalReceive();
+	public native void NetHackTerminalSend(String str);
 
 	static {
 		System.loadLibrary("nethack");
