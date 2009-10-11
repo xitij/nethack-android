@@ -10,6 +10,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
@@ -672,18 +673,7 @@ terminal.write(terminal.numRows + " x " + charheight + "\n");
 		return coordy / charHeight;
 	}
 
-	/*
-	 * Paint createPaint() { Paint paint = new Paint();
-	 * paint.setTypeface(Typeface.MONOSPACE); paint.setTextSize(10);
-	 * paint.setAntiAlias(true); return paint; }
-	 */
 	protected void onDraw(Canvas canvas) {
-		/*
-		 * Paint paint = createPaint(); if(charHeight == 0) { charHeight =
-		 * (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
-		 * charWidth = (int)paint.measureText("X", 0, 1); }
-		 */
-		// char tmp[] = {' ', ' '};
 		int x, y;
 
 		int row1 = 0;
@@ -770,9 +760,19 @@ public class NetHackApp extends Activity implements Runnable {
 	public boolean altKeyDown = false;
 	public boolean shiftKeyDown = false;
 	public boolean ctrlKeyDown = false;
-	
+
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
+
 		if(keyCode == KeyEvent.KEYCODE_BACK)
+		{
+			InputMethodManager inputManager = (InputMethodManager)
+						this.getSystemService (Context.INPUT_METHOD_SERVICE);
+
+			inputManager.showSoftInput(screen.getRootView(), InputMethodManager.SHOW_FORCED);
+			return true;
+		}
+		
+		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
 		{
 			return super.onKeyDown(keyCode, event);
 		}
@@ -830,6 +830,11 @@ public class NetHackApp extends Activity implements Runnable {
 	}
 
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
+		{
+			return super.onKeyUp(keyCode, event);
+		}
+
 		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT
 				|| keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
 		{
@@ -1053,9 +1058,10 @@ public class NetHackApp extends Activity implements Runnable {
 		layout.setOrientation(LinearLayout.VERTICAL);
 
 		//layout.addView(dbgTerminalTranscript);
-		layout.addView(screen);
+//		layout.addView(screen);
 
-		setContentView(layout);
+//		setContentView(layout);
+		setContentView(screen);
 
 		if(!gameInitialized)
 		{
@@ -1072,7 +1078,6 @@ public class NetHackApp extends Activity implements Runnable {
 		}
 		commThread = new Thread(this);
 		commThread.start();
-
 	}
 
 	public static boolean gameInitialized = false;
