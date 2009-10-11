@@ -1,6 +1,9 @@
 package com.nethackff;
 
 import android.app.Activity;
+//import android.app.AlertDialog;
+//import android.app.AlertDialog.Builder;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Canvas;
@@ -15,6 +18,8 @@ import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 //import android.view.ViewGroup;
@@ -1169,6 +1174,31 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		commThread.start();
 
 	}
+
+public static final int Menu1 = Menu.FIRST + 1;
+public static final int Menu2 = Menu.FIRST + 2;
+public static final int Menu3 = Menu.FIRST + 3;
+public static final int Menu4 = Menu.FIRST + 4;
+
+public boolean onCreateOptionsMenu(Menu menu) {  
+super.onCreateOptionsMenu(menu);  
+getMenuInflater().inflate(R.layout.menu, menu);  
+return true;  
+}
+
+public boolean onOptionsItemSelected(MenuItem item)
+{  
+	switch(item.getItemId())
+	{  
+		case R.id.about:
+			Dialog dialog = new Dialog(this);
+			dialog.setContentView(R.layout.about);
+			dialog.setTitle(getString(R.string.about_title));
+			dialog.show();
+			return true;
+	}
+	return false;  
+}  
 
 	public static boolean gameInitialized = false;
 	public static TerminalState terminalState;
