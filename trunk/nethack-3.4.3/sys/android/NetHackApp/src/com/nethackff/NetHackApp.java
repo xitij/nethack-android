@@ -10,11 +10,17 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+//import android.util.Log;
+import android.view.GestureDetector;
+import android.view.GestureDetector.OnGestureListener;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+//import android.view.ViewGroup;
 import android.view.Window;
-import android.widget.LinearLayout;
+//import android.widget.LinearLayout;
+//import android.widget.ScrollView;
 
 import java.io.BufferedReader;
 import java.io.BufferedInputStream;
@@ -502,6 +508,8 @@ class TerminalView extends View
 {
 	Paint textPaint;
 
+	int textSize = 10;
+
 	protected void onMeasure(int widthmeasurespec, int heightmeasurespec) {
 		int minheight = getSuggestedMinimumHeight();
 		int minwidth = getSuggestedMinimumWidth();
@@ -509,7 +517,7 @@ class TerminalView extends View
 		// TODO: Prevent duplication
 		Paint paint = new Paint();
 		paint.setTypeface(Typeface.MONOSPACE);
-		paint.setTextSize(10);
+		paint.setTextSize(textSize);
 		paint.setAntiAlias(true);
 		int charheight = (int) Math.ceil(paint.getFontSpacing());// +
 		// paint.ascent());
@@ -528,8 +536,6 @@ class TerminalView extends View
 			height = minheight;
 		}
 
-//height += 25;
-
 		int modex = MeasureSpec.getMode(widthmeasurespec);
 		int modey = MeasureSpec.getMode(heightmeasurespec);
 		if (modex == MeasureSpec.AT_MOST) {
@@ -542,11 +548,6 @@ class TerminalView extends View
 		} else if (modey == MeasureSpec.EXACTLY) {
 			height = MeasureSpec.getSize(heightmeasurespec);
 		}
-/*		
-terminal.write(width + " x " + height + "\n");
-terminal.write(terminal.numColumns + " x " + charwidth + "\n");
-terminal.write(terminal.numRows + " x " + charheight + "\n");
-*/
 		setMeasuredDimension(width, height);
 	}
 
@@ -560,7 +561,7 @@ terminal.write(terminal.numRows + " x " + charheight + "\n");
 		// Paint paint = createPaint();
 		textPaint = new Paint();
 		textPaint.setTypeface(Typeface.MONOSPACE);
-		textPaint.setTextSize(10);
+		textPaint.setTextSize(textSize);
 		textPaint.setAntiAlias(true);
 
 		charHeight = (int) Math.ceil(textPaint.getFontSpacing());
@@ -751,7 +752,8 @@ terminal.write(terminal.numRows + " x " + charheight + "\n");
 	}
 }
 
-public class NetHackApp extends Activity implements Runnable {
+public class NetHackApp extends Activity implements Runnable, OnGestureListener
+{
 	TerminalView screen;
 
 	/* For debugging only. */
@@ -762,7 +764,6 @@ public class NetHackApp extends Activity implements Runnable {
 	public boolean ctrlKeyDown = false;
 
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-
 		if(keyCode == KeyEvent.KEYCODE_BACK)
 		{
 			InputMethodManager inputManager = (InputMethodManager)
@@ -1033,7 +1034,76 @@ public class NetHackApp extends Activity implements Runnable {
 	}
 
 	Thread commThread;
-	
+
+	GestureDetector gestureScanner;
+
+	public boolean onTouchEvent(MotionEvent me)
+	{
+		return gestureScanner.onTouchEvent(me);
+	}
+
+	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
+	{
+//		screen.scrollX += distanceX;
+//		screen.scrollY += distanceY;
+
+		
+		int newscrollx = screen.getScrollX() + (int)distanceX;
+		int newscrolly = screen.getScrollY() + (int)distanceY;
+		if(newscrollx < 0)
+		{
+			newscrollx = 0;
+		}
+		if(newscrolly < 0)
+		{
+			newscrolly = 0;
+		}
+
+		int termx = screen.charWidth*screen.terminal.numColumns;
+		int termy = screen.charHeight*screen.terminal.numRows;
+
+		int maxx = termx - screen.getWidth();
+		int maxy = termy - screen.getHeight();
+		if(maxx < 0)
+		{
+			maxx = 0;
+		}
+		if(maxy < 0)
+		{
+			maxy = 0;
+		}
+		if(newscrollx >= maxx)
+		{
+			newscrollx = maxx - 1;
+		}
+		if(newscrolly >= maxy)
+		{
+			newscrolly = maxy - 1;
+		}
+
+		screen.scrollTo(newscrollx, newscrolly);
+		return true;
+	}
+
+	public boolean onDown(MotionEvent e)
+	{
+		return true;
+	}
+	public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY)
+	{
+		return true;
+	}
+	public void onLongPress(MotionEvent e)
+	{
+	}
+	public void onShowPress(MotionEvent e)
+	{
+	}
+	public boolean onSingleTapUp(MotionEvent e)
+	{
+		return true;
+	}
+
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
@@ -1054,15 +1124,13 @@ public class NetHackApp extends Activity implements Runnable {
 		//dbgTerminalTranscript = new TerminalView(this, 80, 2);
 		//dbgTerminalTranscript.colorForeground = TerminalView.kColRed;
 
-		LinearLayout layout = new LinearLayout(this);
-		layout.setOrientation(LinearLayout.VERTICAL);
-
 		//layout.addView(dbgTerminalTranscript);
-//		layout.addView(screen);
 
 //		setContentView(layout);
 		setContentView(screen);
 
+		gestureScanner = new GestureDetector(this);
+		
 		if(!gameInitialized)
 		{
 			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
@@ -1078,6 +1146,7 @@ public class NetHackApp extends Activity implements Runnable {
 		}
 		commThread = new Thread(this);
 		commThread.start();
+
 	}
 
 	public static boolean gameInitialized = false;
