@@ -775,6 +775,11 @@ class TerminalView extends View
 		}
 
 		terminal.clearChange();
+
+		// Since we have drawn the cursor, we should probably register this current
+		// position so that the next time we draw, we remember to erase the cursor
+		// from its previous position.
+		terminal.registerChange(terminal.currentColumn, terminal.currentRow);
 	}
 }
 
@@ -901,7 +906,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 */
 
 				screen.terminal.write(s);
-				if(screen.terminal.changeColumn1 <= screen.terminal.changeColumn2) {
+				if(screen.terminal.changeColumn1 <= screen.terminal.changeColumn2)
+				{
+					// Since we will draw the cursor at the current position, we should probably consider
+					// the current position as a change.
+					screen.terminal.registerChange(screen.terminal.currentColumn, screen.terminal.currentRow);
+
 					Rect cliprect = new Rect();
 					cliprect.bottom = screen.computeCoordY(screen.terminal.changeRow2)
 							+ screen.charHeight;
@@ -1208,7 +1218,8 @@ public boolean onOptionsItemSelected(MenuItem item)
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
 
-	static {
+	static
+	{
 		System.loadLibrary("nethack");
 	}
 }
