@@ -701,6 +701,11 @@ class TerminalView extends View
 			for (int col = col1; col < col2; col++, x += charWidth) {
 				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
 				int color = terminal.decodeFormatBackground(fmt);
+
+				if(col == terminal.currentColumn && row == terminal.currentRow)
+				{
+					color = 7 - color;
+				}
 				if (color == currentcolor) {
 					continue;
 				}
@@ -729,6 +734,22 @@ class TerminalView extends View
 				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
 				int color = terminal.decodeFormatForeground(fmt);
 				char c = terminal.textBuffer[row*terminal.numColumns + col];
+
+				if(col == terminal.currentColumn && row == terminal.currentRow)
+				{
+					boolean bold = false;
+					if(color >= 8)
+					{
+						color -= 8;
+						bold = true;
+					}
+					color = 7 - color;
+					if(bold)
+					{
+						color += 8;
+					}
+				}
+
 				if (color == currentcolor) {
 					currentstr += c;
 					continue;
