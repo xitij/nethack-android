@@ -1059,10 +1059,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		AssetManager am = getResources().getAssets();
 		String assets[] = null;
 		try {
-			assets = am.list("dat");
+			assets = am.list("nethackdir");
 
 			for (int i = 0; i < assets.length; i++) {
-				copyAsset("dat/" + assets[i]);
+				copyAsset("nethackdir/" + assets[i]);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e.getMessage());
@@ -1080,10 +1080,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
 	{
-//		screen.scrollX += distanceX;
-//		screen.scrollY += distanceY;
-
-		
 		int newscrollx = screen.getScrollX() + (int)distanceX;
 		int newscrolly = screen.getScrollY() + (int)distanceY;
 		if(newscrollx < 0)
@@ -1169,8 +1165,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		
 		if(!gameInitialized)
 		{
-			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat", "");
-			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/dat/save", "");
+			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir", "");
+			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir/save", "");
 			copyNetHackData();
 
 			if(NetHackInit() == 0)
@@ -1185,30 +1181,26 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	}
 
-public static final int Menu1 = Menu.FIRST + 1;
-public static final int Menu2 = Menu.FIRST + 2;
-public static final int Menu3 = Menu.FIRST + 3;
-public static final int Menu4 = Menu.FIRST + 4;
-
-public boolean onCreateOptionsMenu(Menu menu) {  
-super.onCreateOptionsMenu(menu);  
-getMenuInflater().inflate(R.layout.menu, menu);  
-return true;  
-}
-
-public boolean onOptionsItemSelected(MenuItem item)
-{  
-	switch(item.getItemId())
-	{  
-		case R.id.about:
-			Dialog dialog = new Dialog(this);
-			dialog.setContentView(R.layout.about);
-			dialog.setTitle(getString(R.string.about_title));
-			dialog.show();
-			return true;
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		super.onCreateOptionsMenu(menu);
+		getMenuInflater().inflate(R.layout.menu, menu);
+		return true;
 	}
-	return false;  
-}  
+
+	public boolean onOptionsItemSelected(MenuItem item)
+	{  
+		switch(item.getItemId())
+		{
+			case R.id.about:
+				Dialog dialog = new Dialog(this);
+				dialog.setContentView(R.layout.about);
+				dialog.setTitle(getString(R.string.about_title));
+				dialog.show();
+				return true;
+		}
+		return false;  
+	}
 
 	public static boolean gameInitialized = false;
 	public static TerminalState terminalState;
