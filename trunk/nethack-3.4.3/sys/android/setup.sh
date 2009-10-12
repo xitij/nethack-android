@@ -43,11 +43,3 @@ ln -s $(pwd)/NetHackNative/androidconf.h ../../include/androidconf.h
 touch ../../dat/perm
 touch ../../dat/record
 touch ../../dat/logfile
-
-
-# Current procedure:
-# 1. Run Eclipse, import project from sys/android/NetHackApp.
-# 2. Run 'setup.sh'
-# 3. Go to 'dat' folder, type 'make'.
-# 4. Go to ANDROID_NDK_DIR, type 'make APP=NetHackNative'.
-# 5. Build and launch application.
