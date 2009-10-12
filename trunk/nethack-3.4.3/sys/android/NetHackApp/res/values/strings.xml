@@ -3,6 +3,6 @@
     <string name="hello">Hello World, NetHackApp!</string>
     <string name="app_name">NetHack</string>
 	<string name="about">About</string>
-	<string name="about_msg">Android port by Fredrik Farnstrom</string>
+	<string name="about_msg">Android port by Fredrik Farnstrom\nUse the Search key as Ctrl.\nTouch the screen to scroll (if needed).</string>
 	<string name="about_title">NetHack 3.4.3</string>
 </resources>
