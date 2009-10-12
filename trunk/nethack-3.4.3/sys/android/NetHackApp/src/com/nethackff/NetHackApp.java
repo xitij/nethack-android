@@ -70,24 +70,30 @@ class TerminalState
 	int changeColumn1, changeColumn2;
 	int changeRow1, changeRow2;
 
-	protected void clearChange() {
+	protected void clearChange()
+	{
 		changeColumn1 = numColumns;
 		changeColumn2 = -1;
 		changeRow1 = numRows;
 		changeRow2 = -1;
 	}
 
-	protected void registerChange(int column, int row) {
-		if (column < changeColumn1) {
+	protected void registerChange(int column, int row)
+	{
+		if(column < changeColumn1)
+		{
 			changeColumn1 = column;
 		}
-		if (column > changeColumn2) {
+		if(column > changeColumn2)
+		{
 			changeColumn2 = column;
 		}
-		if (row < changeRow1) {
+		if(row < changeRow1)
+		{
 			changeRow1 = row;
 		}
-		if (row > changeRow2) {
+		if(row > changeRow2)
+		{
 			changeRow2 = row;
 		}
 	}
@@ -104,80 +110,101 @@ class TerminalState
 	int colorForeground = kColWhite, colorBackground = kColBlack;
 
 	char encodeFormat(int foreground, int background, boolean reverse,
-			boolean bright, boolean underline) {
-		if (reverse) {
+			boolean bright, boolean underline)
+	{
+		if(reverse)
+		{
 			foreground = 7 - foreground;
 			background = 7 - background;
 		}
-		if (bright) {
+		if(bright)
+		{
 			foreground += 8;
 		}
-		if (underline) {
+		if(underline)
+		{
 			foreground += 16;
 		}
 		return (char) ((foreground << 3) + background);
 	}
 
-	int decodeFormatForeground(char fmt) {
+	int decodeFormatForeground(char fmt)
+	{
 		return (fmt >> 3) & 31;
 	}
 
-	int decodeFormatBackground(char fmt) {
+	int decodeFormatBackground(char fmt)
+	{
 		return fmt & 7;
 	}
 
-	char encodeCurrentFormat() {
+	char encodeCurrentFormat()
+	{
 		return encodeFormat(colorForeground, colorBackground, grReverseVideo,
 				grBright, grUnderline);
 	}
 
-	void clearScreen() {
-		for (int i = 0; i < numRows * numColumns; i++) {
+	void clearScreen()
+	{
+		for(int i = 0; i < numRows * numColumns; i++)
+		{
 			textBuffer[i] = ' ';
 			fmtBuffer[i] = encodeCurrentFormat();
 		}
 	}
 
-	void clampCursorPos() {
-		if (currentRow < 0) {
+	void clampCursorPos()
+	{
+		if(currentRow < 0)
+		{
 			currentRow = 0;
-		} else if (currentRow >= numRows) {
+		}
+		else if(currentRow >= numRows)
+		{
 			// Should we scroll down in this case?
 			currentRow = numRows - 1;
 		}
-		if (currentColumn < 0) {
+		if(currentColumn < 0)
+		{
 			currentColumn = 0;
-		} else if (currentColumn >= numColumns) {
+		}
+		else if(currentColumn >= numColumns)
+		{
 			currentColumn = numColumns - 1;
 		}
 	}
 
-	void moveCursorRel(int coldelta, int rowdelta) {
+	void moveCursorRel(int coldelta, int rowdelta)
+	{
 		currentRow += rowdelta;
 		currentColumn += coldelta;
 		clampCursorPos();
 	}
 
-	void moveCursorAbs(int newcol, int newrow) {
+	void moveCursorAbs(int newcol, int newrow)
+	{
 		currentRow = newrow;
 		currentColumn = newcol;
 		clampCursorPos();
 	}
 
-	public void lineFeed() {
+	public void lineFeed()
+	{
 		currentRow++;
 		currentColumn = 0;
 
-		if (currentRow >= numRows) {
-			for (int row = 1; row < numRows; row++) {
-				for (int col = 0; col < numColumns; col++) {
-					textBuffer[(row - 1) * numColumns + col] = textBuffer[row
-							* numColumns + col];
-					fmtBuffer[(row - 1) * numColumns + col] = fmtBuffer[row
-							* numColumns + col];
+		if(currentRow >= numRows)
+		{
+			for(int row = 1; row < numRows; row++)
+			{
+				for(int col = 0; col < numColumns; col++)
+				{
+					textBuffer[(row - 1) * numColumns + col] = textBuffer[row*numColumns + col];
+					fmtBuffer[(row - 1) * numColumns + col] = fmtBuffer[row*numColumns + col];
 				}
 			}
-			for (int col = 0; col < numColumns; col++) {
+			for(int col = 0; col < numColumns; col++)
+			{
 				textBuffer[(numRows - 1) * numColumns + col] = ' ';
 				fmtBuffer[(numRows - 1) * numColumns + col] = encodeCurrentFormat();
 			}
@@ -188,15 +215,17 @@ class TerminalState
 			changeRow1 = 0;
 			changeRow2 = numRows - 1;
 		}
-
 	}
 
-	public void writeRaw(char c) {
-		if (currentColumn >= numColumns) {
+	public void writeRaw(char c)
+	{
+		if(currentColumn >= numColumns)
+		{
 			lineFeed();
 		}
 
-		if (currentColumn < numColumns && currentRow < numRows) {
+		if (currentColumn < numColumns && currentRow < numRows)
+		{
 			textBuffer[currentRow * numColumns + currentColumn] = c;
 			fmtBuffer[currentRow * numColumns + currentColumn] = encodeCurrentFormat();
 
@@ -205,17 +234,21 @@ class TerminalState
 		currentColumn++;
 	}
 
-	public void setCharAtPos(char c, int col, int row) {
-		if (col >= 0 && col < numColumns && row >= 0 && row < numRows) {
+	public void setCharAtPos(char c, int col, int row)
+	{
+		if (col >= 0 && col < numColumns && row >= 0 && row < numRows)
+		{
 			textBuffer[row * numColumns + col] = c;
 			fmtBuffer[row * numColumns + col] = encodeCurrentFormat();
 			registerChange(col, row);
 		}
 	}
 
-	public void writeRawStr(String s) {
+	public void writeRawStr(String s)
+	{
 		int len = s.length();
-		for (int i = 0; i < len; i++) {
+		for (int i = 0; i < len; i++)
+		{
 			writeRaw(s.charAt(i));
 		}
 	}
@@ -226,43 +259,49 @@ class TerminalState
 
 	private int escapeState;
 
-	public void startEscapeSequence(int state) {
+	public void startEscapeSequence(int state)
+	{
 		escSeqLen = 0;
 		escapeState = state;
 	}
 
-	public void updateEscapeSequence(char c) {
-		if (escSeqLen < kMaxEscSeqLen) {
+	public void updateEscapeSequence(char c)
+	{
+		if(escSeqLen < kMaxEscSeqLen)
+		{
 			escSeqStored[escSeqLen++] = c;
 		}
-		switch (escapeState) {
-		case ESC:
-			updateEscapeSequenceEsc(c);
-			break;
+		switch (escapeState)
+		{
+			case ESC:
+				updateEscapeSequenceEsc(c);
+				break;
 
-		case ESC_LEFT_SQUARE_BRACKET:
-			updateEscapeSequenceLeftSquareBracket(c);
-			break;
+			case ESC_LEFT_SQUARE_BRACKET:
+				updateEscapeSequenceLeftSquareBracket(c);
+				break;
 
-		default:
-			reportUnknownSequence();
-			escapeState = ESC_NONE;
-			break;
+			default:
+				reportUnknownSequence();
+				escapeState = ESC_NONE;
+				break;
 		}
 	}
 
-	public void updateEscapeSequenceEsc(char c) {
-		switch (c) {
-		case '[':
-			escapeState = ESC_LEFT_SQUARE_BRACKET;
-			escSeqArgVal[0] = 0;
-			escSeqArgCnt = -1;
-			break;
+	public void updateEscapeSequenceEsc(char c)
+	{
+		switch(c)
+		{
+			case '[':
+				escapeState = ESC_LEFT_SQUARE_BRACKET;
+				escSeqArgVal[0] = 0;
+				escSeqArgCnt = -1;
+				break;
 
-		default:
-			reportUnknownSequence();
-			escapeState = ESC_NONE;
-			break;
+			default:
+				reportUnknownSequence();
+				escapeState = ESC_NONE;
+				break;
 		}
 	}
 
@@ -274,29 +313,38 @@ class TerminalState
 	public char[] escSeqStored = new char[kMaxEscSeqLen];
 	public int escSeqLen = 0;
 
-	public int getEscSeqArgVal(int deflt) {
-		if (escSeqArgCnt < 0) {
+	public int getEscSeqArgVal(int deflt)
+	{
+		if (escSeqArgCnt < 0)
+		{
 			// No arguments specified.
 			return deflt;
-		} else {
+		}
+		else
+		{
 			return escSeqArgVal[escSeqArgCnt];
 		}
 	}
 
-	public void reportUnknownChar(char c) {
-		if (currentColumn > 1) {
+	public void reportUnknownChar(char c)
+	{
+		if(currentColumn > 1)
+		{
 			lineFeed();
 		}
 		writeRawStr("Unknown character: " + (int) c);
 		lineFeed();
 	}
 
-	public void reportUnknownSequence() {
-		if (currentColumn > 1) {
+	public void reportUnknownSequence()
+	{
+		if(currentColumn > 1)
+		{
 			lineFeed();
 		}
 		writeRawStr("Unknown Esc sequence: ");
-		for (int i = 0; i < escSeqLen; i++) {
+		for(int i = 0; i < escSeqLen; i++)
+		{
 			writeRaw(escSeqStored[i]);
 		}
 		lineFeed();
@@ -306,167 +354,198 @@ class TerminalState
 	public boolean grBright = false;
 	public boolean grUnderline = false;
 
-	public void selectGraphicRendition(int arg) {
-		if (arg >= 30 && arg <= 37) {
+	public void selectGraphicRendition(int arg)
+	{
+		if(arg >= 30 && arg <= 37)
+		{
 			colorForeground = arg - 30;
 			return;
 		}
-		if (arg >= 40 && arg <= 47) {
+		if(arg >= 40 && arg <= 47)
+		{
 			colorBackground = arg - 40;
 			return;
 		}
-		switch (arg) {
-		case 0:
-			grReverseVideo = false;
-			colorForeground = kColWhite;
-			colorBackground = kColBlack;
-			grBright = false; // Not sure
-			grUnderline = false;
-			break;
-		case 1:
-			grBright = true;
-			break;
-		case 2:
-			grBright = false;
-			break;
-		case 3:
-			reportUnknownSequence();
-			break;
-		case 4:
-			grUnderline = true;
-			break;
-		case 5:
-		case 6:
-			reportUnknownSequence();
-			break;
-		case 7:
-			grReverseVideo = true;
-			break;
-		default:
-			reportUnknownSequence();
-			break;
+		switch(arg)
+		{
+			case 0:
+				grReverseVideo = false;
+				colorForeground = kColWhite;
+				colorBackground = kColBlack;
+				grBright = false; // Not sure
+				grUnderline = false;
+				break;
+			case 1:
+				grBright = true;
+				break;
+			case 2:
+				grBright = false;
+				break;
+			case 3:
+				reportUnknownSequence();
+				break;
+			case 4:
+				grUnderline = true;
+				break;
+			case 5:
+			case 6:
+				reportUnknownSequence();
+				break;
+			case 7:
+				grReverseVideo = true;
+				break;
+			default:
+				reportUnknownSequence();
+				break;
 		}
 	}
 
-	public void selectGraphicRendition() {
-		if (escSeqArgCnt < 0) {
+	public void selectGraphicRendition()
+	{
+		if(escSeqArgCnt < 0)
+		{
 			selectGraphicRendition(0);
-		} else {
-			for (int i = 0; i <= escSeqArgCnt; i++) {
+		}
+		else
+		{
+			for(int i = 0; i <= escSeqArgCnt; i++)
+			{
 				selectGraphicRendition(escSeqArgVal[i]);
 			}
 		}
 	}
 
-	public void updateEscapeSequenceLeftSquareBracket(char c) {
-		switch (c) {
-		case 'B': // Move cursor down n lines
-			moveCursorRel(0, getEscSeqArgVal(1));
-			escapeState = ESC_NONE;
-			return;
-		case 'C': // Move cursor right n lines
-			moveCursorRel(getEscSeqArgVal(1), 0);
-			escapeState = ESC_NONE;
-			return;
-		case 'D': // Move cursor left n lines
-			moveCursorRel(-getEscSeqArgVal(1), 0);
-			escapeState = ESC_NONE;
-			return;
-		case 'A': // Move cursor up n lines
-			moveCursorRel(0, -getEscSeqArgVal(1));
-			escapeState = ESC_NONE;
-			return;
-		case 'H': // Cursor home
-			if (escSeqArgCnt == 1) {
-				moveCursorAbs(escSeqArgVal[1] - 1, escSeqArgVal[0] - 1);
-			} else {
-				moveCursorAbs(0, 0);
-			}
-			escapeState = ESC_NONE;
-			return;
-		case 'J': // Clear screen
-			// TODO: Read arguments here.
-			clearScreen();
-			escapeState = ESC_NONE;
-			return;
-		case 'K':
-			if (getEscSeqArgVal(0) == 0) {
-				// Clear line from cursor right
-				for (int i = currentColumn; i < numColumns; i++) {
-					setCharAtPos(' ', i, currentRow);
+	public void updateEscapeSequenceLeftSquareBracket(char c)
+	{
+		switch(c)
+		{
+			case 'B': // Move cursor down n lines
+				moveCursorRel(0, getEscSeqArgVal(1));
+				escapeState = ESC_NONE;
+				return;
+			case 'C': // Move cursor right n lines
+				moveCursorRel(getEscSeqArgVal(1), 0);
+				escapeState = ESC_NONE;
+				return;
+			case 'D': // Move cursor left n lines
+				moveCursorRel(-getEscSeqArgVal(1), 0);
+				escapeState = ESC_NONE;
+				return;
+			case 'A': // Move cursor up n lines
+				moveCursorRel(0, -getEscSeqArgVal(1));
+				escapeState = ESC_NONE;
+				return;
+			case 'H': // Cursor home
+				if(escSeqArgCnt == 1)
+				{
+					moveCursorAbs(escSeqArgVal[1] - 1, escSeqArgVal[0] - 1);
 				}
-			} else if (getEscSeqArgVal(0) == 1) {
-				// Clear line from cursor left
-				for (int i = currentColumn; i >= 0; i--) {
-					setCharAtPos(' ', i, currentRow);
+				else
+				{
+					moveCursorAbs(0, 0);
 				}
-			} else if (getEscSeqArgVal(0) == 2) {
-				for (int i = 0; i < numColumns; i++) {
-					setCharAtPos(' ', i, currentRow);
+				escapeState = ESC_NONE;
+				return;
+			case 'J': // Clear screen
+				// TODO: Read arguments here.
+				clearScreen();
+				escapeState = ESC_NONE;
+				return;
+			case 'K':
+				if(getEscSeqArgVal(0) == 0)
+				{
+					// Clear line from cursor right
+					for(int i = currentColumn; i < numColumns; i++)
+					{
+						setCharAtPos(' ', i, currentRow);
+					}
 				}
-			} else {
-				reportUnknownSequence();
-			}
-			escapeState = ESC_NONE;
-			return;
-		case 'm': // Select graphic rendition
-			selectGraphicRendition();
-			escapeState = ESC_NONE;
-			return;
+				else if(getEscSeqArgVal(0) == 1)
+				{
+					// Clear line from cursor left
+					for(int i = currentColumn; i >= 0; i--)
+					{
+						setCharAtPos(' ', i, currentRow);
+					}
+				}
+				else if (getEscSeqArgVal(0) == 2)
+				{
+					for(int i = 0; i < numColumns; i++)
+					{
+						setCharAtPos(' ', i, currentRow);
+					}
+				}
+				else
+				{
+					reportUnknownSequence();
+				}
+				escapeState = ESC_NONE;
+				return;
+			case 'm': // Select graphic rendition
+				selectGraphicRendition();
+				escapeState = ESC_NONE;
+				return;
 		}
-		if (c >= '0' && c <= '9') {
-			if (escSeqArgCnt == -1) {
+		if(c >= '0' && c <= '9')
+		{
+			if(escSeqArgCnt == -1)
+			{
 				escSeqArgCnt = 0;
 			}
-			escSeqArgVal[escSeqArgCnt] = escSeqArgVal[escSeqArgCnt] * 10
-					+ (c - '0');
-		} else if (c == ';') {
+			escSeqArgVal[escSeqArgCnt] = escSeqArgVal[escSeqArgCnt]*10 + (c - '0');
+		}
+		else if(c == ';')
+		{
 			escSeqArgCnt++;
 			escSeqArgVal[escSeqArgCnt] = 0;
-		} else {
+		}
+		else
+		{
 			reportUnknownSequence();
 			escapeState = ESC_NONE;
 		}
 	}
 
-	public void write(char c) {
-		switch (c) {
-		case 0: // NUL
-			break;
-		case 7: // BEL
-			break;
-		case 8: // BS
-			if (currentColumn > 0)
-				currentColumn--;
-			break;
-		case 9: // HT
-			// TODO
-			reportUnknownChar(c);
-			break;
-		case 13:
-			currentColumn = 0;
-			return;
-		case 10: // CR
-		case 11: // VT
-		case 12: // LF
-			lineFeed();
-			return;
-		case 14: // SO
-			// TODO
-			break;
-		case 15: // SI
-			// TODO
-			break;
-		case 24: // CAN
-		case 26: // SUB
-			// TODO
-			// break;
-		case 0x9b: // CSI
-			reportUnknownChar(c);
-			break;
-		case 27: // ESC
-			startEscapeSequence(ESC);
-			return;
+	public void write(char c)
+	{
+		switch(c)
+		{
+			case 0: // NUL
+				break;
+			case 7: // BEL
+				break;
+			case 8: // BS
+				if (currentColumn > 0)
+					currentColumn--;
+				break;
+			case 9: // HT
+				// TODO
+				reportUnknownChar(c);
+				break;
+			case 13:
+				currentColumn = 0;
+				return;
+			case 10: // CR
+			case 11: // VT
+			case 12: // LF
+				lineFeed();
+				return;
+			case 14: // SO
+				// TODO
+				break;
+			case 15: // SI
+				// TODO
+				break;
+			case 24: // CAN
+			case 26: // SUB
+				// TODO
+				// break;
+			case 0x9b: // CSI
+				reportUnknownChar(c);
+				break;
+			case 27: // ESC
+				startEscapeSequence(ESC);
+				return;
 		};
 
 		if(escapeState == ESC_NONE)
@@ -482,32 +561,39 @@ class TerminalState
 		}
 	}
 
-	public void write(String s) {
+	public void write(String s)
+	{
 		int len = s.length();
-		for (int i = 0; i < len; i++) {
+		for (int i = 0; i < len; i++)
+		{
 			write(s.charAt(i));
 		}
 	}
 
-	public String getContents() {
+	public String getContents()
+	{
 		String r = "";
-		for (int i = 0; i < numRows; i++) {
+		for (int i = 0; i < numRows; i++)
+		{
 			r += getRow(i);
 			r += '\n';
 		}
 		return r;
 	}
 
-	public String getRow(int row) {
+	public String getRow(int row)
+	{
 		String r;
 		int offs = row*numColumns;
 		r = "";
-		for (int i = 0; i < numColumns; i++) {
+		for (int i = 0; i < numColumns; i++)
+		{
 			r += textBuffer[offs + i];
 		}
 		return r;
 	}
 };
+
 
 class TerminalView extends View
 {
@@ -515,7 +601,8 @@ class TerminalView extends View
 
 	int textSize = 10;
 
-	protected void onMeasure(int widthmeasurespec, int heightmeasurespec) {
+	protected void onMeasure(int widthmeasurespec, int heightmeasurespec)
+	{
 		int minheight = getSuggestedMinimumHeight();
 		int minwidth = getSuggestedMinimumWidth();
 
@@ -524,9 +611,8 @@ class TerminalView extends View
 		paint.setTypeface(Typeface.MONOSPACE);
 		paint.setTextSize(textSize);
 		paint.setAntiAlias(true);
-		int charheight = (int) Math.ceil(paint.getFontSpacing());// +
-		// paint.ascent());
-		int charwidth = (int) paint.measureText("X", 0, 1);
+		int charheight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
+		int charwidth = (int)paint.measureText("X", 0, 1);
 
 		int width, height;
 		width = terminal.numColumns*charwidth;
@@ -534,23 +620,31 @@ class TerminalView extends View
 
 		height += 2; // MAGIC!
 
-		if (width < minwidth) {
+		if (width < minwidth)
+		{
 			width = minwidth;
 		}
-		if (height < minheight) {
+		if (height < minheight)
+		{
 			height = minheight;
 		}
 
 		int modex = MeasureSpec.getMode(widthmeasurespec);
 		int modey = MeasureSpec.getMode(heightmeasurespec);
-		if (modex == MeasureSpec.AT_MOST) {
+		if(modex == MeasureSpec.AT_MOST)
+		{
 			width = Math.min(MeasureSpec.getSize(widthmeasurespec), width);
-		} else if (modex == MeasureSpec.EXACTLY) {
+		}
+		else if(modex == MeasureSpec.EXACTLY)
+		{
 			width = MeasureSpec.getSize(widthmeasurespec);
 		}
-		if (modey == MeasureSpec.AT_MOST) {
+		if(modey == MeasureSpec.AT_MOST)
+		{
 			height = Math.min(MeasureSpec.getSize(heightmeasurespec), height);
-		} else if (modey == MeasureSpec.EXACTLY) {
+		}
+		else if(modey == MeasureSpec.EXACTLY)
+		{
 			height = MeasureSpec.getSize(heightmeasurespec);
 		}
 		setMeasuredDimension(width, height);
@@ -558,7 +652,8 @@ class TerminalView extends View
 
 	TerminalState terminal;
 
-	public TerminalView(Context context, TerminalState term) {
+	public TerminalView(Context context, TerminalState term)
+	{
 		super(context);
 
 		terminal = term;
@@ -569,8 +664,8 @@ class TerminalView extends View
 		textPaint.setTextSize(textSize);
 		textPaint.setAntiAlias(true);
 
-		charHeight = (int) Math.ceil(textPaint.getFontSpacing());
-		charWidth = (int) textPaint.measureText("X", 0, 1);
+		charHeight = (int)Math.ceil(textPaint.getFontSpacing());
+		charWidth = (int)textPaint.measureText("X", 0, 1);
 	}
 
 
@@ -580,7 +675,8 @@ class TerminalView extends View
 		{
 			paint.setFakeBoldText(true);
 			col &= ~8;
-		} else
+		}
+		else
 		{
 			paint.setFakeBoldText(false);
 		}
@@ -627,7 +723,7 @@ class TerminalView extends View
 
 	void setPaintColorBackground(Paint paint, int col)
 	{
-		switch (col)
+		switch(col)
 		{
 			case TerminalState.kColBlack:
 				paint.setARGB(0xff, 0x00, 0x00, 0x00);
@@ -659,27 +755,31 @@ class TerminalView extends View
 		}
 	}
 
-	// TODO
 	int charHeight = 0;
 	int charWidth = 0;
 
-	int computeCoordX(int column) {
-		return charWidth * column;
+	int computeCoordX(int column)
+	{
+		return charWidth*column;
 	}
 
-	int computeCoordY(int row) {
-		return row * charHeight;
+	int computeCoordY(int row)
+	{
+		return row*charHeight;
 	}
 
-	int computeColumnFromCoordX(int coordx) {
-		return coordx / charWidth;
+	int computeColumnFromCoordX(int coordx)
+	{
+		return coordx/charWidth;
 	}
 
-	int computeRowFromCoordY(int coordy) {
-		return coordy / charHeight;
+	int computeRowFromCoordY(int coordy)
+	{
+		return coordy/charHeight;
 	}
 
-	protected void onDraw(Canvas canvas) {
+	protected void onDraw(Canvas canvas)
+	{
 		int x, y;
 
 		int row1 = 0;
@@ -688,22 +788,23 @@ class TerminalView extends View
 		int col2 = terminal.numColumns;
 
 		Rect cliprect = new Rect();
-		if (canvas.getClipBounds(cliprect)) {
+		if(canvas.getClipBounds(cliprect))
+		{
 			col1 = Math.max(computeColumnFromCoordX(cliprect.left), 0);
-			col2 = Math.min(computeColumnFromCoordX(cliprect.right + charWidth
-					- 1), terminal.numColumns);
+			col2 = Math.min(computeColumnFromCoordX(cliprect.right + charWidth - 1), terminal.numColumns);
 			row1 = Math.max(computeRowFromCoordY(cliprect.top), 0);
-			row2 = Math.min(computeRowFromCoordY(cliprect.bottom + charHeight
-					- 1), terminal.numRows);
+			row2 = Math.min(computeRowFromCoordY(cliprect.bottom + charHeight - 1), terminal.numRows);
 		}
 
 		x = 0;
 		y = computeCoordY(row1);
-		for (int row = row1; row < row2; row++) {
+		for(int row = row1; row < row2; row++)
+		{
 			x = computeCoordX(col1);
 			int currentx1 = -1;
 			int currentcolor = -1;
-			for (int col = col1; col < col2; col++, x += charWidth) {
+			for(int col = col1; col < col2; col++, x += charWidth)
+			{
 				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
 				int color = terminal.decodeFormatBackground(fmt);
 
@@ -711,10 +812,12 @@ class TerminalView extends View
 				{
 					color = 7 - color;
 				}
-				if (color == currentcolor) {
+				if(color == currentcolor)
+				{
 					continue;
 				}
-				if (currentx1 >= 0) {
+				if(currentx1 >= 0)
+				{
 					setPaintColorBackground(textPaint, currentcolor);
 					canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
 				}
@@ -730,12 +833,14 @@ class TerminalView extends View
 
 		int ybackgroffs = 2;
 		y = charHeight + computeCoordY(row1) - ybackgroffs;
-		for (int row = row1; row < row2; row++) {
+		for(int row = row1; row < row2; row++)
+		{
 			x = computeCoordX(col1);
 			int currentx1 = -1;
 			int currentcolor = -1;
 			String currentstr = "";
-			for (int col = col1; col < col2; col++, x += charWidth) {
+			for(int col = col1; col < col2; col++, x += charWidth)
+			{
 				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
 				int color = terminal.decodeFormatForeground(fmt);
 				char c = terminal.textBuffer[row*terminal.numColumns + col];
@@ -755,14 +860,16 @@ class TerminalView extends View
 					}
 				}
 
-				if (color == currentcolor) {
+				if(color == currentcolor)
+				{
 					currentstr += c;
 					continue;
 				}
-				if (currentx1 >= 0) {
+				if(currentx1 >= 0)
+				{
 					setPaintColorForeground(textPaint, currentcolor);
 					canvas.drawText(currentstr, 0, currentstr.length(),
-							(float) currentx1, (float) y, textPaint);
+							(float)currentx1, (float)y, textPaint);
 				}
 				currentx1 = x;
 				currentcolor = color;
@@ -770,7 +877,7 @@ class TerminalView extends View
 			}
 			setPaintColorForeground(textPaint, currentcolor);
 			canvas.drawText(currentstr, 0, currentstr.length(),
-					(float) currentx1, (float) y, textPaint);
+					(float)currentx1, (float)y, textPaint);
 			y += charHeight;
 		}
 
@@ -794,12 +901,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public boolean shiftKeyDown = false;
 	public boolean ctrlKeyDown = false;
 
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
+	public boolean onKeyDown(int keyCode, KeyEvent event)
+	{
 		if(keyCode == KeyEvent.KEYCODE_CAMERA)
 		{
-			InputMethodManager inputManager = (InputMethodManager)
-						this.getSystemService (Context.INPUT_METHOD_SERVICE);
-
+			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
 			inputManager.showSoftInput(screen.getRootView(), InputMethodManager.SHOW_FORCED);
 			return true;
 		}
@@ -809,14 +915,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return super.onKeyDown(keyCode, event);
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT
-				|| keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
 		{
 			altKeyDown = true;
 			return true;
 		}
-		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT
-				|| keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
+		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
 		{
 			shiftKeyDown = true;
 			return true;
@@ -834,8 +938,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		String s = "";
 
-		char c = (char) event
-				.getUnicodeChar((shiftKeyDown ? KeyEvent.META_SHIFT_ON : 0)
+		char c = (char)event.getUnicodeChar((shiftKeyDown ? KeyEvent.META_SHIFT_ON : 0)
 						| (altKeyDown ? KeyEvent.META_ALT_ON : 0));
 		if(ctrlKeyDown)
 		{
@@ -852,7 +955,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			c = 8;
 		}
 		
-		if (c != 0)
+		if(c != 0)
 		{
 			s += c;
 			NetHackTerminalSend(s);
@@ -861,19 +964,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
-	public boolean onKeyUp(int keyCode, KeyEvent event) {
+	public boolean onKeyUp(int keyCode, KeyEvent event)
+	{
 		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
 		{
 			return super.onKeyUp(keyCode, event);
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT
-				|| keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
 		{
 			altKeyDown = false;
 		}
-		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT
-				|| keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
+		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
 		{
 			shiftKeyDown = false;
 		}
@@ -885,20 +987,27 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
-	private Handler handler = new Handler() {
-		public void handleMessage(Message msg) {
+	private Handler handler = new Handler()
+	{
+		public void handleMessage(Message msg)
+		{
 			String s = NetHackTerminalReceive();
-			if (s.length() != 0) {
+			if(s.length() != 0)
+			{
 /*
-				for (int i = 0; i < s.length(); i++) {
+				for(int i = 0; i < s.length(); i++)
+				{
 					char c = s.charAt(i);
-					if (c < 32) {
+					if(c < 32)
+					{
 						dbgTerminalTranscript.terminal.writeRaw('^');
 						int a = c / 10;
 						int b = c - a * 10;
 						dbgTerminalTranscript.terminal.writeRaw((char) ('0' + a));
 						dbgTerminalTranscript.terminal.writeRaw((char) ('0' + b));
-					} else {
+					}
+					else
+					{
 						dbgTerminalTranscript.terminal.writeRaw(c);
 						dbgTerminalTranscript.invalidate();
 					}
@@ -913,11 +1022,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					screen.terminal.registerChange(screen.terminal.currentColumn, screen.terminal.currentRow);
 
 					Rect cliprect = new Rect();
-					cliprect.bottom = screen.computeCoordY(screen.terminal.changeRow2)
-							+ screen.charHeight;
+					cliprect.bottom = screen.computeCoordY(screen.terminal.changeRow2) + screen.charHeight;
 					cliprect.top = screen.computeCoordY(screen.terminal.changeRow1);
-					cliprect.right = screen.computeCoordX(screen.terminal.changeColumn2)
-							+ screen.charWidth;
+					cliprect.right = screen.computeCoordX(screen.terminal.changeColumn2) + screen.charWidth;
 					cliprect.left = screen.computeCoordX(screen.terminal.changeColumn1);
 					screen.invalidate(cliprect);
 				}
@@ -936,7 +1043,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return false;
 	}
 
-	public void run() {
+	public void run()
+	{
 		while(true)
 		{
 			if(checkQuitCommThread())
@@ -982,8 +1090,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		//TestShutdown();
 	}
 
-	public void doCommand(String command, String arg0, String arg1) {
-		try {
+	public void doCommand(String command, String arg0, String arg1)
+	{
+		try
+		{
 			// android.os.Exec is not included in android.jar so we need to use
 			// reflection.
 			Class execClass = Class.forName("android.os.Exec");
@@ -1004,12 +1114,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			BufferedReader reader = new BufferedReader(
 					new InputStreamReader(in));
 			String output = "";
-			try {
+			try
+			{
 				String line;
 				while ((line = reader.readLine()) != null) {
 					output += line + "\n";
 				}
-			} catch (IOException e) {
+			}
+			catch(IOException e)
+			{
 				// It seems IOException is thrown when it reaches EOF.
 			}
 
@@ -1018,17 +1131,29 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 			// send output to the textbox
 			// screen.write(output);
-		} catch (ClassNotFoundException e) {
+		}
+		catch (ClassNotFoundException e)
+		{
 			throw new RuntimeException(e.getMessage());
-		} catch (SecurityException e) {
+		}
+		catch (SecurityException e)
+		{
 			throw new RuntimeException(e.getMessage());
-		} catch (NoSuchMethodException e) {
+		}
+		catch (NoSuchMethodException e)
+		{
 			throw new RuntimeException(e.getMessage());
-		} catch (IllegalArgumentException e) {
+		}
+		catch (IllegalArgumentException e)
+		{
 			throw new RuntimeException(e.getMessage());
-		} catch (IllegalAccessException e) {
+		}
+		catch (IllegalAccessException e)
+		{
 			throw new RuntimeException(e.getMessage());
-		} catch (InvocationTargetException e) {
+		}
+		catch (InvocationTargetException e)
+		{
 			throw new RuntimeException(e.getMessage());
 		}
 	}
@@ -1040,10 +1165,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		try
 		{
 			newasset.createNewFile();
-			BufferedOutputStream out = new BufferedOutputStream(
-					new FileOutputStream(newasset));
-			BufferedInputStream in = new BufferedInputStream(this.getAssets()
-					.open(assetname));
+			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(newasset));
+			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(assetname));
 			int b;
 			while((b = in.read()) != -1)
 			{
@@ -1066,8 +1189,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		try
 		{
 			newasset.createNewFile();
-			BufferedOutputStream out = new BufferedOutputStream(
-					new FileOutputStream(newasset));
+			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(newasset));
 			BufferedInputStream in = new BufferedInputStream(new FileInputStream(srcfile));
 			int b;
 			while((b = in.read()) != -1)
