@@ -795,7 +795,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public boolean ctrlKeyDown = false;
 
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if(keyCode == KeyEvent.KEYCODE_BACK)
+		if(keyCode == KeyEvent.KEYCODE_CAMERA)
 		{
 			InputMethodManager inputManager = (InputMethodManager)
 						this.getSystemService (Context.INPUT_METHOD_SERVICE);
@@ -1231,7 +1231,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 //			copyFile("/data/data/com.nethackff/dat/save/10035Ishmael.gz", "/sdcard/10035Ishmael.gz");
 //			copyFile("/data/data/com.nethackff/dat/save/10035Numborf.gz", "/sdcard/10035Numborf.gz");
-			
+
 			gameInitialized = true;
 		}
 		commThread = new Thread(this);
