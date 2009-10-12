@@ -166,7 +166,7 @@ static void *sThreadFunc()
 
 	char buff[256];
 
-	chdir("/data/data/com.nethackff/dat");
+	chdir("/data/data/com.nethackff/nethackdir");
 
 	choose_windows(DEFAULT_WINDOW_SYS);
 	initoptions();
