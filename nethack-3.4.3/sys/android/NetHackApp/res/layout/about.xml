@@ -5,7 +5,7 @@
 	android:layout_height="wrap_content" android:layout_width="wrap_content">
 	<TextView android:textColor="#ffffff" android:text="@string/about_msg"
 			android:padding="20px"
-			android:textSize="16px"
+			android:textSize="12px"
 			android:layout_gravity="center_vertical"
 			android:gravity="center"/>
 </TableLayout>
