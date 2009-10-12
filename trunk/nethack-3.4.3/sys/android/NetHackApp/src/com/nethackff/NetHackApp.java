@@ -978,7 +978,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public void onDestroy()
 	{
 		stopCommThread();
-		
 		super.onDestroy();
 		//TestShutdown();
 	}
@@ -1034,37 +1033,92 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 	}
 
-	public void copyAsset(String assetname) {
+	public void copyAsset(String assetname)
+	{
 		String destname = "/data/data/com.nethackff/" + assetname;
 		File newasset = new File(destname);
-		try {
+		try
+		{
 			newasset.createNewFile();
 			BufferedOutputStream out = new BufferedOutputStream(
 					new FileOutputStream(newasset));
 			BufferedInputStream in = new BufferedInputStream(this.getAssets()
 					.open(assetname));
 			int b;
-			while ((b = in.read()) != -1) {
+			while((b = in.read()) != -1)
+			{
 				out.write(b);
 			}
 			out.flush();
 			out.close();
 			in.close();
-		} catch (IOException ex) {
+		}
+		catch (IOException ex)
+		{
 			screen.terminal.write("Failed to copy file '" + assetname + "'.\n");
 		}
 	}
 
-	public void copyNetHackData() {
+	public void copyFile(String srcname, String destname)
+	{
+		File newasset = new File(destname);
+		File srcfile = new File(srcname);
+		try
+		{
+			newasset.createNewFile();
+			BufferedOutputStream out = new BufferedOutputStream(
+					new FileOutputStream(newasset));
+			BufferedInputStream in = new BufferedInputStream(new FileInputStream(srcfile));
+			int b;
+			while((b = in.read()) != -1)
+			{
+				out.write(b);
+			}
+			out.flush();
+			out.close();
+			in.close();
+		}
+		catch (IOException ex)
+		{
+			screen.terminal.write("Failed to copy file '" + srcname + "' to '" + destname + "'.\n");
+		}
+	}
+
+	public void copyNetHackData()
+	{
 		AssetManager am = getResources().getAssets();
 		String assets[] = null;
-		try {
+		try
+		{
 			assets = am.list("nethackdir");
 
-			for (int i = 0; i < assets.length; i++) {
+			for(int i = 0; i < assets.length; i++)
+			{
 				copyAsset("nethackdir/" + assets[i]);
+				doCommand("/system/bin/chmod", "666", "/data/data/com.nethackff/nethackdir/" + assets[i]);
 			}
-		} catch (IOException e) {
+		}
+		catch (IOException e)
+		{
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+
+	public void deleteNetHackData()
+	{
+		AssetManager am = getResources().getAssets();
+		String assets[] = null;
+		try
+		{
+			assets = am.list("nethackdir");
+
+			for(int i = 0; i < assets.length; i++)
+			{
+				doCommand("/system/bin/rm", "/data/data/com.nethackff/nethackdir/" + assets[i], "");
+			}
+		}
+		catch (IOException e)
+		{
 			throw new RuntimeException(e.getMessage());
 		}
 	}
@@ -1174,6 +1228,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				// TODO
 				return;
 			}
+
+//			copyFile("/data/data/com.nethackff/dat/save/10035Ishmael.gz", "/sdcard/10035Ishmael.gz");
+//			copyFile("/data/data/com.nethackff/dat/save/10035Numborf.gz", "/sdcard/10035Numborf.gz");
+			
 			gameInitialized = true;
 		}
 		commThread = new Thread(this);
