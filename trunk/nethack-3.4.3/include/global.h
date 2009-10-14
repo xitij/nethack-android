@@ -182,6 +182,7 @@ typedef xchar	boolean;		/* 0 or 1 */
 #endif
 #endif
 
+/* Include Android configuration file. /FF */
 #ifdef ANDROID
 #include "androidconf.h"
 #endif
