@@ -7,6 +7,7 @@
 #ifndef TCAP_H
 #define TCAP_H
 
+/* For Android, we don't want TERMLIB because we don't have 'curses'. /FF */
 #if !defined(MICRO) && !defined(ANDROID)
 # define TERMLIB	/* include termcap code */
 #endif
