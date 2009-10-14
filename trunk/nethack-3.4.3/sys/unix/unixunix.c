@@ -99,6 +99,8 @@ getlock()
 	 * works
 	 * also incidentally prevents development of any hack-o-matic programs
 	 */
+	/* This was disabled on Android, didn't have any luck with it. /FF */
+
 	/* added check for window-system type -dlc */
 	if (!strcmp(windowprocs.name, "tty"))
 	    if (!isatty(0))
