@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, NetHackApp!</string>
+    <string name="app_name">NetHack</string>
+	<string name="about">About</string>
+	<string name="about_msg">Android port by Fredrik Farnstrom\nfarnstrom@gmail.com\nUse the Search key as Ctrl.\nTouch the screen to scroll (if needed).\nPressing the Camera key may be used to bring up a soft keyboard.\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/</string>
+	<string name="about_title">NetHack 3.4.3</string>
+</resources>
