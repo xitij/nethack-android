@@ -115,8 +115,8 @@ int *wid, *hgt;
 		error("Can't get TERM.");
 #else
 
+/* Specify a size to use for Android. /FF */
 #ifdef ANDROID
-	/* Not sure */
 	CO = 80; LI = 24;
 #endif
 
@@ -577,7 +577,7 @@ xputs(s)
 const char *s;
 {
 # ifndef TERMLIB
-#  ifdef ANDROID
+#  ifdef ANDROID	/* Don't want to write directly to stdout on Android. /FF */
 	android_puts(s);
 #  else
 	(void) fputs(s, stdout);
@@ -737,6 +737,7 @@ static const short tmspc10[] = {		/* from termcap */
 void
 tty_delay_output()
 {
+/* What we do for MICRO should probably work fine for ANDROID here. /FF */
 #if defined(MICRO) || defined(ANDROID)
 	register int i;
 #endif
@@ -747,6 +748,7 @@ tty_delay_output()
 		return;
 	}
 #endif
+/* What we do for MICRO should probably work fine for ANDROID here. /FF */
 #if defined(MICRO) || defined(ANDROID)
 	/* simulate the delay with "cursor here" */
 	for (i = 0; i < 3; i++) {
