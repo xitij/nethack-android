@@ -1094,22 +1094,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		try
 		{
-			// android.os.Exec is not included in android.jar so we need to use
-			// reflection.
 			Class execClass = Class.forName("android.os.Exec");
 			Method createSubprocess = execClass.getMethod("createSubprocess",
 					String.class, String.class, String.class, int[].class);
 			Method waitFor = execClass.getMethod("waitFor", int.class);
 
-			// Executes the command.
-			// NOTE: createSubprocess() is asynchronous.
 			int[] pid = new int[1];
 			FileDescriptor fd = (FileDescriptor) createSubprocess.invoke(null,
 					command, arg0, arg1, pid);
 
-			// Reads stdout.
-			// NOTE: You can write to stdin of the command using new
-			// FileOutputStream(fd).
 			FileInputStream in = new FileInputStream(fd);
 			BufferedReader reader = new BufferedReader(
 					new InputStreamReader(in));
@@ -1117,7 +1110,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			try
 			{
 				String line;
-				while ((line = reader.readLine()) != null) {
+				while ((line = reader.readLine()) != null)
+				{
 					output += line + "\n";
 				}
 			}
@@ -1128,9 +1122,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 			// Waits for the command to finish.
 			waitFor.invoke(null, pid[0]);
-
-			// send output to the textbox
-			// screen.write(output);
 		}
 		catch (ClassNotFoundException e)
 		{
@@ -1351,8 +1342,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				return;
 			}
 
-//			copyFile("/data/data/com.nethackff/dat/save/10035Ishmael.gz", "/sdcard/10035Ishmael.gz");
-//			copyFile("/data/data/com.nethackff/dat/save/10035Numborf.gz", "/sdcard/10035Numborf.gz");
+			//	copyFile("/data/data/com.nethackff/dat/save/10035foo.gz", "/sdcard/10035foo.gz");
 
 			gameInitialized = true;
 		}
