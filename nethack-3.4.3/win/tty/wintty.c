@@ -2540,8 +2540,9 @@ tty_nhgetch()
     if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
 	    wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
 
+/* On Android, I got nothing but crashes trying to read from stdin - just
+   use our getch() function instead. /FF */
 #ifdef ANDROID
-
 	i = android_getch();
 #else
 
