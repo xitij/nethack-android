@@ -121,6 +121,8 @@ struct tchars inittyb2, curttyb2;
 
 #endif	/* V7 */
 
+/* The Android port does this too now. Not sure exactly what this
+   is all for. /FF */
 #if defined(TTY_GRAPHICS) && ((!defined(SYSV) && !defined(HPUX)) || defined(UNIXPC) || defined(SVR4)) && !defined(ANDROID)
 # ifndef LINT
 extern			/* it is defined in libtermlib (libtermcap) */
