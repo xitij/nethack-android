@@ -22,10 +22,11 @@ cd NetHackApp/assets
 ln -s ../../../../dat nethackdir
 cd ../../
 
-ANDROID_NDK_DIR=$(echo ~)/android-ndk-1.5_r1
+ANDROID_NDK_DIR=$(echo ~)/android-ndk-1.6_r1
 
 ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/apps/
-ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/sources/
+# Not needed in 1.6:
+# ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/sources/
 
 # Set up the 'src' directory as project in the Android native directory.
 ln -s $(pwd)/../../src NetHackNative/nethack
