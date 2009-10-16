@@ -901,21 +901,69 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public boolean shiftKeyDown = false;
 	public boolean ctrlKeyDown = false;
 
+	enum KeyAction
+	{
+		kKeyActionNone,
+		kKeyActionAlt,
+		kKeyActionCtrl,
+		kKeyActionVirtualKeyboard
+	}
+
+	KeyAction optKeyBindAltRight = KeyAction.kKeyActionAlt;
+	KeyAction optKeyBindBack = KeyAction.kKeyActionNone;
+	KeyAction optKeyBindCamera = KeyAction.kKeyActionVirtualKeyboard;
+	KeyAction optKeyBindMenu = KeyAction.kKeyActionNone;
+	KeyAction optKeyBindSearch = KeyAction.kKeyActionCtrl;
+
+	public KeyAction getKeyActionFromKeyCode(int keyCode)
+	{
+		KeyAction keyAction = KeyAction.kKeyActionNone;
+		switch(keyCode)
+		{
+			case KeyEvent.KEYCODE_ALT_RIGHT:
+				keyAction = optKeyBindAltRight; 	
+				break;
+			case KeyEvent.KEYCODE_CAMERA:
+				keyAction = optKeyBindCamera; 	
+				break;
+			case KeyEvent.KEYCODE_BACK:
+				keyAction = optKeyBindBack; 	
+				break;
+			case KeyEvent.KEYCODE_MENU:
+				keyAction = optKeyBindMenu;
+				break;
+			case KeyEvent.KEYCODE_SEARCH:
+				keyAction = optKeyBindSearch; 	
+				break;
+			default:
+				break;
+		}
+		return keyAction;		
+	}
+
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
-		if(keyCode == KeyEvent.KEYCODE_CAMERA)
+		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
+
+		if(keyAction == KeyAction.kKeyActionVirtualKeyboard)
 		{
 			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
 			inputManager.showSoftInput(screen.getRootView(), InputMethodManager.SHOW_FORCED);
 			return true;
 		}
-		
+
+		if(keyAction == KeyAction.kKeyActionCtrl)
+		{
+			ctrlKeyDown = true;
+			return true;
+		}
+
 		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
 		{
 			return super.onKeyDown(keyCode, event);
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.kKeyActionAlt)
 		{
 			altKeyDown = true;
 			return true;
@@ -926,16 +974,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return true;
 		}
 
-		// There is no Ctrl key on the G1 keyboard, and we can't use
-		// Shift or Alt for it, as they are needed for other things.
-		// The search button was the best remaining alternative
-		// (the menu button could work too, but may want to use that
-		// for an actual application menu instead).
-		if(keyCode == KeyEvent.KEYCODE_SEARCH)
-		{
-			ctrlKeyDown = true;
-			return true;
-		}
 		String s = "";
 
 		char c = (char)event.getUnicodeChar((shiftKeyDown ? KeyEvent.META_SHIFT_ON : 0)
@@ -966,12 +1004,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public boolean onKeyUp(int keyCode, KeyEvent event)
 	{
-		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
+		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
+
+		if(keyAction == KeyAction.kKeyActionCtrl)
 		{
-			return super.onKeyUp(keyCode, event);
+			ctrlKeyDown = false;
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT)
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.kKeyActionAlt)
 		{
 			altKeyDown = false;
 		}
@@ -979,11 +1019,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			shiftKeyDown = false;
 		}
-		if(keyCode == KeyEvent.KEYCODE_SEARCH)
+
+		if(keyAction == KeyAction.kKeyActionNone)
 		{
-			ctrlKeyDown = false;
-			return true;
+			if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
+			{
+				return super.onKeyUp(keyCode, event);
+			}
 		}
+
 		return true;
 	}
 
