@@ -4,4 +4,8 @@
 		android:id="@+id/about"
 		android:title="@string/about"   
     />
+	<item   
+		android:id="@+id/keybindings"
+		android:title="@string/keybindings"   
+    />
 </menu>  
