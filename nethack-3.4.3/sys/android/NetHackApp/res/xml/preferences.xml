@@ -4,41 +4,65 @@
 	<PreferenceCategory android:title="Display">
 		<CheckBoxPreference android:key="Fullscreen"
 			android:title="Fullscreen"
-			android:summary="If set, the notification bar will be hidden."/>
+			android:summary="If set, the notification bar will be hidden."
+			android:defaultValue="false"/>
 	</PreferenceCategory>
 	<PreferenceCategory android:title="Input">
 		<CheckBoxPreference android:key="MoveWithTrackball"
 			android:title="Move with Trackball"/>
+		<CheckBoxPreference android:key="StickyAlt"
+			android:title="Sticky Alt Keys"
+			android:defaultValue="false"/>
 		<CheckBoxPreference android:key="StickyCtrl"
-			android:title="Sticky Ctrl Key"/>
-		<ListPreference
-			android:title="Camera Button"
-			android:summary="Select functionality for Camera Button."
-			android:key="CameraButtonFunc"
-			android:defaultValue="VirtualKeyboard"
-			android:entries="@array/KeyActions"
-			android:entryValues="@array/KeyActionValues"/>
-		<ListPreference
-			android:title="Search Button"
-			android:summary="Select functionality for Search Button."
-			android:key="SearchButtonFunc"
-			android:defaultValue="CtrlKey"
-			android:entries="@array/KeyActions"
-			android:entryValues="@array/KeyActionValues"/>
-		<ListPreference
-			android:title="Left Alt Key"
-			android:summary="Select functionality for Left Alt Key."
-			android:key="LeftAltKeyFunc"
-			android:defaultValue="AltKey"
-			android:entries="@array/KeyActions"
-			android:entryValues="@array/KeyActionValues"/>
-		<ListPreference
-			android:title="Right Alt Key"
-			android:summary="Select functionality for Right Alt Key."
-			android:key="RightAltKeyFunc"
-			android:defaultValue="AltKey"
-			android:entries="@array/KeyActions"
-			android:entryValues="@array/KeyActionValues"/>
-
+			android:title="Sticky Ctrl Key"
+			android:defaultValue="false"/>
+		<CheckBoxPreference android:key="StickyShift"
+			android:title="Sticky Shift Keys"
+			android:defaultValue="false"/>
+		<PreferenceScreen
+				android:title="Key Bindings">
+			<ListPreference
+				android:title="Camera Button"
+				android:summary="Select functionality for Camera button."
+				android:key="CameraButtonFunc"
+				android:defaultValue="VirtualKeyboard"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Search Button"
+				android:summary="Select functionality for Search button."
+				android:key="SearchButtonFunc"
+				android:defaultValue="CtrlKey"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Left Alt Key"
+				android:summary="Select functionality for Left Alt key."
+				android:key="LeftAltKeyFunc"
+				android:defaultValue="AltKey"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Right Alt Key"
+				android:summary="Select functionality for Right Alt key."
+				android:key="RightAltKeyFunc"
+				android:defaultValue="AltKey"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Left Shift Key"
+				android:summary="Select functionality for Left Shift key."
+				android:key="LeftShiftKeyFunc"
+				android:defaultValue="ShiftKey"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Right Shift Key"
+				android:summary="Select functionality for Right Shift key."
+				android:key="RightShiftKeyFunc"
+				android:defaultValue="ShiftKey"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+		</PreferenceScreen>
 	</PreferenceCategory>
 </PreferenceScreen>

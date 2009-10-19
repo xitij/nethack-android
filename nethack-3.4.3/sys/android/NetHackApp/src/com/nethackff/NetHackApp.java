@@ -27,6 +27,7 @@ import android.view.MotionEvent;
 import android.view.View;
 //import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 //import android.widget.LinearLayout;
 //import android.widget.ScrollView;
 
@@ -901,29 +902,83 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	/* For debugging only. */
 	//TerminalView dbgTerminalTranscript;
 
-	public boolean altKeyDown = false;
-	public boolean shiftKeyDown = false;
-	public boolean ctrlKeyDown = false;
+	class ModifierKey
+	{
+		public boolean active = false;
+		public boolean down = false;
+		public boolean used = false;
+		public boolean sticky = false;
+
+		public void resetState()
+		{
+			active = down = used = false;
+		}
+		
+		public void keyUp()
+		{
+			down = false;
+			if(!sticky || used)
+			{
+				active = false;
+				used = false;
+			}
+		}
+
+		public void keyDown()
+		{
+			if(active && sticky)
+			{
+				used = true;
+			}
+			down = true;
+			active = true;
+		}
+
+		public void usedIfActive()
+		{
+			if(active)
+			{
+				used = true;
+			}
+			if(sticky && active && !down)
+			{
+				active = false;
+				used = false;
+			}
+		}
+	}
+
+	ModifierKey altKey;
+	ModifierKey ctrlKey;
+	ModifierKey shiftKey;
 
 	enum KeyAction
 	{
 		None,
 		AltKey,
 		CtrlKey,
+		ShiftKey,
 		VirtualKeyboard
 	}
 
+	boolean optFullscreen = false;
+	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
 	KeyAction optKeyBindBack = KeyAction.None;
 	KeyAction optKeyBindCamera = KeyAction.VirtualKeyboard;
 	KeyAction optKeyBindMenu = KeyAction.None;
 	KeyAction optKeyBindSearch = KeyAction.CtrlKey;
+	KeyAction optKeyBindShiftLeft = KeyAction.ShiftKey;
+	KeyAction optKeyBindShiftRight = KeyAction.ShiftKey;
 
 	public KeyAction getKeyActionFromKeyCode(int keyCode)
 	{
 		KeyAction keyAction = KeyAction.None;
 		switch(keyCode)
 		{
+			case KeyEvent.KEYCODE_ALT_LEFT:
+				keyAction = optKeyBindAltLeft; 	
+				break;
 			case KeyEvent.KEYCODE_ALT_RIGHT:
 				keyAction = optKeyBindAltRight; 	
 				break;
@@ -938,6 +993,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				break;
 			case KeyEvent.KEYCODE_SEARCH:
 				keyAction = optKeyBindSearch; 	
+				break;
+			case KeyEvent.KEYCODE_SHIFT_LEFT:
+				keyAction = optKeyBindShiftLeft; 	
+				break;
+			case KeyEvent.KEYCODE_SHIFT_RIGHT:
+				keyAction = optKeyBindShiftRight; 	
 				break;
 			default:
 				break;
@@ -956,33 +1017,32 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return true;
 		}
 
-		if(keyAction == KeyAction.CtrlKey)
-		{
-			ctrlKeyDown = true;
-			return true;
-		}
-
 		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
 		{
 			return super.onKeyDown(keyCode, event);
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.AltKey)
+		if(keyAction == KeyAction.AltKey)
 		{
-			altKeyDown = true;
+			altKey.keyDown();
 			return true;
 		}
-		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
+		if(keyAction == KeyAction.CtrlKey)
 		{
-			shiftKeyDown = true;
+			ctrlKey.keyDown();
+			return true;
+		}
+		if(keyAction == KeyAction.ShiftKey)
+		{
+			shiftKey.keyDown();
 			return true;
 		}
 
 		String s = "";
 
-		char c = (char)event.getUnicodeChar((shiftKeyDown ? KeyEvent.META_SHIFT_ON : 0)
-						| (altKeyDown ? KeyEvent.META_ALT_ON : 0));
-		if(ctrlKeyDown)
+		char c = (char)event.getUnicodeChar((shiftKey.active ? KeyEvent.META_SHIFT_ON : 0)
+						| (altKey.active ? KeyEvent.META_ALT_ON : 0));
+		if(ctrlKey.active)
 		{
 			// This appears to be how the ASCII numbers would have been
 			// represented if we had a Ctrl key, so now we apply that
@@ -999,6 +1059,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		
 		if(c != 0)
 		{
+			ctrlKey.usedIfActive();
+			shiftKey.usedIfActive();
+			altKey.usedIfActive();
+			
 			s += c;
 			NetHackTerminalSend(s);
 		}
@@ -1012,16 +1076,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(keyAction == KeyAction.CtrlKey)
 		{
-			ctrlKeyDown = false;
+			ctrlKey.keyUp();
 		}
-
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.AltKey)
+		if(keyAction == KeyAction.AltKey)
 		{
-			altKeyDown = false;
+			altKey.keyUp();
 		}
-		if(keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT)
+		if(keyAction == KeyAction.ShiftKey)
 		{
-			shiftKeyDown = false;
+			shiftKey.keyUp();
 		}
 
 		if(keyAction == KeyAction.None)
@@ -1353,14 +1416,34 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public void onStart()
 	{
+		super.onStart();
+
 		getPrefs();
 
-		super.onStart();
+		// Probably makes sense to do this, in case the user held down some key
+		// from before, or messed with the stickiness.
+		ctrlKey.resetState();
+		altKey.resetState();
+		shiftKey.resetState();
+
+		if(optFullscreen)
+		{
+			this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+					WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		}
+		else
+		{
+			this.getWindow().setFlags(0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		}
 	}	
 	
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+
+		altKey = new ModifierKey();
+		ctrlKey = new ModifierKey();
+		shiftKey = new ModifierKey();
 
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 //        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NO_STATUS_BAR,
@@ -1445,9 +1528,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "None"));
 		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "None"));
-//		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "None"));
+		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "None"));
 		optKeyBindAltRight = getKeyActionEnumFromString(prefs.getString("RightAltKeyFunc", "None"));
-
+		optKeyBindShiftLeft = getKeyActionEnumFromString(prefs.getString("LeftShiftKeyFunc", "None"));
+		optKeyBindShiftRight = getKeyActionEnumFromString(prefs.getString("RightShiftKeyFunc", "None"));
+		altKey.sticky = prefs.getBoolean("StickyAlt", false);
+		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
+		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
+		optFullscreen = prefs.getBoolean("Fullscreen", false);
 	}
 
 	public static boolean gameInitialized = false;
