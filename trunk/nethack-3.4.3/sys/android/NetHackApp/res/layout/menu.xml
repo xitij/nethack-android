@@ -5,7 +5,7 @@
 		android:title="@string/about"   
     />
 	<item   
-		android:id="@+id/keybindings"
-		android:title="@string/keybindings"   
+		android:id="@+id/preferences"
+		android:title="@string/preferences"   
     />
 </menu>  

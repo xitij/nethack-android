@@ -5,6 +5,7 @@ import android.app.Activity;
 //import android.app.AlertDialog.Builder;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -890,6 +891,7 @@ class TerminalView extends View
 	}
 }
 
+
 public class NetHackApp extends Activity implements Runnable, OnGestureListener
 {
 	TerminalView screen;
@@ -1414,12 +1416,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				dialog.show();
 				return true;
 			}
-			case R.id.keybindings:
+			case R.id.preferences:
 			{
-				Dialog dialog = new Dialog(this);
-				dialog.setContentView(R.layout.keybindings);
-//				dialog.setTitle(getString(R.string.about_title));
-				dialog.show();
+				startActivity(new Intent(this, NetHackPreferences.class));
 				return true;
 			}
 		}
