@@ -7,6 +7,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -14,6 +15,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
 //import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
@@ -905,21 +907,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	enum KeyAction
 	{
-		kKeyActionNone,
-		kKeyActionAlt,
-		kKeyActionCtrl,
-		kKeyActionVirtualKeyboard
+		None,
+		AltKey,
+		CtrlKey,
+		VirtualKeyboard
 	}
 
-	KeyAction optKeyBindAltRight = KeyAction.kKeyActionAlt;
-	KeyAction optKeyBindBack = KeyAction.kKeyActionNone;
-	KeyAction optKeyBindCamera = KeyAction.kKeyActionVirtualKeyboard;
-	KeyAction optKeyBindMenu = KeyAction.kKeyActionNone;
-	KeyAction optKeyBindSearch = KeyAction.kKeyActionCtrl;
+	KeyAction optKeyBindAltRight = KeyAction.AltKey;
+	KeyAction optKeyBindBack = KeyAction.None;
+	KeyAction optKeyBindCamera = KeyAction.VirtualKeyboard;
+	KeyAction optKeyBindMenu = KeyAction.None;
+	KeyAction optKeyBindSearch = KeyAction.CtrlKey;
 
 	public KeyAction getKeyActionFromKeyCode(int keyCode)
 	{
-		KeyAction keyAction = KeyAction.kKeyActionNone;
+		KeyAction keyAction = KeyAction.None;
 		switch(keyCode)
 		{
 			case KeyEvent.KEYCODE_ALT_RIGHT:
@@ -947,14 +949,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
 
-		if(keyAction == KeyAction.kKeyActionVirtualKeyboard)
+		if(keyAction == KeyAction.VirtualKeyboard)
 		{
 			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
 			inputManager.showSoftInput(screen.getRootView(), InputMethodManager.SHOW_FORCED);
 			return true;
 		}
 
-		if(keyAction == KeyAction.kKeyActionCtrl)
+		if(keyAction == KeyAction.CtrlKey)
 		{
 			ctrlKeyDown = true;
 			return true;
@@ -965,7 +967,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return super.onKeyDown(keyCode, event);
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.kKeyActionAlt)
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.AltKey)
 		{
 			altKeyDown = true;
 			return true;
@@ -1008,12 +1010,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
 
-		if(keyAction == KeyAction.kKeyActionCtrl)
+		if(keyAction == KeyAction.CtrlKey)
 		{
 			ctrlKeyDown = false;
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.kKeyActionAlt)
+		if(keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyAction == KeyAction.AltKey)
 		{
 			altKeyDown = false;
 		}
@@ -1022,7 +1024,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			shiftKeyDown = false;
 		}
 
-		if(keyAction == KeyAction.kKeyActionNone)
+		if(keyAction == KeyAction.None)
 		{
 			if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
 			{
@@ -1349,7 +1351,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
-	public void onCreate(Bundle savedInstanceState) {
+	public void onStart()
+	{
+		getPrefs();
+
+		super.onStart();
+	}	
+	
+	public void onCreate(Bundle savedInstanceState)
+	{
 		super.onCreate(savedInstanceState);
 
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -1423,6 +1433,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 		}
 		return false;  
+	}
+
+	private KeyAction getKeyActionEnumFromString(String s)
+	{
+		return KeyAction.valueOf(s);
+	}
+	
+	private void getPrefs()
+	{
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "None"));
+		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "None"));
+//		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "None"));
+		optKeyBindAltRight = getKeyActionEnumFromString(prefs.getString("RightAltKeyFunc", "None"));
+
 	}
 
 	public static boolean gameInitialized = false;
