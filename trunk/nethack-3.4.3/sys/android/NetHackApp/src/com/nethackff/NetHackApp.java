@@ -1407,11 +1407,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		switch(item.getItemId())
 		{
 			case R.id.about:
+			{
 				Dialog dialog = new Dialog(this);
 				dialog.setContentView(R.layout.about);
 				dialog.setTitle(getString(R.string.about_title));
 				dialog.show();
 				return true;
+			}
+			case R.id.keybindings:
+			{
+				Dialog dialog = new Dialog(this);
+				dialog.setContentView(R.layout.keybindings);
+//				dialog.setTitle(getString(R.string.about_title));
+				dialog.show();
+				return true;
+			}
 		}
 		return false;  
 	}
