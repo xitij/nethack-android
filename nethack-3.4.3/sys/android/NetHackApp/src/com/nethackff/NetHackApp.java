@@ -1058,6 +1058,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				case KeyEvent.KEYCODE_DPAD_RIGHT:
 					c = 'l';
 					break;
+				case KeyEvent.KEYCODE_DPAD_CENTER:
+					c = ',';
+					break;
 			}
 		}
 		
@@ -1123,27 +1126,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		return true;
 	}
-/*
-	public boolean onTrackballEvent(MotionEvent motionEvent)
+
+	private void quit()
 	{
-		if(optMoveWithTrackball)
-		{
-			int action = motionEvent.getAction();
-			if(action == MotionEvent.ACTION_MOVE)
-			{
-				int dx = (int)motionEvent.getX();
-				int dy = (int)motionEvent.getY();
-				Log.i("NetHack", "Move " + dx + " " + dy);
-			}
-			return true;
-		}
-		return super.onTrackballEvent(motionEvent);
+		this.finish();
 	}
-*/
+
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
 		{
+			if(NetHackHasQuit() != 0)
+			{
+				quit();
+				return;	
+			}
 			String s = NetHackTerminalReceive();
 			if(s.length() != 0)
 			{
@@ -1589,6 +1586,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
+	public native int NetHackHasQuit();
 
 	static
 	{

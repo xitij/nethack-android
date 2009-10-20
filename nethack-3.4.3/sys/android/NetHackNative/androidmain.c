@@ -28,6 +28,8 @@ static int s_SendWaitingForNotFull;
 static int s_ReceiveWaitingForData;
 static int s_ReceiveWaitingForConsumption;
 
+static int s_Quit = 0;
+
 static void NDECL(wd_message);
 #ifdef WIZARD
 static boolean wiz_error_flag = FALSE;
@@ -155,6 +157,15 @@ int android_getch(void)
 
 pthread_t g_ThreadHandle;
 
+void nethack_exit(int result)
+{
+	s_Quit = 1;
+	while(1)
+	{
+		sleep(60);
+	}
+}
+
 static void *sThreadFunc()
 {
 	int fd;
@@ -265,7 +276,9 @@ not_recovered:
 	}
 
 	moveloop();
-	exit(EXIT_SUCCESS);
+
+	nethack_exit(EXIT_SUCCESS);
+
 	return(0);
 }
 
@@ -348,6 +361,12 @@ void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 		sem_destroy(&s_SendNotFullSema);
 		g_ThreadHandle = 0;
 	}
+}
+
+
+int Java_com_nethackff_NetHackApp_NetHackHasQuit(JNIEnv *env, jobject thiz)
+{
+	return s_Quit;
 }
 
 
