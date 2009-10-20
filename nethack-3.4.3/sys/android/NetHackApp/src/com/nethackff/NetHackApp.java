@@ -16,7 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
-//import android.util.Log;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.inputmethod.InputMethodManager;
@@ -605,6 +605,7 @@ class TerminalView extends View
 
 	int textSize = 10;
 
+
 	protected void onMeasure(int widthmeasurespec, int heightmeasurespec)
 	{
 		int minheight = getSuggestedMinimumHeight();
@@ -962,6 +963,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 
 	boolean optFullscreen = false;
+	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
 	KeyAction optKeyBindBack = KeyAction.None;
@@ -1038,17 +1040,41 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return true;
 		}
 
+		
+		char c = 0;
+		if(optMoveWithTrackball)
+		{
+			switch(keyCode)
+			{
+				case KeyEvent.KEYCODE_DPAD_DOWN:
+					c = 'j';
+					break;
+				case KeyEvent.KEYCODE_DPAD_UP:
+					c = 'k';
+					break;
+				case KeyEvent.KEYCODE_DPAD_LEFT:
+					c = 'h';
+					break;
+				case KeyEvent.KEYCODE_DPAD_RIGHT:
+					c = 'l';
+					break;
+			}
+		}
+		
 		String s = "";
 
-		char c = (char)event.getUnicodeChar((shiftKey.active ? KeyEvent.META_SHIFT_ON : 0)
-						| (altKey.active ? KeyEvent.META_ALT_ON : 0));
-		if(ctrlKey.active)
+		if(c == 0)
 		{
-			// This appears to be how the ASCII numbers would have been
-			// represented if we had a Ctrl key, so now we apply that
-			// for the search key instead. This is for commands like kick
-			// (^D).
-			c = (char)(((int)c) & 0x1f);
+			c = (char)event.getUnicodeChar((shiftKey.active ? KeyEvent.META_SHIFT_ON : 0)
+						| (altKey.active ? KeyEvent.META_ALT_ON : 0));
+			if(ctrlKey.active)
+			{
+				// This appears to be how the ASCII numbers would have been
+				// represented if we had a Ctrl key, so now we apply that
+				// for the search key instead. This is for commands like kick
+				// (^D).
+				c = (char)(((int)c) & 0x1f);
+			}
 		}
 
 		// Map the delete button to backspace.
@@ -1062,7 +1088,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			ctrlKey.usedIfActive();
 			shiftKey.usedIfActive();
 			altKey.usedIfActive();
-			
+
 			s += c;
 			NetHackTerminalSend(s);
 		}
@@ -1097,7 +1123,23 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		return true;
 	}
-
+/*
+	public boolean onTrackballEvent(MotionEvent motionEvent)
+	{
+		if(optMoveWithTrackball)
+		{
+			int action = motionEvent.getAction();
+			if(action == MotionEvent.ACTION_MOVE)
+			{
+				int dx = (int)motionEvent.getX();
+				int dy = (int)motionEvent.getY();
+				Log.i("NetHack", "Move " + dx + " " + dy);
+			}
+			return true;
+		}
+		return super.onTrackballEvent(motionEvent);
+	}
+*/
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
@@ -1436,7 +1478,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			this.getWindow().setFlags(0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		}
 	}	
-	
+
+
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -1536,6 +1579,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
 		optFullscreen = prefs.getBoolean("Fullscreen", false);
+		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", false);
 	}
 
 	public static boolean gameInitialized = false;
