@@ -1246,10 +1246,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		if(!gameInitialized)
 		{
-			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir", "");
-			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir/save", "");
+			if(!compareAsset("version.txt"))
+			{
+				doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir", "");
+				doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir/save", "");
 
-			copyNetHackData();
+				copyNetHackData();
+
+				copyAsset("version.txt");
+
+			}
 
 			if(NetHackInit() == 0)
 			{
@@ -1260,7 +1266,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			//	copyFile("/data/data/com.nethackff/dat/save/10035foo.gz", "/sdcard/10035foo.gz");
 
 			gameInitialized = true;
-
 			clearScreen = true;
 		}
 
@@ -1368,6 +1373,41 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 	}
 
+	public boolean compareAsset(String assetname)
+	{
+		boolean match = false;
+
+		String destname = "/data/data/com.nethackff/" + assetname;
+		File newasset = new File(destname);
+		try
+		{
+			BufferedInputStream out = new BufferedInputStream(new FileInputStream(newasset));
+			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(assetname));
+			match = true;
+			while(true)
+			{
+				int b = in.read();
+				int c = out.read();
+				if(b != c)
+				{
+					match = false;
+					break;
+				}
+				if(b == -1)
+				{
+					break;
+				}
+			}
+			out.close();
+			in.close();
+		}
+		catch (IOException ex)
+		{
+			match = false;
+		}
+		return match;
+	}
+	
 	public void copyAsset(String assetname)
 	{
 		String destname = "/data/data/com.nethackff/" + assetname;
