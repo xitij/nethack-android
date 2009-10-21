@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, NetHackApp!</string>
+    <string name="app_name">NetHack</string>
+	<string name="about">About</string>
+	<string name="about_msg">Android version 1.1.1\nPort by Fredrik Farnstrom\nfarnstrom@gmail.com\nSee Preferences screen for key bindings.\nTouch the screen to scroll (if needed).\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/\n\nWarning: the game is not automatically saved if Android kills the application.</string>
+	<string name="about_title">NetHack 3.4.3</string>
+	<string name="preferences">Preferences</string>
+	<string-array name="KeyActions">
+		<item>None</item>
+		<item>Alt Key</item>
+		<item>Ctrl Key</item>
+		<item>Shift Key</item>
+		<item>Virtual Keyboard</item>
+	</string-array>
+	<string-array name="KeyActionValues">
+		<item>None</item>
+		<item>AltKey</item>
+		<item>CtrlKey</item>
+		<item>ShiftKey</item>
+		<item>VirtualKeyboard</item>
+	</string-array>
+</resources>
