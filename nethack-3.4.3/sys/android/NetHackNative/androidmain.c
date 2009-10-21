@@ -290,11 +290,16 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
 
 	if(g_ThreadHandle)
 	{
-		return 0;
+		Java_com_nethackff_NetHackApp_NetHackShutdown(env, thiz);
+		//return 0;
 	}
 
+	s_SendWaitingForNotFull = 0;
+	s_ReceiveWaitingForData = 0;
+	s_ReceiveWaitingForConsumption = 0;
 	s_ReceiveCnt = 0;
 	s_SendCnt = 0;
+	s_Quit = 0;	
 
 	if(pthread_mutex_init(&s_SendMutex, 0) != 0)
 	{

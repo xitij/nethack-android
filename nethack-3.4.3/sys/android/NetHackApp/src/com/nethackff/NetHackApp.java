@@ -1127,10 +1127,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
-	private void quit()
+	private boolean finishRequested = false;
+
+	private synchronized void quit()
 	{
-		this.finish();
+		if(!finishRequested)
+		{
+			this.finish();
+			finishRequested = true;
+		}
 	}
+
+	private boolean clearScreen = false;
+
+	public int quitCount = 0;
 
 	private Handler handler = new Handler()
 	{
@@ -1138,9 +1148,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			if(NetHackHasQuit() != 0)
 			{
+				gameInitialized = false;
+				terminalInitialized = false;
+
 				quit();
 				return;	
 			}
+			if(clearScreen)
+			{
+				clearScreen = false;
+				screen.terminal.clearScreen();
+				screen.invalidate();
+				return;
+			}
+
 			String s = NetHackTerminalReceive();
 			if(s.length() != 0)
 			{
@@ -1186,15 +1207,40 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		if(shouldStopCommThread)
 		{
-			commThreadStopped = true;
+			commThreadRunning = false;
+			shouldStopCommThread = false;
 			notify();
 			return true;
 		}
 		return false;
 	}
 
+	public synchronized boolean isCommThreadRunning()
+	{
+		return commThreadRunning;
+	}
+
 	public void run()
 	{
+		if(!gameInitialized)
+		{
+			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir", "");
+			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir/save", "");
+			copyNetHackData();
+
+			if(NetHackInit() == 0)
+			{
+				// TODO
+				return;
+			}
+
+			//	copyFile("/data/data/com.nethackff/dat/save/10035foo.gz", "/sdcard/10035foo.gz");
+
+			gameInitialized = true;
+
+			clearScreen = true;
+		}
+
 		while(true)
 		{
 			if(checkQuitCommThread())
@@ -1214,11 +1260,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 
 	boolean shouldStopCommThread = false;
-	boolean commThreadStopped = false;
+	boolean commThreadRunning = false;
 
 	public synchronized void stopCommThread()
 	{
-		if(commThreadStopped)
+		if(!commThreadRunning)
 		{
 			return;
 		}
@@ -1453,6 +1499,41 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
+	public synchronized void startCommThread()
+	{
+		if(!commThreadRunning)
+		{
+			commThreadRunning = true;
+			commThread = new Thread(this);
+			commThread.start();
+		}
+	}
+	public void onResume()
+	{
+		super.onResume();
+
+		while(isCommThreadRunning())
+		{
+			try
+			{
+				Thread.sleep(100);
+			}
+			catch(InterruptedException e)
+			{
+				throw new RuntimeException(e.getMessage());
+			}
+		}
+
+		startCommThread();
+	}
+	
+	public void onPause()
+	{
+		stopCommThread();
+
+		super.onPause();
+	}
+	
 	public void onStart()
 	{
 		super.onStart();
@@ -1492,13 +1573,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int width = 80;
 		int height = 24;		// 26
 
-		if(!gameInitialized)
+		if(!terminalInitialized)
 		{
 			terminalState = new TerminalState(width, height);
+			terminalInitialized = true;
 		}
 
 		screen = new TerminalView(this, terminalState);
 
+		if(!gameInitialized)
+		{
+			screen.terminal.write("Please wait, initializing...\n");
+		}
 		//dbgTerminalTranscript = new TerminalView(this, 80, 2);
 		//dbgTerminalTranscript.colorForeground = TerminalView.kColRed;
 
@@ -1508,26 +1594,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		setContentView(screen);
 
 		gestureScanner = new GestureDetector(this);
-		
-		if(!gameInitialized)
-		{
-			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir", "");
-			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir/save", "");
-			copyNetHackData();
-
-			if(NetHackInit() == 0)
-			{
-				// TODO
-				return;
-			}
-
-			//	copyFile("/data/data/com.nethackff/dat/save/10035foo.gz", "/sdcard/10035foo.gz");
-
-			gameInitialized = true;
-		}
-		commThread = new Thread(this);
-		commThread.start();
-
 	}
 
 	public boolean onCreateOptionsMenu(Menu menu)
@@ -1579,6 +1645,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", false);
 	}
 
+	public static boolean terminalInitialized = false;
 	public static boolean gameInitialized = false;
 	public static TerminalState terminalState;
 	
