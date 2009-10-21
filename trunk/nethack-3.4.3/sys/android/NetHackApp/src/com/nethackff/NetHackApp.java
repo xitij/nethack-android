@@ -1,6 +1,7 @@
 package com.nethackff;
 
 import android.app.Activity;
+//import android.app.ActivityManager;
 //import android.app.AlertDialog;
 //import android.app.AlertDialog.Builder;
 import android.app.Dialog;
@@ -16,7 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
-import android.util.Log;
+//import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.inputmethod.InputMethodManager;
@@ -1133,8 +1134,29 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		if(!finishRequested)
 		{
-			this.finish();
 			finishRequested = true;
+
+			// This could be used to just shut down the Activity, but that's probably
+			// not good enough for us - the NetHack native code library would often
+			// stay resident, and appears to sadly not be reentrant:
+			//	this.finish();
+
+			// This could supposedly be used to kill ourselves - but, I only
+			// got some sort of exception from it.
+			//	ActivityManager am = (ActivityManager)getSystemService(ACTIVITY_SERVICE); 
+			//	am.restartPackage("com.nethackff11");
+
+			// This seems to work. For sure, this is not encouraged for Android
+			// applications, but the only alternative I could find would be to dig
+			// through the NetHack native source code and find any places that may not
+			// get reinitialized if reusing the library without reloading it
+			// (and I have found no way to force it to reload). Obviously, it could
+			// be a lot of work and a lot of risk involved with that approach.
+			// It's not just a theoretical problem either - I often got characters
+			// that had tons (literally) of items when the game started, so something
+			// definitely appeared to be corrupted. Given this, System.exit() is the
+			// best option I can think of.
+			System.exit(0);
 		}
 	}
 
@@ -1226,6 +1248,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir", "");
 			doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir/save", "");
+
 			copyNetHackData();
 
 			if(NetHackInit() == 0)
