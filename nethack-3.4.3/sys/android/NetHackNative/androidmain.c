@@ -35,25 +35,6 @@ static void NDECL(wd_message);
 static boolean wiz_error_flag = FALSE;
 #endif
 
-#if 0
-
-void error(int status, int errnum, const char *format, ...)
-{
-	fflush(stdout);
-	va_list args;
-	va_start(args, format);
-	fprintf(stderr, "nethack: ");
-	vfprintf(stderr, format, args);
-	if(errnum)
-	{
-		/* perror() ? */
-	}
-	va_end(args);
-}
-
-#endif
-
-
 static void android_putchar_internal(int c)
 {
 	while(1)
@@ -90,18 +71,10 @@ void android_puts(const char *s)
 {
 	const char *ptr = s;
 
-#if 0
-	pthread_mutex_lock(&s_SendMutex);
-#endif
-
 	while(*s)
 	{
 		android_putchar_internal((int)(*s++));
 	}
-
-#if 0
-	pthread_mutex_unlock(&s_SendMutex);
-#endif
 }
 
 
@@ -290,8 +263,7 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
 
 	if(g_ThreadHandle)
 	{
-		Java_com_nethackff_NetHackApp_NetHackShutdown(env, thiz);
-		//return 0;
+		return 0;
 	}
 
 	s_SendWaitingForNotFull = 0;
