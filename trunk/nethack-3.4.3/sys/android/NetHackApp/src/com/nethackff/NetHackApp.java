@@ -1695,17 +1695,17 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	private void getPrefs()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "None"));
-		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "None"));
-		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "None"));
-		optKeyBindAltRight = getKeyActionEnumFromString(prefs.getString("RightAltKeyFunc", "None"));
-		optKeyBindShiftLeft = getKeyActionEnumFromString(prefs.getString("LeftShiftKeyFunc", "None"));
-		optKeyBindShiftRight = getKeyActionEnumFromString(prefs.getString("RightShiftKeyFunc", "None"));
+		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "VirtualKeyboard"));
+		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "CtrlKey"));
+		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "AltKey"));
+		optKeyBindAltRight = getKeyActionEnumFromString(prefs.getString("RightAltKeyFunc", "AltKey"));
+		optKeyBindShiftLeft = getKeyActionEnumFromString(prefs.getString("LeftShiftKeyFunc", "ShiftKey"));
+		optKeyBindShiftRight = getKeyActionEnumFromString(prefs.getString("RightShiftKeyFunc", "ShiftKey"));
 		altKey.sticky = prefs.getBoolean("StickyAlt", false);
 		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
 		optFullscreen = prefs.getBoolean("Fullscreen", false);
-		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", false);
+		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 	}
 
 	public static boolean terminalInitialized = false;

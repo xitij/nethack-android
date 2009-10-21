@@ -9,7 +9,7 @@
 	</PreferenceCategory>
 	<PreferenceCategory android:title="Input">
 		<CheckBoxPreference android:key="MoveWithTrackball"
-			android:title="Move with Trackball"/>
+			android:title="Move with Trackball"
 			android:defaultValue="true"/>
 		<CheckBoxPreference android:key="StickyAlt"
 			android:title="Sticky Alt Keys"
