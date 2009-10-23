@@ -17,7 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
-//import android.util.Log;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.inputmethod.InputMethodManager;
@@ -1309,6 +1309,19 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public void onDestroy()
 	{
+		if(NetHackHasQuit() == 0)
+		{
+			Log.i("NetHack", "Auto-saving");
+			if(NetHackSave() != 0)
+			{
+				Log.i("NetHack", "Auto-save succeeded");
+			}
+			else
+			{
+				Log.w("NetHack", "Auto-save failed");
+			}
+		}
+
 		stopCommThread();
 		super.onDestroy();
 		//TestShutdown();
@@ -1596,7 +1609,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		super.onPause();
 	}
-	
+
 	public void onStart()
 	{
 		super.onStart();
@@ -1683,6 +1696,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				startActivity(new Intent(this, NetHackPreferences.class));
 				return true;
 			}
+// TEMP
+			case R.id.save:
+			{
+				int saveret = NetHackSave();
+				screen.terminal.write("SAVE " + saveret + "\n");
+				screen.invalidate();
+				return true;
+			}
 		}
 		return false;  
 	}
@@ -1717,6 +1738,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
 	public native int NetHackHasQuit();
+	public native int NetHackSave();
 
 	static
 	{
