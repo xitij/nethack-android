@@ -23,12 +23,23 @@ static pthread_mutex_t s_SendMutex;
 static sem_t s_ReceiveWaitingForDataSema;
 static sem_t s_ReceiveWaitingForConsumptionSema;
 static sem_t s_SendNotFullSema;
+static sem_t s_CommandPerformedSema;
 
 static int s_SendWaitingForNotFull;
 static int s_ReceiveWaitingForData;
 static int s_ReceiveWaitingForConsumption;
+static int s_WaitingForCommandPerformed;
 
+enum
+{
+	kCmdNone = 0,
+	kCmdSave = 1
+};
+
+static int s_ReadyForSave = 0;
+static int s_Command = kCmdNone;
 static int s_Quit = 0;
+
 
 static void NDECL(wd_message);
 #ifdef WIZARD
@@ -99,6 +110,45 @@ int android_getch(void)
 	while(1)
 	{
 		pthread_mutex_lock(&s_ReceiveMutex);
+
+		if(s_Command != kCmdNone)
+		{
+			int cmd = s_Command;
+			s_Command = kCmdNone;
+
+			if(s_ReceiveWaitingForConsumption)
+			{
+				s_ReceiveWaitingForConsumption = 0;
+				sem_post(&s_ReceiveWaitingForConsumptionSema);
+			}
+
+			pthread_mutex_unlock(&s_ReceiveMutex);
+
+			int shouldterminate = 0;
+
+			if(cmd == kCmdSave)
+			{
+				if(dosave0())
+				{
+					shouldterminate = 1;
+				}
+			}
+
+			if(s_WaitingForCommandPerformed)
+			{
+				s_WaitingForCommandPerformed = 0;
+				sem_post(&s_CommandPerformedSema);
+			}
+
+			if(shouldterminate)
+			{
+				exit_nhwindows("Be seeing you...");
+				terminate(EXIT_SUCCESS);
+			}
+
+			continue;
+		}
+
 		if(s_ReceiveCnt > 0)
 		{
 			int ret = s_ReceiveBuff[0], i;
@@ -127,6 +177,51 @@ int android_getch(void)
 	}
 	/*return EOF;*/
 }
+
+
+static void sSendCmd(int cmd, int sync)
+{
+	pthread_mutex_lock(&s_ReceiveMutex);
+
+	while(1)
+	{
+		if(s_Command == kCmdNone)
+		{
+			s_Command = cmd;
+
+			if(sync)
+			{
+				s_WaitingForCommandPerformed = 1;
+			}
+
+			break;
+		}
+		else
+		{
+			s_ReceiveWaitingForConsumption = 1;
+
+			pthread_mutex_unlock(&s_ReceiveMutex);
+
+			sem_wait(&s_ReceiveWaitingForConsumptionSema);
+
+			pthread_mutex_lock(&s_ReceiveMutex);
+		}
+	}
+
+	if(s_ReceiveWaitingForData)
+	{
+		s_ReceiveWaitingForData = 0;
+		sem_post(&s_ReceiveWaitingForDataSema);
+	}
+
+	pthread_mutex_unlock(&s_ReceiveMutex);
+
+	if(sync)
+	{
+		sem_wait(&s_CommandPerformedSema);
+	}
+}
+
 
 pthread_t g_ThreadHandle;
 
@@ -248,6 +343,7 @@ not_recovered:
 		(void) pickup(1);
 	}
 
+	s_ReadyForSave = 1;
 	moveloop();
 
 	nethack_exit(EXIT_SUCCESS);
@@ -272,6 +368,8 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
 	s_ReceiveCnt = 0;
 	s_SendCnt = 0;
 	s_Quit = 0;	
+	s_ReadyForSave = 0;
+	s_WaitingForCommandPerformed = 0;
 
 	if(pthread_mutex_init(&s_SendMutex, 0) != 0)
 	{
@@ -308,6 +406,17 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
 		return 0;
 	}
 
+	if(sem_init(&s_CommandPerformedSema, 0, 0) != 0)
+	{
+		pthread_mutex_destroy(&s_ReceiveMutex);
+		pthread_mutex_destroy(&s_SendMutex);
+		sem_destroy(&s_ReceiveWaitingForConsumptionSema);
+		sem_destroy(&s_ReceiveWaitingForDataSema);
+		sem_destroy(&s_SendNotFullSema);
+
+		return 0;
+	}
+
 	if(pthread_create(&g_ThreadHandle, NULL, sThreadFunc, NULL) != 0)
 	{
 		pthread_mutex_destroy(&s_ReceiveMutex);
@@ -315,6 +424,7 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
 		sem_destroy(&s_ReceiveWaitingForConsumptionSema);
 		sem_destroy(&s_ReceiveWaitingForDataSema);
 		sem_destroy(&s_SendNotFullSema);
+		sem_destroy(&s_CommandPerformedSema);
 
 		g_ThreadHandle = 0;
 		return 0;	/* Failure. */
@@ -336,6 +446,7 @@ void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 		sem_destroy(&s_ReceiveWaitingForConsumptionSema);
 		sem_destroy(&s_ReceiveWaitingForDataSema);
 		sem_destroy(&s_SendNotFullSema);
+		sem_destroy(&s_CommandPerformedSema);
 		g_ThreadHandle = 0;
 	}
 }
@@ -344,6 +455,20 @@ void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 int Java_com_nethackff_NetHackApp_NetHackHasQuit(JNIEnv *env, jobject thiz)
 {
 	return s_Quit;
+}
+
+extern int dosave0();
+
+int Java_com_nethackff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
+{
+	if(!s_ReadyForSave)
+	{
+		return 0;
+	}
+
+	sSendCmd(kCmdSave, 1);
+
+	return 1;
 }
 
 
