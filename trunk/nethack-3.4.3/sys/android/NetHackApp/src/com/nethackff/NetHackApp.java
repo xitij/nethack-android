@@ -1696,14 +1696,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				startActivity(new Intent(this, NetHackPreferences.class));
 				return true;
 			}
-// TEMP
-			case R.id.save:
-			{
-				int saveret = NetHackSave();
-				screen.terminal.write("SAVE " + saveret + "\n");
-				screen.invalidate();
-				return true;
-			}
 		}
 		return false;  
 	}
