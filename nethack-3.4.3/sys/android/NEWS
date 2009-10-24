@@ -1,3 +1,10 @@
+1.1.2 (October 24, 2009)
+------------------------
+
+- Implemented auto-saving (and loading) if the application gets shut down
+  by Android.
+- Added credit text for icon contribution.
+
 1.1.1 (October 21, 2009)
 ------------------------
 
