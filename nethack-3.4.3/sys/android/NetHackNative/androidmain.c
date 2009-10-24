@@ -105,6 +105,110 @@ int android_printf(const char *fmt, ...)
 }
 
 
+
+void android_makelock()
+{
+#ifdef WIZARD
+	if(!wizard) {
+#endif
+		/*
+		 * check for multiple games under the same name
+		 * (if !locknum) or check max nr of players (otherwise)
+		 */
+		(void) signal(SIGQUIT,SIG_IGN);
+		(void) signal(SIGINT,SIG_IGN);
+		if(!locknum)
+			Sprintf(lock, "%d%s", (int)getuid(), plname);
+#ifdef WIZARD
+	} else {
+		Sprintf(lock, "%d%s", (int)getuid(), plname);
+	}
+#endif /* WIZARD */
+}
+
+
+
+
+/* TEMP */
+#if 1
+#define SAVESIZE	(PL_NSIZ + 13)	/* save/99999player.e */
+char savename[SAVESIZE]; /* holds relative path of save file from playground */
+int FDECL(TMP_restore_savefile, (char *));
+int TMP_main(int argc, char *argv[]);
+#endif
+
+#define AUTOSAVE_FILENAME "android_autosave.txt"
+
+void android_autosave_save()
+{
+	FILE *f = fopen(AUTOSAVE_FILENAME, "w");
+	if(f)
+	{
+		fprintf(f, "%s\n", plname);
+		fclose(f);
+	}
+
+#ifdef INSURANCE
+	save_currentstate();
+#else
+# error "Can't save without INSURANCE."
+#endif
+}
+
+
+void android_autosave_restore()
+{
+	char name[PL_NSIZ + 1];
+	int found = 0;
+
+	FILE *f = fopen(AUTOSAVE_FILENAME, "r");
+	if(!f)
+	{
+		return;
+	}
+	if(fgets(name, PL_NSIZ + 1, f))
+	{
+		char *ptr = name + strlen(name);
+		while(ptr >= name)
+		{
+			char c = *ptr;
+			if(c && c != ' ' && c != '\n' && c != '\t' && c != '\r')
+			{
+				found = 1;
+				ptr[1] = '\0';
+				break;
+			}
+			ptr--;
+		}
+	}
+	fclose(f);
+
+	if(!found)
+	{
+		return;
+	}
+
+	strncpy(plname, name, PL_NSIZ - 1);
+	plname[PL_NSIZ - 1] = '\0';
+
+	android_makelock();
+
+	if(TMP_restore_savefile(lock) == 0)
+	{
+		/* Success */
+	}
+	else
+	{
+	}
+}
+
+
+void android_autosave_remove()
+{
+	remove(AUTOSAVE_FILENAME);
+}
+
+
 int android_getch(void)
 {
 	while(1)
@@ -135,12 +239,7 @@ int android_getch(void)
 				}
 #endif
 
-#ifdef INSURANCE
-				save_currentstate();
-#else
-# error "Can't save without INSURANCE."
-#endif
-
+				android_autosave_save();
 			}
 
 			if(s_WaitingForCommandPerformed)
@@ -236,6 +335,8 @@ pthread_t g_ThreadHandle;
 
 void nethack_exit(int result)
 {
+	android_autosave_remove();
+
 	s_Quit = 1;
 	while(1)
 	{
@@ -243,25 +344,6 @@ void nethack_exit(int result)
 	}
 }
 
-/* TEMP */
-#if 1
-#ifdef UNIX
-#define SAVESIZE	(PL_NSIZ + 13)	/* save/99999player.e */
-#else
-# ifdef VMS
-#define SAVESIZE	(PL_NSIZ + 22)	/* [.save]<uid>player.e;1 */
-# else
-#  ifdef WIN32
-#define SAVESIZE	(PL_NSIZ + 40)  /* username-player.NetHack-saved-game */
-#  else
-#define SAVESIZE	FILENAME	/* from macconf.h or pcconf.h */
-#  endif
-# endif
-#endif
-char savename[SAVESIZE]; /* holds relative path of save file from playground */
-int FDECL(TMP_restore_savefile, (char *));
-int TMP_main(int argc, char *argv[]);
-#endif
 
 static void *sThreadFunc()
 {
@@ -274,52 +356,23 @@ static void *sThreadFunc()
 
 	char buff[256];
 
-	/* TEMP */
-	char recovername[] = {	"10030savetest"	};
-
 	chdir("/data/data/com.nethackff/nethackdir");
-
-	if (TMP_restore_savefile(recovername) == 0)
-	{
-		printf("recovered \"%s\" to %s\n",
-				recovername, savename);
-	}
-	else
-	{
-		printf("FAILED TO RECOVER\n");
-	}
 
 	choose_windows(DEFAULT_WINDOW_SYS);
 	initoptions();
 
 	init_nhwindows(&argc,argv);
 
-/*
-	askname();
-*/
+	android_autosave_restore();
+
 	if(!*plname || !strncmp(plname, "player", 4)
 		    || !strncmp(plname, "games", 4)) {
 		askname();
 	}
 
-#ifdef WIZARD
-	if(!wizard) {
-#endif
-		/*
-		 * check for multiple games under the same name
-		 * (if !locknum) or check max nr of players (otherwise)
-		 */
-		(void) signal(SIGQUIT,SIG_IGN);
-		(void) signal(SIGINT,SIG_IGN);
-		if(!locknum)
-			Sprintf(lock, "%d%s", (int)getuid(), plname);
-		getlock();
-#ifdef WIZARD
-	} else {
-		Sprintf(lock, "%d%s", (int)getuid(), plname);
-		getlock();
-	}
-#endif /* WIZARD */
+	android_makelock();
+
+	getlock();
 
 	dlb_init();	/* must be before newgame() */
 
@@ -737,8 +790,12 @@ char *argv[];
 
 	while (argc > argno) {
 		if (TMP_restore_savefile(argv[argno]) == 0)
+		{
+#if 0
 		    Fprintf(stderr, "recovered \"%s\" to %s\n",
 			    argv[argno], savename);
+#endif
+		}
 		argno++;
 	}
 #ifdef AMIGA
@@ -772,8 +829,6 @@ int lev;
 	int fd;
 
 	TMP_set_levelfile_name(lev);
-/* TEMP */
-printf("open '%s'.\n", TMP_lock);
 #if defined(MICRO) || defined(WIN32) || defined(MSDOS)
 	fd = open(TMP_lock, O_RDONLY | O_BINARY);
 #else
