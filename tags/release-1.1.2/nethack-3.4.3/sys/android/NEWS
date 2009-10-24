@@ -1,0 +1,29 @@
+1.1.2 (October 24, 2009)
+------------------------
+
+- Implemented auto-saving (and loading) if the application gets shut down
+  by Android.
+- Added credit text for icon contribution.
+
+1.1.1 (October 21, 2009)
+------------------------
+
+- Added preferences screen.
+- Added support for mapping Search/Camera/Alt/Shift keys
+  to Alt/Shift/Ctrl/Keyboard.
+- Implemented sticky modifier keys (optional).
+- Added icon, contributed by 'miserlou'.
+- Added basic trackball support (4 directions only for now, plus pickup).
+- Made update threads sleep when the application is paused.
+- Made the application shut down more cleanly when the native code quits.
+- Added a data file containing version information.
+- Added a check so that assets are not copied again if already present
+  (for much faster startup).
+- Added notification text when copying assets on the first startup.
+- Added warning about the game not being automatically saved if
+  Android kills the application.
+
+1.0 (October 15, 2009)
+----------------------
+
+- Initial release.
