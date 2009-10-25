@@ -13,6 +13,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.inputmethodservice.Keyboard;
+import android.inputmethodservice.KeyboardView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -29,7 +31,7 @@ import android.view.View;
 //import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-//import android.widget.LinearLayout;
+import android.widget.LinearLayout;
 //import android.widget.ScrollView;
 
 import java.io.BufferedReader;
@@ -626,6 +628,9 @@ class TerminalView extends View
 
 		height += 2; // MAGIC!
 
+// TEMP
+height -= 64;
+		
 		if (width < minwidth)
 		{
 			width = minwidth;
@@ -901,6 +906,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 {
 	TerminalView screen;
 
+	NetHackKeyboard virtualKeyboard;
+	
 	/* For debugging only. */
 	//TerminalView dbgTerminalTranscript;
 
@@ -1008,9 +1015,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		return keyAction;		
 	}
-
+	
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
+		Log.i("NetHackKey", "Phys: " + keyCode);
+		
 		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
 
 		if(keyAction == KeyAction.VirtualKeyboard)
@@ -1641,7 +1650,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		altKey = new ModifierKey();
 		ctrlKey = new ModifierKey();
 		shiftKey = new ModifierKey();
-
+        
+		virtualKeyboard = new NetHackKeyboard(this);
+		
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 //        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NO_STATUS_BAR,
 //      		WindowManager.LayoutParams.FLAG_NO_STATUS_BAR);
@@ -1664,10 +1675,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		//dbgTerminalTranscript = new TerminalView(this, 80, 2);
 		//dbgTerminalTranscript.colorForeground = TerminalView.kColRed;
 
-		//layout.addView(dbgTerminalTranscript);
+		LinearLayout layout = new LinearLayout(this);
 
-//		setContentView(layout);
-		setContentView(screen);
+		//layout.addView(dbgTerminalTranscript);
+		layout.addView(screen);
+		layout.addView(virtualKeyboard.virtualKeyboardView);
+		layout.setOrientation(LinearLayout.VERTICAL);
+		setContentView(layout);
+//		setContentView(screen);
 
 		gestureScanner = new GestureDetector(this);
 	}
