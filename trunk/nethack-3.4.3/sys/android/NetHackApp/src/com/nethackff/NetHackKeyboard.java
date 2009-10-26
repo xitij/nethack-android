@@ -27,7 +27,42 @@ public class NetHackKeyboard implements OnKeyboardActionListener
 		virtualKeyboardView.setKeyboard(virtualKeyboardQwerty);
 		virtualKeyboardView.setOnKeyboardActionListener(this);
 	}
+/*
+^Z	suspend
+^A	again
+^R	refresh
+^P	last message
+^D	kick
+^T	'port
+^X	show attributes
+?	help
+!	shell
+/	whatis
+\	known
+#	extended
+>
+<
+^	trap
+)[="(	current items
+*	combination of items
+$	gold
++	spells
+_	travel
+.	rest
+,	pickup
+@	toggle pickup
+:	look
+;	look far
 
+&	?
+
+unused: %'
+???		~{}
+
+needed from 2nd page: <>^_[
+
+*/
+	
 /*
  *     private void handleShift() {
         if (mInputView == null) {
