@@ -626,10 +626,11 @@ class TerminalView extends View
 		width = terminal.numColumns*charwidth;
 		height = terminal.numRows*charheight;
 
-		height += 2; // MAGIC!
+//		height += 2; // MAGIC!
 
 // TEMP
-height -= 64;
+//height -= 48;
+//height -= 4;
 		
 		if (width < minwidth)
 		{
