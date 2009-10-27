@@ -585,7 +585,17 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 	{
 		if(s_ReceiveCnt < RECEIVEBUFFSZ)
 		{
-			s_ReceiveBuff[s_ReceiveCnt++] = *ptr++;
+			unsigned int c = *ptr++;
+
+			/* For the meta keys to work, we need to convert the UTF
+			   encoding back to 8 bit chars, which we do here. */
+			if((c & 0xe0) == 0xc0)
+			{
+				unsigned int d = *ptr++;
+				c = ((c << 6) & 0xc0) | (d & 0x3f);
+			}
+
+			s_ReceiveBuff[s_ReceiveCnt++] = (char)c;
 		}
 		else
 		{
