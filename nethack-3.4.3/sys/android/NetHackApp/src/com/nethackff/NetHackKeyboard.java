@@ -97,6 +97,7 @@ needed from 2nd page: <>^_[
 			// checkToggleCapsLock();
 			virtualKeyboardView.setShifted(/*capslock*/ !virtualKeyboardView.isShifted());
 		}
+/*
 		else if(currentKeyboard == virtualKeyboardSymbols)
 		{
 			virtualKeyboardSymbols.setShifted(true);
@@ -109,6 +110,7 @@ needed from 2nd page: <>^_[
             virtualKeyboardView.setKeyboard(virtualKeyboardSymbols);
             virtualKeyboardSymbols.setShifted(false);
 		}
+*/
 	}
 	
 	public void onKey(int primaryCode, int[] keyCodes)
@@ -122,10 +124,24 @@ needed from 2nd page: <>^_[
 		{
 			handleShift();
 		}
+		else if(primaryCode == Keyboard.KEYCODE_ALT)
+		{
+			Keyboard current = virtualKeyboardView.getKeyboard();
+			if(current == virtualKeyboardSymbolsShift)
+			{
+				virtualKeyboardView.setKeyboard(virtualKeyboardQwerty);
+			}
+			else
+			{
+				//virtualKeyboardSymbols.setShifted(true);
+				virtualKeyboardView.setKeyboard(virtualKeyboardSymbolsShift);
+				//virtualKeyboardSymbolsShift.setShifted(true);
+			}
+		}
 		else if(primaryCode == Keyboard.KEYCODE_MODE_CHANGE)
 		{
 			Keyboard current = virtualKeyboardView.getKeyboard();
-			if(current == virtualKeyboardSymbols || current == virtualKeyboardSymbolsShift)
+			if(current == virtualKeyboardSymbols)
 			{
 				current = virtualKeyboardQwerty;
 			}
@@ -172,7 +188,6 @@ needed from 2nd page: <>^_[
 			{
 				c = Character.toUpperCase(c);
 				virtualKeyboardView.setShifted(false);
-
 			}
 		}
 		if(c != 0)
