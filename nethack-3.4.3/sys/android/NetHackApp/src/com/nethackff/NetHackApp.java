@@ -46,7 +46,9 @@ import java.lang.reflect.Method;
 
 public class NetHackApp extends Activity implements Runnable, OnGestureListener
 {
-	NetHackTerminalView screen;
+	NetHackTerminalView mainView;
+	NetHackTerminalView messageView;
+	NetHackTerminalView statusView;
 
 	NetHackKeyboard virtualKeyboard;
 	
@@ -167,7 +169,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		if(keyAction == KeyAction.VirtualKeyboard)
 		{
 			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
-			inputManager.showSoftInput(screen.getRootView(), InputMethodManager.SHOW_FORCED);
+			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
 			return true;
 		}
 
@@ -330,8 +332,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			if(clearScreen)
 			{
 				clearScreen = false;
-				screen.terminal.clearScreen();
-				screen.invalidate();
+				mainView.terminal.clearScreen();
+				mainView.invalidate();
 				return;
 			}
 
@@ -358,20 +360,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				}
 */
 
-				screen.terminal.write(s);
-				if(screen.terminal.changeColumn1 <= screen.terminal.changeColumn2)
-				{
-					// Since we will draw the cursor at the current position, we should probably consider
-					// the current position as a change.
-					screen.terminal.registerChange(screen.terminal.currentColumn, screen.terminal.currentRow);
-
-					Rect cliprect = new Rect();
-					cliprect.bottom = screen.computeCoordY(screen.terminal.changeRow2) + screen.charHeight;
-					cliprect.top = screen.computeCoordY(screen.terminal.changeRow1);
-					cliprect.right = screen.computeCoordX(screen.terminal.changeColumn2) + screen.charWidth;
-					cliprect.left = screen.computeCoordX(screen.terminal.changeColumn1);
-					screen.invalidate(cliprect);
-				}
+				mainView.write(s);
 			}
 		}
 	};
@@ -592,7 +581,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		catch (IOException ex)
 		{
-			screen.terminal.write("Failed to copy file '" + assetname + "'.\n");
+			mainView.terminal.write("Failed to copy file '" + assetname + "'.\n");
 		}
 	}
 
@@ -616,7 +605,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		catch (IOException ex)
 		{
-			screen.terminal.write("Failed to copy file '" + srcname + "' to '" + destname + "'.\n");
+			mainView.terminal.write("Failed to copy file '" + srcname + "' to '" + destname + "'.\n");
 		}
 	}
 
@@ -670,8 +659,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
 	{
-		int newscrollx = screen.getScrollX() + (int)distanceX;
-		int newscrolly = screen.getScrollY() + (int)distanceY;
+		int newscrollx = mainView.getScrollX() + (int)distanceX;
+		int newscrolly = mainView.getScrollY() + (int)distanceY;
 		if(newscrollx < 0)
 		{
 			newscrollx = 0;
@@ -681,11 +670,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			newscrolly = 0;
 		}
 
-		int termx = screen.charWidth*screen.terminal.numColumns;
-		int termy = screen.charHeight*screen.terminal.numRows;
+		int termx = mainView.charWidth*mainView.terminal.numColumns;
+		int termy = mainView.charHeight*mainView.terminal.numRows;
 
-		int maxx = termx - screen.getWidth();
-		int maxy = termy - screen.getHeight();
+		int maxx = termx - mainView.getWidth();
+		int maxy = termy - mainView.getHeight();
 		if(maxx < 0)
 		{
 			maxx = 0;
@@ -703,7 +692,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			newscrolly = maxy - 1;
 		}
 
-		screen.scrollTo(newscrollx, newscrolly);
+		mainView.scrollTo(newscrollx, newscrolly);
 		return true;
 	}
 
@@ -804,15 +793,19 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(!terminalInitialized)
 		{
-			terminalState = new NetHackTerminalState(width, height);
+			mainTerminalState = new NetHackTerminalState(width, height);
+			messageTerminalState = new NetHackTerminalState(width, 1);
+			statusTerminalState = new NetHackTerminalState(width, 2);
 			terminalInitialized = true;
 		}
 
-		screen = new NetHackTerminalView(this, terminalState);
-
+		mainView = new NetHackTerminalView(this, mainTerminalState);
+		messageView = new NetHackTerminalView(this, messageTerminalState);
+		statusView = new NetHackTerminalView(this, statusTerminalState);
+		
 		if(!gameInitialized)
 		{
-			screen.terminal.write("Please wait, initializing...\n");
+			mainView.terminal.write("Please wait, initializing...\n");
 		}
 		//dbgTerminalTranscript = new NetHackTerminalView(this, 80, 2);
 		//dbgTerminalTranscript.colorForeground = NetHackTerminalView.kColRed;
@@ -820,13 +813,19 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		LinearLayout layout = new LinearLayout(this);
 
 		//layout.addView(dbgTerminalTranscript);
-		layout.addView(screen);
+//		layout.addView(messageView);
+		layout.addView(mainView);
+//		layout.addView(statusView);
 		layout.addView(virtualKeyboard.virtualKeyboardView);
 		layout.setOrientation(LinearLayout.VERTICAL);
 		setContentView(layout);
-//		setContentView(screen);
+//		setContentView(mainView);
 
 		gestureScanner = new GestureDetector(this);
+
+		// TEMP
+		messageView.write("TESTTEST - msg");
+		statusView.write("STATUS - test test");
 	}
 
 	public boolean onCreateOptionsMenu(Menu menu)
@@ -880,7 +879,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public static boolean terminalInitialized = false;
 	public static boolean gameInitialized = false;
-	public static NetHackTerminalState terminalState;
+	public static NetHackTerminalState mainTerminalState;
+	public static NetHackTerminalState messageTerminalState;
+	public static NetHackTerminalState statusTerminalState;
 	
 	public native int NetHackInit();
 	public native void NetHackShutdown();
