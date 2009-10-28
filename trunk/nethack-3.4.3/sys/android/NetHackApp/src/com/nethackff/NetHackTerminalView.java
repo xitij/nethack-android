@@ -13,7 +13,25 @@ public class NetHackTerminalView extends View
 
 	int textSize = 10;
 
+	public void write(String s)
+	{
+		terminal.write(s);
 
+		if(terminal.changeColumn1 <= terminal.changeColumn2)
+		{
+			// Since we will draw the cursor at the current position, we should probably consider
+			// the current position as a change.
+			terminal.registerChange(terminal.currentColumn, terminal.currentRow);
+
+			Rect cliprect = new Rect();
+			cliprect.bottom = computeCoordY(terminal.changeRow2) + charHeight;
+			cliprect.top = computeCoordY(terminal.changeRow1);
+			cliprect.right = computeCoordX(terminal.changeColumn2) + charWidth;
+			cliprect.left = computeCoordX(terminal.changeColumn1);
+			invalidate(cliprect);
+		}
+	}
+	
 	protected void onMeasure(int widthmeasurespec, int heightmeasurespec)
 	{
 		int minheight = getSuggestedMinimumHeight();
