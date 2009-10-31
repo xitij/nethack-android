@@ -2,7 +2,20 @@ package com.nethackff;
 
 public class NetHackTerminalState
 {
+	public NetHackTerminalState()
+	{
+		numRows = 0;
+		numColumns = 0;
+		currentRow = 0;
+		currentColumn = 0;
+	}
+
 	public NetHackTerminalState(int columns, int rows)
+	{
+		init(columns, rows);
+	}
+
+	public void init(int columns, int rows)
 	{
 		numRows = rows;
 		numColumns = columns;
@@ -16,7 +29,34 @@ public class NetHackTerminalState
 		currentRow = 0;
 		currentColumn = 0;
 	}
+	
+	public char getTextAt(int column, int row)
+	{
+		column -= offsetX;
+		row -= offsetY;
+		if(column >= 0 && column < numColumns && row >= 0 && row < numRows)
+		{
+			return textBuffer[row*numColumns + column];
+		}
+		else
+		{
+			return ' ';			
+		}
+	}
 
+	public void setTextAt1(char c, int column, int row)
+	{
+		column -= offsetX;
+		row -= offsetY;
+		if(column >= 0 && column < numColumns && row >= 0 && row < numRows)
+		{
+			textBuffer[row*numColumns + column] = c;
+		}
+	}
+
+	public int offsetX = 0;
+	public int offsetY = 0;
+	
 	// TODO: Add protection and stuff...
 	public char[] textBuffer;
 	public char[] fmtBuffer;
@@ -106,7 +146,7 @@ public class NetHackTerminalState
 
 	void clearScreen()
 	{
-		for(int i = 0; i < numRows * numColumns; i++)
+		for(int i = 0; i < numRows*numColumns; i++)
 		{
 			textBuffer[i] = ' ';
 			fmtBuffer[i] = encodeCurrentFormat();
@@ -159,13 +199,13 @@ public class NetHackTerminalState
 			{
 				for(int col = 0; col < numColumns; col++)
 				{
-					textBuffer[(row - 1) * numColumns + col] = textBuffer[row*numColumns + col];
+					setTextAt1(getTextAt(col, row), col, row - 1);
 					fmtBuffer[(row - 1) * numColumns + col] = fmtBuffer[row*numColumns + col];
 				}
 			}
 			for(int col = 0; col < numColumns; col++)
 			{
-				textBuffer[(numRows - 1) * numColumns + col] = ' ';
+				setTextAt1(' ', col, numRows - 1);
 				fmtBuffer[(numRows - 1) * numColumns + col] = encodeCurrentFormat();
 			}
 			currentRow--;
@@ -186,7 +226,7 @@ public class NetHackTerminalState
 
 		if (currentColumn < numColumns && currentRow < numRows)
 		{
-			textBuffer[currentRow * numColumns + currentColumn] = c;
+			setTextAt1(c, currentColumn, currentRow);
 			fmtBuffer[currentRow * numColumns + currentColumn] = encodeCurrentFormat();
 
 			registerChange(currentColumn, currentRow);
@@ -198,7 +238,7 @@ public class NetHackTerminalState
 	{
 		if (col >= 0 && col < numColumns && row >= 0 && row < numRows)
 		{
-			textBuffer[row * numColumns + col] = c;
+			setTextAt1(c, col, row);
 			fmtBuffer[row * numColumns + col] = encodeCurrentFormat();
 			registerChange(col, row);
 		}
@@ -544,11 +584,16 @@ public class NetHackTerminalState
 	public String getRow(int row)
 	{
 		String r;
-		int offs = row*numColumns;
 		r = "";
-		for (int i = 0; i < numColumns; i++)
+		row -= offsetY;
+		if(row >= 0 && row < numRows)
 		{
-			r += textBuffer[offs + i];
+			int offs = row*numColumns;
+			for (int i = 0; i < numColumns; i++)
+			{
+				// TODO: Maybe do something with offsetX here?
+				r += textBuffer[offs + i];
+			}
 		}
 		return r;
 	}

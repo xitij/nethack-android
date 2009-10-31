@@ -8,6 +8,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.inputmethodservice.Keyboard;
@@ -17,6 +18,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Display;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
 import android.view.inputmethod.InputMethodManager;
@@ -53,8 +55,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	NetHackKeyboard virtualKeyboard;
 	
 	/* For debugging only. */
-	//NetHackTerminalView dbgTerminalTranscript;
+	NetHackTerminalView dbgTerminalTranscriptView;
+	static NetHackTerminalState dbgTerminalTranscriptState;
 
+	NetHackTerminalView currentDbgTerminalView;
+	
 	class ModifierKey
 	{
 		public boolean active = false;
@@ -114,7 +119,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		VirtualKeyboard
 	}
 
-	boolean optFullscreen = false;
+	boolean optFullscreen = true;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
@@ -317,6 +322,34 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public int quitCount = 0;
 
+	NetHackTerminalView currentView;
+	boolean escSeq = false;
+	boolean escSeqAndroid = false;
+	String currentString = "";
+
+	public void writeTranscript(String s)
+	{
+		String transcript = "";
+		for(int i = 0; i < s.length(); i++)
+		{
+			char c = s.charAt(i);
+			if(c < 32)
+			{
+				transcript += '^';
+				int a = c/10;
+				int b = c - a*10;
+				transcript += (char)('0' + a);
+				transcript += (char)('0' + b);
+			}
+			else
+			{
+				transcript += c;
+			}
+		}
+		Log.i("NetHackDbg", transcript);
+		dbgTerminalTranscriptView.write(transcript);
+	}
+	
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
@@ -340,27 +373,67 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			String s = NetHackTerminalReceive();
 			if(s.length() != 0)
 			{
-/*
 				for(int i = 0; i < s.length(); i++)
 				{
 					char c = s.charAt(i);
-					if(c < 32)
+					if(!escSeq)
 					{
-						dbgTerminalTranscript.terminal.writeRaw('^');
-						int a = c / 10;
-						int b = c - a * 10;
-						dbgTerminalTranscript.terminal.writeRaw((char) ('0' + a));
-						dbgTerminalTranscript.terminal.writeRaw((char) ('0' + b));
+						if(c == 27)
+						{
+							escSeq = true;
+							escSeqAndroid = false;
+						}
+						else
+						{
+							currentString += c;
+						}
+					}
+					else if(!escSeqAndroid)
+					{
+						if(c == 'A')
+						{
+							if(currentView == currentDbgTerminalView)
+							{
+								writeTranscript(currentString);
+							}
+							currentView.write(currentString);
+							currentString = "";
+							escSeqAndroid = true;
+						}
+						else
+						{
+							// Not the droids we were looking for.
+							currentString += (char)27;
+							currentString += c;
+							escSeq = escSeqAndroid = false;
+						}
 					}
 					else
 					{
-						dbgTerminalTranscript.terminal.writeRaw(c);
-						dbgTerminalTranscript.invalidate();
+						if(c == '0')
+						{
+							currentView = mainView;
+						}
+						else if(c == '1')
+						{
+							currentView = messageView;
+						}
+						else if(c == '2')
+						{
+							currentView = statusView;
+						}
+						escSeq = escSeqAndroid = false;	
 					}
 				}
-*/
-
-				mainView.write(s);
+				if(!escSeq)
+				{
+					if(currentView == currentDbgTerminalView)
+					{
+						writeTranscript(currentString);
+					}
+					currentView.write(currentString);
+					currentString = "";
+				}
 			}
 		}
 	};
@@ -670,8 +743,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			newscrolly = 0;
 		}
 
-		int termx = mainView.charWidth*mainView.terminal.numColumns;
-		int termy = mainView.charHeight*mainView.terminal.numRows;
+		int termx = mainView.charWidth*mainView.sizeX;
+		int termy = mainView.charHeight*mainView.sizeY;
 
 		int maxx = termx - mainView.getWidth();
 		int maxy = termy - mainView.getHeight();
@@ -791,41 +864,93 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int width = 80;
 		int height = 24;		// 26
 
+		int messageRows = 2;
+		int statusRows = 2;
+
 		if(!terminalInitialized)
 		{
+//			mainTerminalState = new NetHackTerminalState(width, height - messageRows - statusRows);
 			mainTerminalState = new NetHackTerminalState(width, height);
-			messageTerminalState = new NetHackTerminalState(width, 1);
-			statusTerminalState = new NetHackTerminalState(width, 2);
+//			statusTerminalState = new NetHackTerminalState(width, statusRows);
+
 			terminalInitialized = true;
 		}
 
+//		messageTerminalState = new NetHackTerminalState(width, messageRows);
+		messageTerminalState = new NetHackTerminalState();
+//		statusTerminalState = new NetHackTerminalState(53, statusRows);
+//		dbgTerminalTranscriptState = new NetHackTerminalState(53, 5);
+		statusTerminalState = new NetHackTerminalState();
+		
 		mainView = new NetHackTerminalView(this, mainTerminalState);
+		mainView.offsetY = messageRows;
+		mainView.sizeY -= messageRows + statusRows;
+
+		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+		int sizeX = display.getWidth();
+		int sizeY = display.getHeight();
+
+		Configuration config = getResources().getConfiguration();		
+		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
+		{
+			// TEMP
+			Log.i("NetHackDbg", "Portrait orientation detected " + sizeX + " x " + sizeY + "."); 			
+		}
+		else
+		{
+			// TEMP
+			Log.i("NetHackDbg", "Landscape/square orientation detected " + sizeX + " x " + sizeY + "."); 			
+		}
+		
 		messageView = new NetHackTerminalView(this, messageTerminalState);
 		statusView = new NetHackTerminalView(this, statusTerminalState);
-		
+
+		messageView.setSizeXFromPixels(sizeX);
+		messageView.setSizeY(messageRows);
+		statusView.setSizeXFromPixels(sizeX);
+		statusView.setSizeY(statusRows);
+
+		messageView.initStateFromView();
+		statusView.initStateFromView();
+
+		// TEMP
+//		mainTerminalState.offsetY = 2;		
+
+		messageView.drawCursor = false;
+		statusView.drawCursor = false;
+
+		currentView = mainView;
+
 		if(!gameInitialized)
 		{
 			mainView.terminal.write("Please wait, initializing...\n");
 		}
-		//dbgTerminalTranscript = new NetHackTerminalView(this, 80, 2);
-		//dbgTerminalTranscript.colorForeground = NetHackTerminalView.kColRed;
 
 		LinearLayout layout = new LinearLayout(this);
 
 		//layout.addView(dbgTerminalTranscript);
-//		layout.addView(messageView);
+		layout.addView(messageView);
 		layout.addView(mainView);
-//		layout.addView(statusView);
+		layout.addView(statusView);
+		
+		//currentDbgTerminalView = messageView;
+		if(currentDbgTerminalView != null)
+		{
+			dbgTerminalTranscriptState = new NetHackTerminalState();
+			dbgTerminalTranscriptState.colorForeground = NetHackTerminalState.kColGreen;
+			dbgTerminalTranscriptView = new NetHackTerminalView(this, dbgTerminalTranscriptState);
+			dbgTerminalTranscriptView.setSizeXFromPixels(sizeX);
+			dbgTerminalTranscriptView.setSizeY(5);
+			dbgTerminalTranscriptView.initStateFromView();
+			layout.addView(dbgTerminalTranscriptView);
+		}
+
 		layout.addView(virtualKeyboard.virtualKeyboardView);
 		layout.setOrientation(LinearLayout.VERTICAL);
 		setContentView(layout);
 //		setContentView(mainView);
 
 		gestureScanner = new GestureDetector(this);
-
-		// TEMP
-		messageView.write("TESTTEST - msg");
-		statusView.write("STATUS - test test");
 	}
 
 	public boolean onCreateOptionsMenu(Menu menu)
@@ -873,16 +998,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		altKey.sticky = prefs.getBoolean("StickyAlt", false);
 		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
-		optFullscreen = prefs.getBoolean("Fullscreen", false);
+		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 	}
 
 	public static boolean terminalInitialized = false;
 	public static boolean gameInitialized = false;
 	public static NetHackTerminalState mainTerminalState;
-	public static NetHackTerminalState messageTerminalState;
-	public static NetHackTerminalState statusTerminalState;
-	
+	public /*static*/ NetHackTerminalState messageTerminalState;
+	public /*static*/ NetHackTerminalState statusTerminalState;
+
 	public native int NetHackInit();
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
