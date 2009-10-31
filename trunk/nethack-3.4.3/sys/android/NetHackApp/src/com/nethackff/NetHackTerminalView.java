@@ -9,6 +9,13 @@ import android.view.View;
 
 public class NetHackTerminalView extends View
 {
+	public boolean drawCursor = false;
+
+	public int offsetX = 0;
+	public int offsetY = 0;
+	public int sizeX;
+	public int sizeY;
+
 	Paint textPaint;
 
 	int textSize = 10;
@@ -19,9 +26,12 @@ public class NetHackTerminalView extends View
 
 		if(terminal.changeColumn1 <= terminal.changeColumn2)
 		{
-			// Since we will draw the cursor at the current position, we should probably consider
-			// the current position as a change.
-			terminal.registerChange(terminal.currentColumn, terminal.currentRow);
+			if(drawCursor)
+			{
+				// Since we will draw the cursor at the current position, we should probably consider
+				// the current position as a change.
+				terminal.registerChange(terminal.currentColumn, terminal.currentRow);
+			}
 
 			Rect cliprect = new Rect();
 			cliprect.bottom = computeCoordY(terminal.changeRow2) + charHeight;
@@ -46,8 +56,8 @@ public class NetHackTerminalView extends View
 		int charwidth = (int)paint.measureText("X", 0, 1);
 
 		int width, height;
-		width = terminal.numColumns*charwidth;
-		height = terminal.numRows*charheight;
+		width = sizeX*charwidth;
+		height = sizeY*charheight;
 
 //		height += 2; // MAGIC!
 
@@ -101,9 +111,34 @@ public class NetHackTerminalView extends View
 
 		charHeight = (int)Math.ceil(textPaint.getFontSpacing());
 		charWidth = (int)textPaint.measureText("X", 0, 1);
+
+		offsetX = 0;
+		offsetY = 0;
+		sizeX = term.numColumns;
+		sizeY = term.numRows;
 	}
 
-
+	public void setSizeX(int numColumns)
+	{
+		sizeX = numColumns;
+	}
+	public void setSizeXFromPixels(int pixelSizeX)
+	{
+		sizeX = pixelSizeX/charWidth;
+	}
+	public void setSizeY(int numRows)
+	{
+		sizeY = numRows;
+	}
+	public void setSizeYFromPixels(int pixelSizeY)
+	{
+		sizeY = pixelSizeY/charHeight;
+	}
+	public void initStateFromView()
+	{
+		terminal.init(sizeX, sizeY);
+	}
+	
 	void setPaintColorForeground(Paint paint, int col)
 	{
 		if((col & 8) != 0)
@@ -195,20 +230,40 @@ public class NetHackTerminalView extends View
 
 	int computeCoordX(int column)
 	{
-		return charWidth*column;
+		return charWidth*(column - offsetX);
 	}
 
 	int computeCoordY(int row)
 	{
-		return row*charHeight;
+		return charHeight*(row - offsetY);
 	}
 
 	int computeColumnFromCoordX(int coordx)
 	{
-		return coordx/charWidth;
+		return coordx/charWidth + offsetX;
 	}
 
 	int computeRowFromCoordY(int coordy)
+	{
+		return coordy/charHeight + offsetY;
+	}
+
+	int computeViewCoordX(int column)
+	{
+		return charWidth*column;
+	}
+
+	int computeViewCoordY(int row)
+	{
+		return charHeight*row;
+	}
+
+	int computeViewColumnFromCoordX(int coordx)
+	{
+		return coordx/charWidth;
+	}
+
+	int computeViewRowFromCoordY(int coordy)
 	{
 		return coordy/charHeight;
 	}
@@ -217,33 +272,44 @@ public class NetHackTerminalView extends View
 	{
 		int x, y;
 
-		int row1 = 0;
-		int row2 = terminal.numRows;
-		int col1 = 0;
-		int col2 = terminal.numColumns;
+		int rowView1 = 0;
+		int rowView2 = sizeY;
+		int colView1 = 0;
+		int colView2 = sizeX;
 
 		Rect cliprect = new Rect();
 		if(canvas.getClipBounds(cliprect))
 		{
-			col1 = Math.max(computeColumnFromCoordX(cliprect.left), 0);
-			col2 = Math.min(computeColumnFromCoordX(cliprect.right + charWidth - 1), terminal.numColumns);
-			row1 = Math.max(computeRowFromCoordY(cliprect.top), 0);
-			row2 = Math.min(computeRowFromCoordY(cliprect.bottom + charHeight - 1), terminal.numRows);
+			colView1 = Math.max(computeViewColumnFromCoordX(cliprect.left), 0);
+			colView2 = Math.min(computeViewColumnFromCoordX(cliprect.right + charWidth - 1), sizeX);
+			rowView1 = Math.max(computeViewRowFromCoordY(cliprect.top), 0);
+			rowView2 = Math.min(computeViewRowFromCoordY(cliprect.bottom + charHeight - 1), sizeY);
 		}
 
 		x = 0;
-		y = computeCoordY(row1);
-		for(int row = row1; row < row2; row++)
+		y = computeViewCoordY(rowView1);
+		for(int rowView = rowView1; rowView < rowView2; rowView++)
 		{
-			x = computeCoordX(col1);
+			x = computeViewCoordX(colView1);
 			int currentx1 = -1;
 			int currentcolor = -1;
-			for(int col = col1; col < col2; col++, x += charWidth)
+			for(int colView = colView1; colView < colView2; colView++, x += charWidth)
 			{
-				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
+				int colTerm = colView + offsetX;
+				int rowTerm = rowView + offsetY;
+				char fmt;
+				if(colTerm >= 0 && colTerm < terminal.numColumns
+						&& rowTerm >= 0 && rowTerm < terminal.numRows)
+				{
+					fmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + colTerm];
+				}
+				else
+				{
+					fmt = 0;	// Not sure!				
+				}
 				int color = terminal.decodeFormatBackground(fmt);
 
-				if(col == terminal.currentColumn && row == terminal.currentRow)
+				if(colTerm == terminal.currentColumn && rowTerm == terminal.currentRow && drawCursor)
 				{
 					color = 7 - color;
 				}
@@ -267,20 +333,33 @@ public class NetHackTerminalView extends View
 		x = 0;
 
 		int ybackgroffs = 2;
-		y = charHeight + computeCoordY(row1) - ybackgroffs;
-		for(int row = row1; row < row2; row++)
+		y = charHeight + computeViewCoordY(rowView1) - ybackgroffs;
+		for(int rowView = rowView1; rowView < rowView2; rowView++)
 		{
-			x = computeCoordX(col1);
+			x = computeViewCoordX(colView1);
 			int currentx1 = -1;
 			int currentcolor = -1;
 			String currentstr = "";
-			for(int col = col1; col < col2; col++, x += charWidth)
+			for(int colView = colView1; colView < colView2; colView++, x += charWidth)
 			{
-				char fmt = terminal.fmtBuffer[row*terminal.numColumns + col];
+				int colTerm = colView + offsetX;
+				int rowTerm = rowView + offsetY;
+				char c;
+				char fmt;
+				if(colTerm >= 0 && colTerm < terminal.numColumns
+						&& rowTerm >= 0 && rowTerm < terminal.numRows)
+				{
+					fmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + colTerm];
+					c = terminal.getTextAt(colTerm, rowTerm);
+				}
+				else
+				{
+					fmt = 0;	// Not sure!				
+					c = ' ';
+				}
 				int color = terminal.decodeFormatForeground(fmt);
-				char c = terminal.textBuffer[row*terminal.numColumns + col];
 
-				if(col == terminal.currentColumn && row == terminal.currentRow)
+				if(colTerm == terminal.currentColumn && rowTerm == terminal.currentRow && drawCursor)
 				{
 					boolean bold = false;
 					if(color >= 8)
@@ -318,9 +397,12 @@ public class NetHackTerminalView extends View
 
 		terminal.clearChange();
 
-		// Since we have drawn the cursor, we should probably register this current
-		// position so that the next time we draw, we remember to erase the cursor
-		// from its previous position.
-		terminal.registerChange(terminal.currentColumn, terminal.currentRow);
+		if(drawCursor)
+		{
+			// Since we have drawn the cursor, we should probably register this current
+			// position so that the next time we draw, we remember to erase the cursor
+			// from its previous position.
+			terminal.registerChange(terminal.currentColumn, terminal.currentRow);
+		}
 	}
 }
