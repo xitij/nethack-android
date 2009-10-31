@@ -5,7 +5,7 @@
 		<CheckBoxPreference android:key="Fullscreen"
 			android:title="Fullscreen"
 			android:summary="If set, the notification bar will be hidden."
-			android:defaultValue="false"/>
+			android:defaultValue="true"/>
 	</PreferenceCategory>
 	<PreferenceCategory android:title="Input">
 		<CheckBoxPreference android:key="MoveWithTrackball"
