@@ -171,6 +171,62 @@ void android_curs(winid window, int x, int y)
 }
 
 
+static void android_putstr_status(struct WinDesc *cw, const char *str)
+{
+	/* Adapted from tty_putstr(). */
+
+	int j;
+	char *ob;
+
+	android_puts("\033A2");
+
+	ob = &cw->data[cw->cury][j = cw->curx];
+	if(flags.botlx) *ob = 0;
+
+	if(!cw->cury && (int)strlen(str) >= s_ScreenNumColumns)
+	{
+		const char *nb;
+
+	    /* the characters before "St:" are unnecessary */
+	    nb = index(str, ':');
+	    if(nb && nb > str+2)
+			str = nb - 2;
+	}
+#if 0
+	nb = str;
+	for(i = cw->curx + 1, n0 = cw->cols; i < n0; i++, nb++)
+	{
+	    if(!*nb)
+		{
+			if(*ob || flags.botlx)
+			{
+			    /* last char printed may be in middle of line */
+			 	android_curs(WIN_STATUS, i, cw->cury);
+			    cl_end();
+			}
+			break;
+	    }
+	    if(*ob != *nb)
+			tty_putsym(WIN_STATUS, i, cw->cury, *nb);
+	    if(*ob)
+			ob++;
+	}
+#endif
+
+	android_puts(str);
+	cl_end();
+
+	/* Note: not sure exactly if there really is a point to storing
+	   the current contents here. */
+	(void)strncpy(&cw->data[cw->cury][j], str, cw->cols - j - 1);
+	cw->data[cw->cury][cw->cols-1] = '\0'; /* null terminate */
+	cw->cury = (cw->cury+1) % 2;
+	cw->curx = 0;
+
+	android_puts("\033A0");
+}
+
+
 void android_putstr(winid window, int attr, const char *str)
 {
 	struct WinDesc *cw = wins[window];
@@ -194,27 +250,7 @@ void android_putstr(winid window, int attr, const char *str)
 	}
 	else if(cw && cw->type == NHW_STATUS)
 	{
-		android_puts("\033A2");
-/*
-		android_puts(str);
-		android_puts("|");
-		android_puts("\n");
-*/
-#if 1
-		int oldco = CO;
-		CO = s_ScreenNumColumns;
-#endif
-/*
-		tty_putstr(window, attr, str);
-*/
-/* TODO: Do this part: */
- /* the characters before "St:" are unnecessary */
-android_puts(str);
-#if 1
-		CO = oldco;
-#endif
-
-		android_puts("\033A0");
+		android_putstr_status(cw, str);
 		return;
 	}
 	tty_putstr(window, attr, str);
