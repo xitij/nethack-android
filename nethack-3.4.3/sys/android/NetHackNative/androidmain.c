@@ -33,7 +33,8 @@ static int s_WaitingForCommandPerformed;
 enum
 {
 	kCmdNone = 0,
-	kCmdSave = 1
+	kCmdSave = 1,
+	kCmdRefresh = 2
 };
 
 static int s_ReadyForSave = 0;
@@ -240,6 +241,17 @@ int android_getch(void)
 #endif
 
 				android_autosave_save();
+			}
+			else if(cmd == kCmdRefresh)
+			{
+#if 0
+				doredraw();
+#endif
+/* TEMP */
+if(s_ReadyForSave)
+{
+				bot();
+}
 			}
 
 			if(s_WaitingForCommandPerformed)
@@ -571,6 +583,23 @@ int Java_com_nethackff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
 
 	return 1;
 }
+
+
+void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
+		JNIEnv *env, jobject thiz)
+{
+	/* Do we need to do anything to check if we are in a state where
+	   this is appropriate? */
+#if 0
+	doredraw();
+    flags.botlx = 1;	/* force a redraw of the bottom line */
+	g_android_refresh = 1;
+#endif
+
+	sSendCmd(kCmdRefresh, 0);
+}
+
+
 
 
 void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,

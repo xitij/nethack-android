@@ -4,6 +4,10 @@
 
 #include "wintty.h"
 
+#include <jni.h>
+
+winid android_create_nhwindow(int type);
+void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
 
 /* Interface definition, for windows.c */
@@ -24,11 +28,11 @@ struct window_procs android_procs = {
     tty_exit_nhwindows,
     tty_suspend_nhwindows,
     tty_resume_nhwindows,
-    tty_create_nhwindow,
+    android_create_nhwindow,
     tty_clear_nhwindow,
     tty_display_nhwindow,
     tty_destroy_nhwindow,
-    tty_curs,
+    android_curs,
     android_putstr,
     tty_display_file,
     tty_start_menu,
@@ -98,18 +102,119 @@ void android_askname()
 
 #endif
 
+static int s_ScreenNumColumns = 80;
+
+void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
+		JNIEnv *env, jobject thiz, int width)
+{
+	s_ScreenNumColumns = width;
+}
+
+#if 0
+int g_android_refresh = 0;
+#endif
+
+/*
+extern struct WinDesc *wins[MAXWIN];
+*/
+winid android_create_nhwindow(int type)
+{
+	winid newid = tty_create_nhwindow(type);
+
+	if(newid >= 0 && newid < MAXWIN)
+	{
+		struct WinDesc *newwin = wins[newid];
+		if(newwin)
+		{
+			if(newwin->type == NHW_STATUS)
+			{
+				newwin->offy = 0;
+			}
+		}
+	}
+
+	return newid;
+}
+
+
+void android_curs(winid window, int x, int y)
+{
+	struct WinDesc *cw = wins[window];
+	if(cw && cw->type == NHW_MESSAGE)
+	{
+		/* HACK */
+		int oldco = CO;
+		CO = s_ScreenNumColumns;
+
+		android_puts("\033A1");
+		tty_curs(window, x, y);
+		android_puts("\033A0");
+
+		CO = oldco;
+		return;
+	}
+	else if(cw && cw->type == NHW_STATUS)
+	{
+		android_puts("\033A2");
+#if 0
+		int oldco = CO;
+		CO = s_ScreenNumColumns;
+		tty_curs(window, x, y);
+		CO = oldco;
+#endif
+		cmov(x - 1, y);
+
+		android_puts("\033A0");
+		return;
+	}
+	tty_curs(window, x, y);
+}
+
+
 void android_putstr(winid window, int attr, const char *str)
 {
 	struct WinDesc *cw = wins[window];
 	if(cw && cw->type == NHW_MESSAGE)
 	{
 #if 0
-		char buff[1024];
-		snprintf(buff, sizeof(buff), "%cA35m%s", 27, str);
-		update_topl(buff);
-#endif
 		update_topl(str);
+#else
 
+		/* HACK */
+		int oldco = CO;
+		CO = s_ScreenNumColumns;
+
+		android_puts("\033A1");
+		update_topl(str);
+		android_puts("\033A0");
+
+		CO = oldco;
+#endif
+		return;
+	}
+	else if(cw && cw->type == NHW_STATUS)
+	{
+		android_puts("\033A2");
+/*
+		android_puts(str);
+		android_puts("|");
+		android_puts("\n");
+*/
+#if 1
+		int oldco = CO;
+		CO = s_ScreenNumColumns;
+#endif
+/*
+		tty_putstr(window, attr, str);
+*/
+/* TODO: Do this part: */
+ /* the characters before "St:" are unnecessary */
+android_puts(str);
+#if 1
+		CO = oldco;
+#endif
+
+		android_puts("\033A0");
 		return;
 	}
 	tty_putstr(window, attr, str);
