@@ -168,6 +168,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
 		Log.i("NetHackKey", "Phys: " + keyCode);
+/* TEMP */
+if(keyCode == KeyEvent.KEYCODE_SEARCH)
+{
+//	String tmp = "" + (char)(((int)'r') & 0x1f);
+//	NetHackTerminalSend(tmp);
+	refreshDisplay = true;
+	return true;
+}
 		
 		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
 
@@ -349,7 +357,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		Log.i("NetHackDbg", transcript);
 		dbgTerminalTranscriptView.write(transcript);
 	}
-	
+
+	boolean refreshDisplay = false;
+
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
@@ -434,6 +444,17 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					currentView.write(currentString);
 					currentString = "";
 				}
+			}
+
+			if(refreshDisplay)
+			{
+/*
+				String tmp = "" + (char)(((int)'r') & 0x1f);
+// Is this safe??
+				NetHackTerminalSend(tmp);
+*/
+				NetHackRefreshDisplay();
+				refreshDisplay = false;
 			}
 		}
 	};
@@ -881,10 +902,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 //		statusTerminalState = new NetHackTerminalState(53, statusRows);
 //		dbgTerminalTranscriptState = new NetHackTerminalState(53, 5);
 		statusTerminalState = new NetHackTerminalState();
-		
+
 		mainView = new NetHackTerminalView(this, mainTerminalState);
-		mainView.offsetY = messageRows;
+//		mainView.offsetY = messageRows;
 		mainView.sizeY -= messageRows + statusRows;
+		mainView.offsetY = 1;
+//		mainView.sizeY -= 3;
+		mainView.computeSizePixels();
+//		mainView.sizePixelsY -= 40;	// TEMP
+		
+		// TODO: Compute the size here based on available screen space.
 
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
@@ -907,11 +934,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		messageView.setSizeXFromPixels(sizeX);
 		messageView.setSizeY(messageRows);
+		messageView.computeSizePixels();
 		statusView.setSizeXFromPixels(sizeX);
 		statusView.setSizeY(statusRows);
+		statusView.computeSizePixels();
 
 		messageView.initStateFromView();
 		statusView.initStateFromView();
+
+		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
+//		NetHackSetScreenDim(statusView.getSizeX(), 2);
 
 		// TEMP
 //		mainTerminalState.offsetY = 2;		
@@ -949,6 +981,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		layout.setOrientation(LinearLayout.VERTICAL);
 		setContentView(layout);
 //		setContentView(mainView);
+
+		refreshDisplay = true;
 
 		gestureScanner = new GestureDetector(this);
 	}
@@ -1014,7 +1048,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackTerminalSend(String str);
 	public native int NetHackHasQuit();
 	public native int NetHackSave();
-
+	public native void NetHackSetScreenDim(int width, int nummsglines);
+	public native void NetHackRefreshDisplay();
+	
 	static
 	{
 		System.loadLibrary("nethack");

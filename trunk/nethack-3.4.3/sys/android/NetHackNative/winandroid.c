@@ -103,11 +103,13 @@ void android_askname()
 #endif
 
 static int s_ScreenNumColumns = 80;
+static int s_NumMsgLines = 1;
 
 void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
-		JNIEnv *env, jobject thiz, int width)
+		JNIEnv *env, jobject thiz, int width, int nummsglines)
 {
 	s_ScreenNumColumns = width;
+	s_NumMsgLines = nummsglines;
 }
 
 #if 0
@@ -170,6 +172,9 @@ void android_curs(winid window, int x, int y)
 	tty_curs(window, x, y);
 }
 
+#if 0
+
+#endif
 
 static void android_putstr_status(struct WinDesc *cw, const char *str)
 {
@@ -227,6 +232,266 @@ static void android_putstr_status(struct WinDesc *cw, const char *str)
 }
 
 
+static void android_redotoplin(const char *str)
+{
+	int otoplin = ttyDisplay->toplin;
+
+#if 0
+	home();
+	if(*str & 0x80) {
+		/* kludge for the / command, the only time we ever want a */
+		/* graphics character on the top line */
+		g_putch((int)*str++);
+		ttyDisplay->curx++;
+	}
+	end_glyphout();	/* in case message printed during graphics output */
+#endif
+	clear_screen();
+	putsyms(str);
+	cl_end();
+	ttyDisplay->toplin = 1;
+	if(ttyDisplay->cury && otoplin != 3)
+		more();
+}
+
+
+static void android_addtopl(const char *s)
+{
+    register struct WinDesc *cw = wins[WIN_MESSAGE];
+
+#if 0
+    tty_curs(BASE_WINDOW,cw->curx+1,cw->cury);
+#endif
+    putsyms(s);
+    cl_end();
+    ttyDisplay->toplin = 1;
+}
+
+
+static int s_MsgCol = 0;
+static int s_MsgRow = 0;
+
+
+static void android_update_topl_word(const char *wordstart,
+		const char *wordend)
+{
+	char buff[256];
+
+	const int wordlen = wordend - wordstart;
+	if(s_MsgCol > 0)
+	{
+		int maxcol = s_ScreenNumColumns;
+#if 0
+		if(s_MsgRow == s_NumMsgLines - 1)
+		{
+			maxcol -= 8;	/* Room for --More-- */
+		}
+#endif
+
+		if(s_MsgCol + wordlen + 1 > maxcol)
+		{
+#if 0
+			if(s_MsgRow == s_NumMsgLines - 1)
+			{
+				android_puts("--More--");
+				s_MsgCol += 8;
+			}
+#endif
+			/* The word doesn't fit, advance to the next line, unless
+			   we just wrapped around anyway. */
+			if(s_MsgCol != s_ScreenNumColumns)
+			{
+				android_puts("\n");
+			}
+			s_MsgCol = 0;
+			s_MsgRow++;
+		}
+		else
+		{
+			android_puts(" ");
+			s_MsgCol++;
+		}
+	}
+
+	strncpy(buff, wordstart, sizeof(buff) - 1);
+	if(wordlen < sizeof(buff))
+	{
+		buff[wordlen] = '\0';
+	}
+	else
+	{
+		buff[sizeof(buff) - 1] = '\0';
+	}
+	android_puts(buff);
+	s_MsgCol += strlen(buff);
+	while(s_MsgCol >= s_ScreenNumColumns)
+	{
+		s_MsgCol -= s_ScreenNumColumns;
+		s_MsgRow++;
+	}
+
+	if(s_MsgRow >= s_NumMsgLines)
+	{
+		s_MsgRow = s_NumMsgLines - 1;
+	}
+}
+
+
+static void android_update_topl(struct WinDesc *cw, const char *str)
+{
+	int i;
+	const char *ptr = str;
+	const char *wordstart = NULL;
+	int foundend = 0;
+	int continued = 0;
+
+while(!foundend)
+{
+	if(s_MsgRow < s_NumMsgLines - 1 || continued)
+	{
+		while(1)
+		{
+			char c = *ptr++;
+			if(c == ' ' || !c)
+			{
+				if(wordstart)
+				{
+					if(continued && (s_MsgRow == s_NumMsgLines - 1))
+					{
+						if(s_MsgCol + ptr - 1 - wordstart >= s_ScreenNumColumns - 8)
+						{
+							ptr = wordstart;
+							break;
+						}
+					}
+					android_update_topl_word(wordstart, ptr - 1);
+					if(s_MsgRow >= s_NumMsgLines - 1 && !continued)
+					{
+						break;
+					}
+				}
+				wordstart = NULL;
+
+				if(!c)
+				{
+					foundend = 1;
+					break;
+				}
+			}
+			else if(!wordstart)
+			{
+				wordstart = ptr - 1;
+			}
+		}
+	}
+
+	if(!foundend)
+	{
+		str = ptr;
+
+		const int len = strlen(str);
+		int lastcol = s_MsgCol + len - 1;
+		if(s_MsgCol)
+		{
+			lastcol++;
+		}
+		if(lastcol < s_ScreenNumColumns - 8)	/* Room for --More-- */
+		{
+			if(s_MsgCol)
+			{
+				android_puts(" ");
+				s_MsgCol++;
+			}
+			android_puts(str);
+			s_MsgCol += len;
+			foundend = 1;
+		}
+		else
+		{
+			android_puts("--More--");
+			s_MsgCol += 8;
+
+xwaitforspace("\033 ");
+
+			android_puts("\033[H\033[J");
+			s_MsgCol = 0;
+			s_MsgRow = 0;
+			continued = 1;
+#if 0
+			android_puts(str);
+			s_MsgCol += len;
+#endif
+		}
+	}
+}
+
+
+#if 0
+	register const char *bp = str;
+	register char *tl, *otl;
+	register int n0;
+	int notdied = 1;
+
+	/* If there is room on the line, print message on same line */
+	/* But messages like "You die..." deserve their own line */
+	n0 = strlen(bp);
+	if ((ttyDisplay->toplin == 1 || (cw->flags & WIN_STOP)) &&
+	    cw->cury == 0 &&
+	    n0 + (int)strlen(toplines) + 3 < CO-8 &&  /* room for --More-- */
+	    (notdied = strncmp(bp, "You die", 7))) {
+		Strcat(toplines, "  ");
+		Strcat(toplines, bp);
+		cw->curx += 2;
+		if(!(cw->flags & WIN_STOP))
+		    android_addtopl(bp);
+		return;
+	} else if (!(cw->flags & WIN_STOP)) {
+	    if(ttyDisplay->toplin == 1) more();
+	    else if(cw->cury) {	/* for when flags.toplin == 2 && cury > 1 */
+		docorner(1, cw->cury+1); /* reset cury = 0 if redraw screen */
+		cw->curx = cw->cury = 0;/* from home--cls() & docorner(1,n) */
+	    }
+	}
+#if 0
+	remember_topl();
+#endif
+	(void) strncpy(toplines, bp, TBUFSZ);
+	toplines[TBUFSZ - 1] = 0;
+
+	for(tl = toplines; n0 >= CO; ){
+	    otl = tl;
+	    for(tl+=CO-1; tl != otl && !isspace(*tl); --tl) ;
+	    if(tl == otl) {
+		/* Eek!  A huge token.  Try splitting after it. */
+		tl = index(otl, ' ');
+		if (!tl) break;    /* No choice but to spit it out whole. */
+	    }
+	    *tl++ = '\n';
+	    n0 = strlen(tl);
+	}
+	if(!notdied) cw->flags &= ~WIN_STOP;
+#if 0
+	if(!(cw->flags & WIN_STOP)) android_redotoplin(toplines);
+#endif
+
+#endif
+}
+
+
+void android_putstr_message(struct WinDesc *cw, const char *str)
+{
+	android_puts("\033A1");
+
+#if 0
+	android_puts(str);
+#endif
+	android_update_topl(cw, str);
+
+	android_puts("\033A0");
+
+}
+
+
 void android_putstr(winid window, int attr, const char *str)
 {
 	struct WinDesc *cw = wins[window];
@@ -236,6 +501,7 @@ void android_putstr(winid window, int attr, const char *str)
 		update_topl(str);
 #else
 
+#if 0
 		/* HACK */
 		int oldco = CO;
 		CO = s_ScreenNumColumns;
@@ -245,6 +511,10 @@ void android_putstr(winid window, int attr, const char *str)
 		android_puts("\033A0");
 
 		CO = oldco;
+#else
+		android_putstr_message(cw, str);
+#endif
+
 #endif
 		return;
 	}
