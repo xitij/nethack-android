@@ -9,17 +9,25 @@ import android.view.View;
 
 public class NetHackTerminalView extends View
 {
-	public boolean drawCursor = false;
+	public boolean drawCursor = true;
 
 	public int offsetX = 0;
 	public int offsetY = 0;
 	public int sizeX;
 	public int sizeY;
+	public int sizePixelsX;
+	public int sizePixelsY;
 
 	Paint textPaint;
 
 	int textSize = 10;
 
+	public void computeSizePixels()
+	{
+		sizePixelsX = sizeX*charWidth;
+		sizePixelsY = sizeY*charHeight;
+	}
+	
 	public void write(String s)
 	{
 		terminal.write(s);
@@ -47,6 +55,7 @@ public class NetHackTerminalView extends View
 		int minheight = getSuggestedMinimumHeight();
 		int minwidth = getSuggestedMinimumWidth();
 
+/*
 		// TODO: Prevent duplication
 		Paint paint = new Paint();
 		paint.setTypeface(Typeface.MONOSPACE);
@@ -55,10 +64,13 @@ public class NetHackTerminalView extends View
 		int charheight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
 		int charwidth = (int)paint.measureText("X", 0, 1);
 
-		int width, height;
 		width = sizeX*charwidth;
 		height = sizeY*charheight;
-
+*/
+		
+		int width, height;
+		width = sizePixelsX;
+		height = sizePixelsY;
 //		height += 2; // MAGIC!
 
 // TEMP
@@ -116,6 +128,8 @@ public class NetHackTerminalView extends View
 		offsetY = 0;
 		sizeX = term.numColumns;
 		sizeY = term.numRows;
+
+		computeSizePixels();
 	}
 
 	public void setSizeX(int numColumns)
@@ -138,7 +152,14 @@ public class NetHackTerminalView extends View
 	{
 		terminal.init(sizeX, sizeY);
 	}
-	
+	public int getSizeX()
+	{
+		return sizeX;
+	}
+	public int getSizeY()
+	{
+		return sizeY;
+	}
 	void setPaintColorForeground(Paint paint, int col)
 	{
 		if((col & 8) != 0)
@@ -162,7 +183,8 @@ public class NetHackTerminalView extends View
 		switch(col)
 		{
 			case NetHackTerminalState.kColBlack:
-				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+//				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				paint.setARGB(0xff, 0xff, 0xff, 0xff);
 				break;
 			case NetHackTerminalState.kColRed:
 				paint.setARGB(0xff, 0xff, 0x00, 0x00);
@@ -183,7 +205,8 @@ public class NetHackTerminalView extends View
 				paint.setARGB(0xff, 0x00, 0xff, 0xff);
 				break;
 			case NetHackTerminalState.kColWhite:
-				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+//				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				paint.setARGB(0xff, 0x00, 0x00, 0x00);
 				break;
 			default:
 				paint.setARGB(0x80, 0x80, 0x80, 0x80);
@@ -196,7 +219,8 @@ public class NetHackTerminalView extends View
 		switch(col)
 		{
 			case NetHackTerminalState.kColBlack:
-				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+//				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				paint.setARGB(0xff, 0xff, 0xff, 0xff);
 				break;
 			case NetHackTerminalState.kColRed:
 				paint.setARGB(0xff, 0xff, 0x00, 0x00);
@@ -217,7 +241,8 @@ public class NetHackTerminalView extends View
 				paint.setARGB(0xff, 0x00, 0xff, 0xff);
 				break;
 			case NetHackTerminalState.kColWhite:
-				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+//				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				paint.setARGB(0xff, 0x00, 0x00, 0x00);
 				break;
 			default:
 				paint.setARGB(0x80, 0x80, 0x80, 0x80);
