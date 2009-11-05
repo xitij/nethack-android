@@ -209,6 +209,9 @@ void android_autosave_remove()
 	remove(AUTOSAVE_FILENAME);
 }
 
+/*
+extern int g_android_prevent_output;
+*/
 
 int android_getch(void)
 {
@@ -216,7 +219,8 @@ int android_getch(void)
 	{
 		pthread_mutex_lock(&s_ReceiveMutex);
 
-		if(s_Command != kCmdNone)
+		/* Not sure */
+		if(s_Command != kCmdNone)	/* && !g_android_prevent_output)*/
 		{
 			int cmd = s_Command;
 			s_Command = kCmdNone;
@@ -247,11 +251,13 @@ int android_getch(void)
 #if 0
 				doredraw();
 #endif
+#if 0
 /* TEMP */
 if(s_ReadyForSave)
 {
 				bot();
 }
+#endif
 			}
 
 			if(s_WaitingForCommandPerformed)

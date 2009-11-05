@@ -112,10 +112,6 @@ void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
 	s_NumMsgLines = nummsglines;
 }
 
-#if 0
-int g_android_refresh = 0;
-#endif
-
 /*
 extern struct WinDesc *wins[MAXWIN];
 */
@@ -336,19 +332,23 @@ static void android_update_topl_word(const char *wordstart,
 	}
 }
 
+/* Hopefully temporary */
+int g_android_prevent_output = 0;
 
 static void android_update_topl(struct WinDesc *cw, const char *str)
 {
 	int i;
-	const char *ptr = str;
+	const char *ptr;
 	const char *wordstart = NULL;
 	int foundend = 0;
 	int continued = 0;
 
 while(!foundend)
 {
+	ptr = str;
 	if(s_MsgRow < s_NumMsgLines - 1 || continued)
 	{
+		wordstart = NULL;
 		while(1)
 		{
 			char c = *ptr++;
@@ -358,13 +358,18 @@ while(!foundend)
 				{
 					if(continued && (s_MsgRow == s_NumMsgLines - 1))
 					{
+#if 0
 						if(s_MsgCol + ptr - 1 - wordstart >= s_ScreenNumColumns - 8)
+#endif
+						if(s_MsgCol + ptr - wordstart >= s_ScreenNumColumns - 8)
 						{
 							ptr = wordstart;
 							break;
 						}
 					}
 					android_update_topl_word(wordstart, ptr - 1);
+/* NOT SURE */
+continued = 1;
 					if(s_MsgRow >= s_NumMsgLines - 1 && !continued)
 					{
 						break;
@@ -409,18 +414,18 @@ while(!foundend)
 		else
 		{
 			android_puts("--More--");
+
 			s_MsgCol += 8;
 
-xwaitforspace("\033 ");
+			g_android_prevent_output++;
+			xwaitforspace("\033 ");
+			g_android_prevent_output--;
 
 			android_puts("\033[H\033[J");
+
 			s_MsgCol = 0;
 			s_MsgRow = 0;
 			continued = 1;
-#if 0
-			android_puts(str);
-			s_MsgCol += len;
-#endif
 		}
 	}
 }
@@ -477,7 +482,6 @@ xwaitforspace("\033 ");
 #endif
 }
 
-
 void android_putstr_message(struct WinDesc *cw, const char *str)
 {
 	android_puts("\033A1");
@@ -495,6 +499,19 @@ void android_putstr_message(struct WinDesc *cw, const char *str)
 void android_putstr(winid window, int attr, const char *str)
 {
 	struct WinDesc *cw = wins[window];
+
+#if 0
+	if(cw && cw->type == NHW_MESSAGE)
+{
+android_puts("\033A3");
+char buff3[256];
+sprintf(buff3, "[win=%d]", (int)cw->type);
+android_puts(buff3);
+android_puts(str);
+android_puts("\033A0");
+}
+#endif
+
 	if(cw && cw->type == NHW_MESSAGE)
 	{
 #if 0
@@ -512,6 +529,13 @@ void android_putstr(winid window, int attr, const char *str)
 
 		CO = oldco;
 #else
+
+#if 0
+		char buff[256];
+		snprintf(buff, sizeof(buff), ":%d:", s_MsgCol + 1);
+		android_putstr_message(cw, buff);
+#endif
+
 		android_putstr_message(cw, str);
 #endif
 
