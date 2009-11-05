@@ -73,6 +73,12 @@
 # define DEFAULT_WINDOW_SYS "amii"	/* "amii", "amitile" or "tty" */
 #endif
 
+/* Android enhanced TTY /FF */
+#ifdef ANDROID
+# define ANDROID_GRAPHICS
+# define DEFAULT_WINDOW_SYS "androidtty"	/* "androidtty" or "tty" */
+#endif
+
 /* Atari supports GEM_GRAPHICS and/or TTY_GRAPHICS */
 #ifdef TOS
 # define GEM_GRAPHICS			/* Atari GEM interface (optional) */
