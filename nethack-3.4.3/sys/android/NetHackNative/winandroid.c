@@ -7,6 +7,7 @@
 #include <jni.h>
 
 winid android_create_nhwindow(int type);
+void android_clear_nhwindow(winid window);
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
 
@@ -28,12 +29,12 @@ struct window_procs android_procs = {
     tty_exit_nhwindows,
     tty_suspend_nhwindows,
     tty_resume_nhwindows,
-    android_create_nhwindow,
-    tty_clear_nhwindow,
+	android_create_nhwindow,
+	android_clear_nhwindow,
     tty_display_nhwindow,
     tty_destroy_nhwindow,
-    android_curs,
-    android_putstr,
+	android_curs,
+	android_putstr,
     tty_display_file,
     tty_start_menu,
     tty_add_menu,
@@ -112,6 +113,13 @@ void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
 	s_NumMsgLines = nummsglines;
 }
 
+
+static int s_MsgCol = 0;
+static int s_MsgRow = 0;
+
+
+
+
 /*
 extern struct WinDesc *wins[MAXWIN];
 */
@@ -132,6 +140,30 @@ winid android_create_nhwindow(int type)
 	}
 
 	return newid;
+}
+
+
+void android_clear_nhwindow(winid window)
+{
+	struct WinDesc *cw = wins[window];
+
+	if(cw && cw->type == NHW_MESSAGE)
+	{
+		android_puts("\033A1");
+		android_puts("\033[H\033[J");
+		s_MsgCol = 0;
+		s_MsgRow = 0;
+		android_puts("\033A0");
+		return;
+	}
+	else if(cw && cw->type == NHW_STATUS)
+	{
+		android_puts("\033A2");
+		android_puts("\033[H\033[J");
+		android_puts("\033A0");
+		return;
+	}
+	tty_clear_nhwindow(window);
 }
 
 
@@ -262,10 +294,6 @@ static void android_addtopl(const char *s)
     cl_end();
     ttyDisplay->toplin = 1;
 }
-
-
-static int s_MsgCol = 0;
-static int s_MsgRow = 0;
 
 
 static void android_update_topl_word(const char *wordstart,
