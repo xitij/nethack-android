@@ -402,11 +402,18 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 					{
 						if(c == 'A')
 						{
-							if(currentView == currentDbgTerminalView)
+							if(currentView == currentDbgTerminalView && currentView != null)
 							{
 								writeTranscript(currentString);
 							}
-							currentView.write(currentString);
+							if(currentView == null)
+							{
+								Log.i("NetHackDbg", currentString);
+							}
+							else
+							{
+								currentView.write(currentString);
+							}
 							currentString = "";
 							escSeqAndroid = true;
 						}
@@ -432,16 +439,28 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 						{
 							currentView = statusView;
 						}
+						else if(c == '3')
+						{
+							// TEMP
+							currentView = null;							
+						}
 						escSeq = escSeqAndroid = false;	
 					}
 				}
 				if(!escSeq)
 				{
-					if(currentView == currentDbgTerminalView)
+					if(currentView == currentDbgTerminalView && currentView != null)
 					{
 						writeTranscript(currentString);
 					}
-					currentView.write(currentString);
+					if(currentView == null)
+					{
+						Log.i("NetHackDbg", currentString);
+					}
+					else
+					{
+						currentView.write(currentString);
+					}
 					currentString = "";
 				}
 			}
@@ -877,7 +896,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		shiftKey = new ModifierKey();
         
 		virtualKeyboard = new NetHackKeyboard(this);
-		
+
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 //        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NO_STATUS_BAR,
 //      		WindowManager.LayoutParams.FLAG_NO_STATUS_BAR);
@@ -943,7 +962,6 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		statusView.initStateFromView();
 
 		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
-//		NetHackSetScreenDim(statusView.getSizeX(), 2);
 
 		// TEMP
 //		mainTerminalState.offsetY = 2;		
@@ -964,7 +982,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		layout.addView(messageView);
 		layout.addView(mainView);
 		layout.addView(statusView);
-		
+
 		//currentDbgTerminalView = messageView;
 		if(currentDbgTerminalView != null)
 		{
