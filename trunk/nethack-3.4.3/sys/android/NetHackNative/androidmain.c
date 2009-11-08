@@ -40,12 +40,28 @@ enum
 static int s_ReadyForSave = 0;
 static int s_Command = kCmdNone;
 static int s_Quit = 0;
-
+static int s_PureTTY = 0;
 
 static void NDECL(wd_message);
 #ifdef WIZARD
 static boolean wiz_error_flag = FALSE;
 #endif
+
+
+void android_debuglog(const char *fmt, ...)
+{
+	char buff[1024];
+	int r;
+
+	va_list args;
+	va_start(args, fmt);
+	r = vsnprintf(buff, sizeof(buff), fmt, args);
+	va_end(args);
+
+	android_puts("\033A3");
+	android_puts(buff);
+	android_puts("\033A0");
+}
 
 static void android_putchar_internal(int c)
 {
@@ -244,7 +260,10 @@ int android_getch(void)
 				}
 #endif
 
-				android_autosave_save();
+				if(s_ReadyForSave)
+				{
+					android_autosave_save();
+				}
 			}
 			else if(cmd == kCmdRefresh)
 			{
@@ -376,7 +395,14 @@ static void *sThreadFunc()
 
 	chdir("/data/data/com.nethackff/nethackdir");
 
-	choose_windows(DEFAULT_WINDOW_SYS);
+	if(s_PureTTY)
+	{
+		choose_windows("tty");
+	}
+	else
+	{
+		choose_windows(DEFAULT_WINDOW_SYS);
+	}
 	initoptions();
 
 	init_nhwindows(&argc,argv);
@@ -471,7 +497,8 @@ not_recovered:
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
+int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
+		int puretty)
 {
 	char *p;
 	int x, y;
@@ -481,6 +508,7 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz)
 		return 0;
 	}
 
+	s_PureTTY = puretty;
 	s_SendWaitingForNotFull = 0;
 	s_ReceiveWaitingForData = 0;
 	s_ReceiveWaitingForConsumption = 0;
