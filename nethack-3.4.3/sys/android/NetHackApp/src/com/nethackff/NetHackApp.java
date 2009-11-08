@@ -58,6 +58,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	NetHackTerminalView dbgTerminalTranscriptView;
 	static NetHackTerminalState dbgTerminalTranscriptState;
 
+	public boolean pureTTY = false;
+	
 	NetHackTerminalView currentDbgTerminalView;
 	
 	class ModifierKey
@@ -510,7 +512,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 
 			}
 
-			if(NetHackInit() == 0)
+			if(NetHackInit(pureTTY ? 1 : 0) == 0)
 			{
 				// TODO
 				return;
@@ -894,7 +896,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		altKey = new ModifierKey();
 		ctrlKey = new ModifierKey();
 		shiftKey = new ModifierKey();
-        
+
 		virtualKeyboard = new NetHackKeyboard(this);
 
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -924,8 +926,11 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 
 		mainView = new NetHackTerminalView(this, mainTerminalState);
 //		mainView.offsetY = messageRows;
-		mainView.sizeY -= messageRows + statusRows;
-		mainView.offsetY = 1;
+		if(!pureTTY)
+		{
+			mainView.sizeY -= messageRows + statusRows;
+			mainView.offsetY = 1;
+		}
 //		mainView.sizeY -= 3;
 		mainView.computeSizePixels();
 //		mainView.sizePixelsY -= 40;	// TEMP
@@ -979,9 +984,15 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		LinearLayout layout = new LinearLayout(this);
 
 		//layout.addView(dbgTerminalTranscript);
-		layout.addView(messageView);
+		if(!pureTTY)
+		{
+			layout.addView(messageView);
+		}
 		layout.addView(mainView);
-		layout.addView(statusView);
+		if(!pureTTY)
+		{
+			layout.addView(statusView);
+		}
 
 		//currentDbgTerminalView = messageView;
 		if(currentDbgTerminalView != null)
@@ -1060,7 +1071,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 	public /*static*/ NetHackTerminalState messageTerminalState;
 	public /*static*/ NetHackTerminalState statusTerminalState;
 
-	public native int NetHackInit();
+	public native int NetHackInit(int puretty);
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
