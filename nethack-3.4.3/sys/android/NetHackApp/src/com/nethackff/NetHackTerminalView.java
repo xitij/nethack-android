@@ -10,6 +10,7 @@ import android.view.View;
 public class NetHackTerminalView extends View
 {
 	public boolean drawCursor = true;
+	public boolean whiteBackgroundMode = false;
 
 	public int offsetX = 0;
 	public int offsetY = 0;
@@ -183,8 +184,14 @@ public class NetHackTerminalView extends View
 		switch(col)
 		{
 			case NetHackTerminalState.kColBlack:
-//				paint.setARGB(0xff, 0x00, 0x00, 0x00);
-				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				if(whiteBackgroundMode)
+				{
+					paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				}
+				else
+				{
+					paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				}
 				break;
 			case NetHackTerminalState.kColRed:
 				paint.setARGB(0xff, 0xff, 0x00, 0x00);
@@ -205,8 +212,14 @@ public class NetHackTerminalView extends View
 				paint.setARGB(0xff, 0x00, 0xff, 0xff);
 				break;
 			case NetHackTerminalState.kColWhite:
-//				paint.setARGB(0xff, 0xff, 0xff, 0xff);
-				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				if(whiteBackgroundMode)
+				{
+					paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				}
+				else
+				{
+					paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				}
 				break;
 			default:
 				paint.setARGB(0x80, 0x80, 0x80, 0x80);
@@ -219,8 +232,14 @@ public class NetHackTerminalView extends View
 		switch(col)
 		{
 			case NetHackTerminalState.kColBlack:
-//				paint.setARGB(0xff, 0x00, 0x00, 0x00);
-				paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				if(whiteBackgroundMode)
+				{
+					paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				}
+				else
+				{
+					paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				}
 				break;
 			case NetHackTerminalState.kColRed:
 				paint.setARGB(0xff, 0xff, 0x00, 0x00);
@@ -241,8 +260,14 @@ public class NetHackTerminalView extends View
 				paint.setARGB(0xff, 0x00, 0xff, 0xff);
 				break;
 			case NetHackTerminalState.kColWhite:
-//				paint.setARGB(0xff, 0xff, 0xff, 0xff);
-				paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				if(whiteBackgroundMode)
+				{
+					paint.setARGB(0xff, 0x00, 0x00, 0x00);
+				}
+				else
+				{
+					paint.setARGB(0xff, 0xff, 0xff, 0xff);
+				}
 				break;
 			default:
 				paint.setARGB(0x80, 0x80, 0x80, 0x80);
