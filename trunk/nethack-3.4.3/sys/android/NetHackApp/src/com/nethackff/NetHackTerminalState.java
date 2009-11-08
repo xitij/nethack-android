@@ -151,6 +151,11 @@ public class NetHackTerminalState
 			textBuffer[i] = ' ';
 			fmtBuffer[i] = encodeCurrentFormat();
 		}
+		
+		changeColumn1 = 0;
+		changeColumn2 = numColumns - 1;
+		changeRow1 = 0;
+		changeRow2 = numRows - 1;
 	}
 
 	void clampCursorPos()
