@@ -51,6 +51,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	NetHackTerminalView mainView;
 	NetHackTerminalView messageView;
 	NetHackTerminalView statusView;
+	NetHackTerminalView menuView;
 
 	NetHackKeyboard virtualKeyboard;
 	
@@ -440,6 +441,26 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 						else if(c == '2')
 						{
 							currentView = statusView;
+						}
+						else if(c == '4')
+						{
+							currentView = menuView;
+						}
+						else if(c == 'S')
+						{
+							if(currentView == menuView)
+							{
+								menuShown = true;
+								updateLayout();
+							}
+						}
+						else if(c == 'H')
+						{
+							if(currentView == menuView)
+							{
+								menuShown = false;
+								updateLayout();
+							}
 						}
 						else if(c == '3')
 						{
@@ -888,7 +909,39 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		}
 	}	
 
+	LinearLayout screenLayout;
 
+	boolean menuShown = false;
+
+	void updateLayout()
+	{
+		screenLayout.removeAllViews();
+		if(!menuShown)
+		{
+			//layout.addView(dbgTerminalTranscript);
+			if(!pureTTY)
+			{
+				screenLayout.addView(messageView);
+			}
+			screenLayout.addView(mainView);
+			if(!pureTTY)
+			{
+				screenLayout.addView(statusView);
+			}
+		}
+		else
+		{
+			screenLayout.addView(menuView);
+		}
+		if(currentDbgTerminalView != null)
+		{
+			screenLayout.addView(dbgTerminalTranscriptView);
+		}
+		screenLayout.addView(virtualKeyboard.virtualKeyboardView);
+
+		mainView.invalidate();
+	}
+	
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -923,6 +976,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 //		statusTerminalState = new NetHackTerminalState(53, statusRows);
 //		dbgTerminalTranscriptState = new NetHackTerminalState(53, 5);
 		statusTerminalState = new NetHackTerminalState();
+		menuTerminalState = new NetHackTerminalState();
 
 		mainView = new NetHackTerminalView(this, mainTerminalState);
 //		mainView.offsetY = messageRows;
@@ -930,10 +984,14 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		{
 			mainView.sizeY -= messageRows + statusRows;
 			mainView.offsetY = 1;
+
+			/* TEMP */
+//			mainView.sizeY -= 10;
 		}
 //		mainView.sizeY -= 3;
 		mainView.computeSizePixels();
 //		mainView.sizePixelsY -= 40;	// TEMP
+//		mainView.sizePixelsY -= 120;	// TEMP
 		
 		// TODO: Compute the size here based on available screen space.
 
@@ -955,6 +1013,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		
 		messageView = new NetHackTerminalView(this, messageTerminalState);
 		statusView = new NetHackTerminalView(this, statusTerminalState);
+		menuView = new NetHackTerminalView(this, menuTerminalState); 
 
 		messageView.setSizeXFromPixels(sizeX);
 		messageView.setSizeY(messageRows);
@@ -963,8 +1022,13 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		statusView.setSizeY(statusRows);
 		statusView.computeSizePixels();
 
+		menuView.setSizeX(sizeX);
+		menuView.setSizeY(24);
+		menuView.computeSizePixels();
+
 		messageView.initStateFromView();
 		statusView.initStateFromView();
+		menuView.initStateFromView();
 
 		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
 
@@ -981,19 +1045,6 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 			mainView.terminal.write("Please wait, initializing...\n");
 		}
 
-		LinearLayout layout = new LinearLayout(this);
-
-		//layout.addView(dbgTerminalTranscript);
-		if(!pureTTY)
-		{
-			layout.addView(messageView);
-		}
-		layout.addView(mainView);
-		if(!pureTTY)
-		{
-			layout.addView(statusView);
-		}
-
 		//currentDbgTerminalView = messageView;
 		if(currentDbgTerminalView != null)
 		{
@@ -1003,12 +1054,13 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 			dbgTerminalTranscriptView.setSizeXFromPixels(sizeX);
 			dbgTerminalTranscriptView.setSizeY(5);
 			dbgTerminalTranscriptView.initStateFromView();
-			layout.addView(dbgTerminalTranscriptView);
 		}
 
-		layout.addView(virtualKeyboard.virtualKeyboardView);
-		layout.setOrientation(LinearLayout.VERTICAL);
-		setContentView(layout);
+		screenLayout = new LinearLayout(this);
+		updateLayout();
+
+		screenLayout.setOrientation(LinearLayout.VERTICAL);
+		setContentView(screenLayout);
 //		setContentView(mainView);
 
 		refreshDisplay = true;
@@ -1070,7 +1122,8 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 	public static NetHackTerminalState mainTerminalState;
 	public /*static*/ NetHackTerminalState messageTerminalState;
 	public /*static*/ NetHackTerminalState statusTerminalState;
-
+	public NetHackTerminalState menuTerminalState;
+	
 	public native int NetHackInit(int puretty);
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
