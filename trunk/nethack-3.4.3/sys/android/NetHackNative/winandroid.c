@@ -8,6 +8,11 @@
 
 winid android_create_nhwindow(int type);
 void android_clear_nhwindow(winid window);
+void android_display_nhwindow(winid window, BOOLEAN_P blocking);
+void android_destroy_nhwindow(winid window);
+/*
+E void FDECL(android_display_nhwindow, (winid, BOOLEAN_P));
+*/
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
 int android_select_menu(winid window, int how, menu_item **menu_list);
@@ -33,15 +38,15 @@ struct window_procs android_procs = {
     tty_resume_nhwindows,
 	android_create_nhwindow,
 	android_clear_nhwindow,
-    tty_display_nhwindow,
-    tty_destroy_nhwindow,
+    android_display_nhwindow,
+	android_destroy_nhwindow,
 	android_curs,
 	android_putstr,
     tty_display_file,
     tty_start_menu,
     tty_add_menu,
     tty_end_menu,
-/*    tty_select_menu,*/
+/*	tty_select_menu,*/
 	android_select_menu,
     tty_message_menu,
     tty_update_inventory,
@@ -84,6 +89,9 @@ struct window_procs android_procs = {
     genl_preference_update,
 #endif
 };
+
+static char winpanicstr[] = "Bad window id %d";
+
 
 void android_wininit_data(int *argcp, char **argv)	/* should we have these params? */
 {
@@ -128,6 +136,9 @@ extern struct WinDesc *wins[MAXWIN];
 */
 winid android_create_nhwindow(int type)
 {
+
+android_debuglog("create_nhwindow %d", type);
+
 	winid newid = tty_create_nhwindow(type);
 
 	if(newid >= 0 && newid < MAXWIN)
@@ -167,6 +178,121 @@ void android_clear_nhwindow(winid window)
 		return;
 	}
 	tty_clear_nhwindow(window);
+}
+
+
+/*
+void android_display_nhwindow(winid window, boolean blocking)
+*/
+void android_display_nhwindow(winid window, BOOLEAN_P blocking)
+{
+    register struct WinDesc *cw = 0;
+
+    if(window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
+	{
+		panic(winpanicstr,  window);
+	}
+    if(cw->flags & WIN_CANCELLED)
+	{
+		return;
+	}
+
+
+	if(cw->type == NHW_MENU || cw->type == NHW_TEXT)
+	{
+		android_puts("\033A4\033AS");
+
+		cw->active = 1;
+		cw->offx = 0;
+	    cw->offy = 0;
+		clear_screen();
+
+		if (cw->data || !cw->maxrow)
+			process_text_window(window, cw);
+		else
+			process_menu_window(window, cw);
+		return;
+	}
+
+	tty_display_nhwindow(window, blocking);
+}
+
+
+static void android_dismiss_nhwindow(winid window)
+{
+	struct WinDesc *cw = 0;
+
+    if(window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
+	{
+		panic(winpanicstr,  window);
+	}
+
+	switch(cw->type)
+	{
+		case NHW_MESSAGE:
+			if (ttyDisplay->toplin)
+				tty_display_nhwindow(WIN_MESSAGE, TRUE);
+		/*FALLTHRU*/
+		case NHW_STATUS:
+		case NHW_BASE:
+		case NHW_MAP:
+			/*
+			 * these should only get dismissed when the game is going away
+			 * or suspending
+			 */
+			tty_curs(BASE_WINDOW, 1, (int)ttyDisplay->rows-1);
+			cw->active = 0;
+			break;
+	    case NHW_MENU:
+	    case NHW_TEXT:
+			if(cw->active)
+			{
+				android_puts("\033A4\033AH");
+
+				if (iflags.window_inited)
+				{
+					/* otherwise dismissing the text endwin after other windows
+					 * are dismissed tries to redraw the map and panics.  since
+					 * the whole reason for dismissing the other windows was to
+					 * leave the ending window on the screen, we don't want to
+					 * erase it anyway.
+					 */
+/*
+					erase_menu_or_text(window, cw, FALSE);
+*/
+				    clear_screen();
+			    }
+			    cw->active = 0;
+
+				android_puts("\033A0");
+			}
+			break;
+    }
+    cw->flags = 0;
+}
+
+
+void android_destroy_nhwindow(winid window)
+{
+    register struct WinDesc *cw = 0;
+
+    if(window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
+	panic(winpanicstr,  window);
+
+    if(cw->active)
+	{
+		android_dismiss_nhwindow(window);
+	}
+    if(cw->type == NHW_MESSAGE)
+	{
+		iflags.window_inited = 0;
+		if(cw->type == NHW_MAP)
+			clear_screen();
+	}
+
+    free_window_info(cw, TRUE);
+    free((genericptr_t)cw);
+    wins[window] = 0;
 }
 
 
@@ -526,12 +652,78 @@ void android_putstr_message(struct WinDesc *cw, const char *str)
 
 }
 
+#if 0
 
 void android_putstr_menu(struct WinDesc *cw, const char *str)
 {
 	android_puts("\033A4");
 
 	android_puts(str);
+
+	android_puts("\033A0");
+
+}
+
+#endif
+
+void android_putstr_text(winid window, int attr,
+		struct WinDesc *cw, const char *str)
+{
+	int i, n0;
+	char *ob;
+
+android_debuglog("TEXT: '%s'", str);
+
+	android_puts("\033A4");
+
+	android_puts(str);
+
+	if(cw->type == NHW_TEXT && cw->cury == ttyDisplay->rows-1) {
+	    /* not a menu, so save memory and output 1 page at a time */
+	    cw->maxcol = ttyDisplay->cols; /* force full-screen mode */
+		android_display_nhwindow(window, TRUE);
+	    for(i=0; i<cw->maxrow; i++)
+		if(cw->data[i]){
+		    free((genericptr_t)cw->data[i]);
+		    cw->data[i] = 0;
+		}
+	    cw->maxrow = cw->cury = 0;
+	}
+	/* always grows one at a time, but alloc 12 at a time */
+	if(cw->cury >= cw->rows) {
+	    char **tmp;
+
+	    cw->rows += 12;
+	    tmp = (char **) alloc(sizeof(char *) * (unsigned)cw->rows);
+	    for(i=0; i<cw->maxrow; i++)
+		tmp[i] = cw->data[i];
+	    if(cw->data)
+		free((genericptr_t)cw->data);
+	    cw->data = tmp;
+
+	    for(i=cw->maxrow; i<cw->rows; i++)
+		cw->data[i] = 0;
+	}
+	if(cw->data[cw->cury])
+	    free((genericptr_t)cw->data[cw->cury]);
+	n0 = strlen(str) + 1;
+	ob = cw->data[cw->cury] = (char *)alloc((unsigned)n0 + 1);
+	*ob++ = (char)(attr + 1);	/* avoid nuls, for convenience */
+	Strcpy(ob, str);
+
+	if(n0 > cw->maxcol)
+	    cw->maxcol = n0;
+	if(++cw->cury > cw->maxrow)
+	    cw->maxrow = cw->cury;
+	if(n0 > CO) {
+	    /* attempt to break the line */
+	    for(i = CO-1; i && str[i] != ' ' && str[i] != '\n';)
+		i--;
+	    if(i) {
+		cw->data[cw->cury-1][++i] = '\0';
+		tty_putstr(window, attr, &str[i]);
+	    }
+	}
 
 	android_puts("\033A0");
 
@@ -593,6 +785,19 @@ android_puts("\033A0");
 		android_putstr_status(cw, str);
 		return;
 	}
+#if 1
+	else if(cw && cw->type == NHW_TEXT)
+	{
+		android_puts("\033A4");
+#if 0
+		tty_putstr(window, attr, str);
+#endif
+		android_putstr_text(window, attr, cw, str);
+
+		android_puts("\033A0");
+		return;
+	}
+#endif
 #if 0
 	else if(cw && cw->type == NHW_MENU)
 	{
@@ -607,16 +812,62 @@ android_debuglog("GOT MENU");
 
 int android_select_menu(winid window, int how, menu_item **menu_list)
 {
-	int ret;
+	/* Adapted from tty_select_menu(). */
 
+	struct WinDesc *cw = 0;
+	tty_menu_item *curr;
+	menu_item *mi;
+	int n, cancelled;
+
+#if 0
 	android_puts("\033A4\033AS");
+#endif
+	if(window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0
+			|| cw->type != NHW_MENU)
+	{
+		panic(winpanicstr,  window);
+	}
 
-	ret = tty_select_menu(window, how, menu_list);
+	*menu_list = (menu_item *) 0;
+	cw->how = (short) how;
+	morc = 0;
 
+	android_display_nhwindow(window, TRUE);
+	cancelled = !!(cw->flags & WIN_CANCELLED);
+	tty_dismiss_nhwindow(window);	/* does not destroy window data */
+
+ 	if(cancelled)
+	{
+		n = -1;
+    }
+	else
+	{
+		for (n = 0, curr = cw->mlist; curr; curr = curr->next)
+		{
+			if(curr->selected)
+			{
+				n++;
+			}
+		}
+    }
+
+	if(n > 0)
+	{
+		*menu_list = (menu_item *) alloc(n * sizeof(menu_item));
+		for(mi = *menu_list, curr = cw->mlist; curr; curr = curr->next)
+		{
+			if(curr->selected)
+			{
+				mi->item = curr->identifier;
+				mi->count = curr->count;
+				mi++;
+	    	}
+    	}
+	}
 
 	android_puts("\033AH\033A0");
 
-	return ret;
+	return n;
 }
 
 /* End of file winandroid.c */
