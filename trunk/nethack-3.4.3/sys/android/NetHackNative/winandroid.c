@@ -10,6 +10,8 @@ winid android_create_nhwindow(int type);
 void android_clear_nhwindow(winid window);
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
+int android_select_menu(winid window, int how, menu_item **menu_list);
+
 
 /* Interface definition, for windows.c */
 struct window_procs android_procs = {
@@ -39,7 +41,8 @@ struct window_procs android_procs = {
     tty_start_menu,
     tty_add_menu,
     tty_end_menu,
-    tty_select_menu,
+/*    tty_select_menu,*/
+	android_select_menu,
     tty_message_menu,
     tty_update_inventory,
     tty_mark_synch,
@@ -524,9 +527,24 @@ void android_putstr_message(struct WinDesc *cw, const char *str)
 }
 
 
+void android_putstr_menu(struct WinDesc *cw, const char *str)
+{
+	android_puts("\033A4");
+
+	android_puts(str);
+
+	android_puts("\033A0");
+
+}
+
+
 void android_putstr(winid window, int attr, const char *str)
 {
 	struct WinDesc *cw = wins[window];
+
+#if 0
+android_debuglog("msg %d: '%s'", cw ? cw->type : -1, str);
+#endif
 
 #if 0
 	if(cw && cw->type == NHW_MESSAGE)
@@ -575,7 +593,30 @@ android_puts("\033A0");
 		android_putstr_status(cw, str);
 		return;
 	}
+#if 0
+	else if(cw && cw->type == NHW_MENU)
+	{
+android_debuglog("GOT MENU");
+		android_putstr_menu(cw, str);
+		return;
+	}
+#endif
 	tty_putstr(window, attr, str);
+}
+
+
+int android_select_menu(winid window, int how, menu_item **menu_list)
+{
+	int ret;
+
+	android_puts("\033A4\033AS");
+
+	ret = tty_select_menu(window, how, menu_list);
+
+
+	android_puts("\033AH\033A0");
+
+	return ret;
 }
 
 /* End of file winandroid.c */
