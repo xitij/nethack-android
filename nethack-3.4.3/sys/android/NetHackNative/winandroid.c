@@ -4,6 +4,8 @@
 
 #include "wintty.h"
 
+#include "func_tab.h"	/* extcmdlist */
+
 #include <jni.h>
 
 winid android_create_nhwindow(int type);
@@ -16,6 +18,7 @@ E void FDECL(android_display_nhwindow, (winid, BOOLEAN_P));
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
 int android_select_menu(winid window, int how, menu_item **menu_list);
+int android_get_ext_cmd();
 
 
 /* Interface definition, for windows.c */
@@ -67,7 +70,7 @@ struct window_procs android_procs = {
     tty_doprev_message,
     tty_yn_function,
     tty_getlin,
-    tty_get_ext_cmd,
+    android_get_ext_cmd,
     tty_number_pad,
     tty_delay_output,
 #ifdef CHANGE_COLOR	/* the Mac uses a palette device */
@@ -868,6 +871,208 @@ int android_select_menu(winid window, int how, menu_item **menu_list)
 	android_puts("\033AH\033A0");
 
 	return n;
+}
+
+typedef boolean FDECL((*getlin_hook_proc), (char *));
+extern char erase_char, kill_char;	/* from appropriate tty.c file */
+STATIC_DCL boolean FDECL(ext_cmd_getlin_hook, (char *));
+extern int NDECL(extcmd_via_menu);	/* cmd.c */
+
+STATIC_OVL void
+android_hooked_tty_getlin(query, bufp, hook)
+const char *query;
+register char *bufp;
+getlin_hook_proc hook;
+{
+	register char *obufp = bufp;
+	register int c;
+	struct WinDesc *cw = wins[WIN_MESSAGE];
+	boolean doprev = 0;
+
+	if(ttyDisplay->toplin == 1 && !(cw->flags & WIN_STOP)) more();
+	cw->flags &= ~WIN_STOP;
+	ttyDisplay->toplin = 3; /* special prompt state */
+	ttyDisplay->inread++;
+#if 0
+	pline("%s ", query);
+#endif
+	android_printf("%s ", query);
+	*obufp = 0;
+	for(;;) {
+#if 0
+		(void) fflush(stdout);
+#endif
+		Sprintf(toplines, "%s ", query);
+		Strcat(toplines, obufp);
+		if((c = Getchar()) == EOF) {
+			break;
+		}
+		if(c == '\033') {
+			*obufp = c;
+			obufp[1] = 0;
+			break;
+		}
+		if (ttyDisplay->intr) {
+		    ttyDisplay->intr--;
+		    *bufp = 0;
+		}
+		if(c == '\020') { /* ctrl-P */
+		    if (iflags.prevmsg_window != 's') {
+			int sav = ttyDisplay->inread;
+			ttyDisplay->inread = 0;
+			(void) tty_doprev_message();
+			ttyDisplay->inread = sav;
+			tty_clear_nhwindow(WIN_MESSAGE);
+			cw->maxcol = cw->maxrow;
+			addtopl(query);
+			addtopl(" ");
+			*bufp = 0;
+			addtopl(obufp);
+		    } else {
+			if (!doprev)
+			    (void) tty_doprev_message();/* need two initially */
+			(void) tty_doprev_message();
+			doprev = 1;
+			continue;
+		    }
+		} else if (doprev && iflags.prevmsg_window == 's') {
+		    tty_clear_nhwindow(WIN_MESSAGE);
+		    cw->maxcol = cw->maxrow;
+		    doprev = 0;
+		    addtopl(query);
+		    addtopl(" ");
+		    *bufp = 0;
+		    addtopl(obufp);
+		}
+		if(c == erase_char || c == '\b') {
+			if(bufp != obufp) {
+				char *i;
+				bufp--;
+				android_puts("\b");
+				for (i = bufp; *i; ++i) android_puts(" ");
+				for (; i > bufp; --i) android_puts("\b");
+				*bufp = 0;
+			} else	tty_nhbell();
+		} else if(c == '\n') {
+			break;
+		} else if(' ' <= (unsigned char) c && c != '\177' &&
+			    (bufp-obufp < BUFSZ-1 && bufp-obufp < COLNO)) {
+				/* avoid isprint() - some people don't have it
+				   ' ' is not always a printing char */
+			char *i = eos(bufp);
+			*bufp = c;
+			bufp[1] = 0;
+			android_puts(bufp);
+			bufp++;
+			if (hook && (*hook)(obufp)) {
+			    android_puts(bufp);
+			    /* pointer and cursor left where they were */
+			    for (i = bufp; *i; ++i) android_puts("\b");
+			} else if (i > bufp) {
+			    char *s = i;
+
+			    /* erase rest of prior guess */
+			    for (; i > bufp; --i) android_puts(" ");
+			    for (; s > bufp; --s) android_puts("\b");
+			}
+		} else if(c == kill_char || c == '\177') { /* Robert Viduya */
+				/* this test last - @ might be the kill_char */
+			for (; *bufp; ++bufp) android_puts(" ");
+			for (; bufp != obufp; --bufp) android_puts("\b \b");
+			*bufp = 0;
+		} else
+			tty_nhbell();
+	}
+	ttyDisplay->toplin = 2;		/* nonempty, no --More-- required */
+	ttyDisplay->inread--;
+	clear_nhwindow(WIN_MESSAGE);	/* clean up after ourselves */
+}
+
+
+
+/*
+ * Read in an extended command, doing command line completion.  We
+ * stop when we have found enough characters to make a unique command.
+ */
+int android_get_ext_cmd()
+{
+	int ret;
+
+	android_puts("\033A1");
+
+#if 1
+	int i;
+	char buf[BUFSZ];
+
+	if (iflags.extmenu) return extcmd_via_menu();
+	/* maybe a runtime option? */
+	/* hooked_tty_getlin("#", buf, flags.cmd_comp ? ext_cmd_getlin_hook : (getlin_hook_proc) 0); */
+#ifdef REDO
+	android_hooked_tty_getlin("#", buf, in_doagain ? (getlin_hook_proc)0
+		: ext_cmd_getlin_hook);
+#else
+	android_hooked_tty_getlin("#", buf, ext_cmd_getlin_hook);
+#endif
+	(void) mungspaces(buf);
+	if (buf[0] == 0 || buf[0] == '\033') return -1;
+
+	for (i = 0; extcmdlist[i].ef_txt != (char *)0; i++)
+		if (!strcmpi(buf, extcmdlist[i].ef_txt)) break;
+
+#ifdef REDO
+	if (!in_doagain) {
+	    int j;
+	    for (j = 0; buf[j]; j++)
+		savech(buf[j]);
+	    savech('\n');
+	}
+#endif
+
+	if (extcmdlist[i].ef_txt == (char *)0) {
+		pline("%s: unknown extended command.", buf);
+		i = -1;
+	}
+#endif
+
+	android_puts("\033A0");
+
+	return i;
+}
+
+
+/*
+ * Implement extended command completion by using this hook into
+ * tty_getlin.  Check the characters already typed, if they uniquely
+ * identify an extended command, expand the string to the whole
+ * command.
+ *
+ * Return TRUE if we've extended the string at base.  Otherwise return FALSE.
+ * Assumptions:
+ *
+ *	+ we don't change the characters that are already in base
+ *	+ base has enough room to hold our string
+ */
+STATIC_OVL boolean
+ext_cmd_getlin_hook(base)
+	char *base;
+{
+	int oindex, com_index;
+
+	com_index = -1;
+	for (oindex = 0; extcmdlist[oindex].ef_txt != (char *)0; oindex++) {
+		if (!strncmpi(base, extcmdlist[oindex].ef_txt, strlen(base))) {
+			if (com_index == -1)	/* no matches yet */
+			    com_index = oindex;
+			else			/* more than 1 match */
+			    return FALSE;
+		}
+	}
+	if (com_index >= 0) {
+		Strcpy(base, extcmdlist[com_index].ef_txt);
+		return TRUE;
+	}
+
+	return FALSE;	/* didn't match anything */
 }
 
 /* End of file winandroid.c */
