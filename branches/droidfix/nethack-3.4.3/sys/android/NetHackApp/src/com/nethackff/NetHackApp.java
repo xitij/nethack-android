@@ -42,7 +42,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.Thread;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 class TerminalState
@@ -1331,56 +1330,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		try
 		{
-			Class execClass = Class.forName("android.os.Exec");
-			Method createSubprocess = execClass.getMethod("createSubprocess",
-					String.class, String.class, String.class, int[].class);
-			Method waitFor = execClass.getMethod("waitFor", int.class);
-
-			int[] pid = new int[1];
-			FileDescriptor fd = (FileDescriptor) createSubprocess.invoke(null,
-					command, arg0, arg1, pid);
-
-			FileInputStream in = new FileInputStream(fd);
-			BufferedReader reader = new BufferedReader(
-					new InputStreamReader(in));
-			String output = "";
-			try
-			{
-				String line;
-				while ((line = reader.readLine()) != null)
-				{
-					output += line + "\n";
-				}
-			}
-			catch(IOException e)
-			{
-				// It seems IOException is thrown when it reaches EOF.
-			}
-
-			// Waits for the command to finish.
-			waitFor.invoke(null, pid[0]);
+				String fullCmd = command + " " + arg0 + " " + arg1;
+				Process p = Runtime.getRuntime().exec(fullCmd);
+				p.waitFor();
 		}
-		catch (ClassNotFoundException e)
+		catch (IOException e)
 		{
 			throw new RuntimeException(e.getMessage());
 		}
-		catch (SecurityException e)
-		{
-			throw new RuntimeException(e.getMessage());
-		}
-		catch (NoSuchMethodException e)
-		{
-			throw new RuntimeException(e.getMessage());
-		}
-		catch (IllegalArgumentException e)
-		{
-			throw new RuntimeException(e.getMessage());
-		}
-		catch (IllegalAccessException e)
-		{
-			throw new RuntimeException(e.getMessage());
-		}
-		catch (InvocationTargetException e)
+		catch (InterruptedException e)
 		{
 			throw new RuntimeException(e.getMessage());
 		}
