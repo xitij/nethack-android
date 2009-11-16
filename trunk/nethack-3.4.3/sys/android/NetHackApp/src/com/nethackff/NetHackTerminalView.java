@@ -113,6 +113,15 @@ public class NetHackTerminalView extends View
 		sizeY = term.numRows;
 
 		computeSizePixels();
+
+		if(whiteBackgroundMode)
+		{
+			setBackgroundColor(0xffffffff);
+		}
+		else
+		{
+			setBackgroundColor(0xff000000);
+		}
 	}
 
 	public void setSizeX(int numColumns)
