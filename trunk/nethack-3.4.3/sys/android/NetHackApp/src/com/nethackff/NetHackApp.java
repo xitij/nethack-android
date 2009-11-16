@@ -27,7 +27,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-//import android.view.ViewGroup;
+import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
@@ -183,8 +184,10 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 
 		if(keyAction == KeyAction.VirtualKeyboard)
 		{
-			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
-			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
+//			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
+//			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
+			keyboardShown = !keyboardShown;
+			updateLayout();
 			return true;
 		}
 
@@ -869,10 +872,18 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 
 	LinearLayout screenLayout;
 
+	boolean keyboardShown = false;
 	boolean menuShown = false;
 
 	void updateLayout()
 	{
+		mainView.setLayoutParams(
+				new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+				LayoutParams.WRAP_CONTENT, 1.0f));
+		menuView.setLayoutParams(
+				new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+				LayoutParams.WRAP_CONTENT, 1.0f));
+
 		screenLayout.removeAllViews();
 		if(!menuShown)
 		{
@@ -895,7 +906,10 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		{
 			screenLayout.addView(dbgTerminalTranscriptView);
 		}
-		screenLayout.addView(virtualKeyboard.virtualKeyboardView);
+		if(keyboardShown)
+		{
+			screenLayout.addView(virtualKeyboard.virtualKeyboardView);
+		}
 
 		mainView.invalidate();
 	}
@@ -950,7 +964,8 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		mainView.computeSizePixels();
 //		mainView.sizePixelsY -= 40;	// TEMP
 //		mainView.sizePixelsY -= 120;	// TEMP
-		
+		mainView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
+
 		// TODO: Compute the size here based on available screen space.
 
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -960,13 +975,11 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
 		{
-			// TEMP
-			Log.i("NetHackDbg", "Portrait orientation detected " + sizeX + " x " + sizeY + "."); 			
+			keyboardShown = true;
 		}
 		else
 		{
-			// TEMP
-			Log.i("NetHackDbg", "Landscape/square orientation detected " + sizeX + " x " + sizeY + "."); 			
+			keyboardShown = false;
 		}
 		
 		messageView = new NetHackTerminalView(this, messageTerminalState);
