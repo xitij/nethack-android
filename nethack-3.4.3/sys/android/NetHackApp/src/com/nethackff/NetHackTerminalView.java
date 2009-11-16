@@ -56,28 +56,10 @@ public class NetHackTerminalView extends View
 		int minheight = getSuggestedMinimumHeight();
 		int minwidth = getSuggestedMinimumWidth();
 
-/*
-		// TODO: Prevent duplication
-		Paint paint = new Paint();
-		paint.setTypeface(Typeface.MONOSPACE);
-		paint.setTextSize(textSize);
-		paint.setAntiAlias(true);
-		int charheight = (int)Math.ceil(paint.getFontSpacing());// + paint.ascent());
-		int charwidth = (int)paint.measureText("X", 0, 1);
-
-		width = sizeX*charwidth;
-		height = sizeY*charheight;
-*/
-		
 		int width, height;
 		width = sizePixelsX;
 		height = sizePixelsY;
-//		height += 2; // MAGIC!
 
-// TEMP
-//height -= 48;
-//height -= 4;
-		
 		if (width < minwidth)
 		{
 			width = minwidth;
