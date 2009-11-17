@@ -883,6 +883,12 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		menuView.setLayoutParams(
 				new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
 				LayoutParams.WRAP_CONTENT, 1.0f));
+		messageView.setLayoutParams(
+				new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
+				LayoutParams.WRAP_CONTENT, 0.0f));
+		statusView.setLayoutParams(
+				new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
+				LayoutParams.WRAP_CONTENT, 0.0f));
 
 		screenLayout.removeAllViews();
 		if(!menuShown)
