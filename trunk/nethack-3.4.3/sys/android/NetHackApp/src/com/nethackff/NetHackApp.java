@@ -186,16 +186,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
-		Log.i("NetHackKey", "Phys: " + keyCode);
-/* TEMP */
-if(keyCode == KeyEvent.KEYCODE_SEARCH)
-{
-//	String tmp = "" + (char)(((int)'r') & 0x1f);
-//	NetHackTerminalSend(tmp);
-	refreshDisplay = true;
-	return true;
-}
-		
 		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
 
 		if(keyAction == KeyAction.VirtualKeyboard)
