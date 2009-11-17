@@ -139,9 +139,6 @@ extern struct WinDesc *wins[MAXWIN];
 */
 winid android_create_nhwindow(int type)
 {
-
-android_debuglog("create_nhwindow %d", type);
-
 	winid newid = tty_create_nhwindow(type);
 
 	if(newid >= 0 && newid < MAXWIN)
@@ -674,8 +671,6 @@ void android_putstr_text(winid window, int attr,
 {
 	int i, n0;
 	char *ob;
-
-android_debuglog("TEXT: '%s'", str);
 
 	android_puts("\033A4");
 
