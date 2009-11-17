@@ -122,6 +122,13 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		VirtualKeyboard
 	}
 	
+	enum ColorMode
+	{
+		Invalid,
+		WhiteOnBlack,
+		BlackOnWhite
+	}
+	
 	enum UIMode
 	{
 		Invalid,
@@ -130,6 +137,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 
 	boolean optFullscreen = true;
+	ColorMode optColorMode = ColorMode.Invalid;
 	UIMode optUIModeNew = UIMode.Invalid;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
@@ -888,6 +896,12 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 			dialog.setTitle(getString(R.string.uimodechanged_title));
 			dialog.show();
 		}
+
+		boolean blackonwhite = (optColorMode == ColorMode.BlackOnWhite);
+		mainView.setWhiteBackgroundMode(blackonwhite);
+		menuView.setWhiteBackgroundMode(blackonwhite);
+		messageView.setWhiteBackgroundMode(blackonwhite);
+		statusView.setWhiteBackgroundMode(blackonwhite);
 	}	
 
 	LinearLayout screenLayout;
@@ -1002,8 +1016,6 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 //		mainView.sizePixelsY -= 40;	// TEMP
 //		mainView.sizePixelsY -= 120;	// TEMP
 		mainView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
-
-		// TODO: Compute the size here based on available screen space.
 
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
@@ -1123,6 +1135,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
+		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
 	}
 

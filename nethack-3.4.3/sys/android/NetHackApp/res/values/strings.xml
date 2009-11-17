@@ -29,4 +29,13 @@
 		<item>PureTTY</item>
 		<item>AndroidTTY</item>
 	</string-array>
+	<string-array name="ColorModeEntries">
+		<item>White on Black</item>
+		<item>Black on White</item>
+	</string-array>
+	<string-array name="ColorModeValues">
+		<item>WhiteOnBlack</item>
+		<item>BlackOnWhite</item>
+	</string-array>
+
 </resources>

@@ -10,7 +10,7 @@ import android.view.View;
 public class NetHackTerminalView extends View
 {
 	public boolean drawCursor = true;
-	public boolean whiteBackgroundMode = false;
+	private boolean whiteBackgroundMode = false;
 
 	public int offsetX = 0;
 	public int offsetY = 0;
@@ -114,6 +114,15 @@ public class NetHackTerminalView extends View
 
 		computeSizePixels();
 
+		updateBackground();
+	}
+	public void setWhiteBackgroundMode(boolean b)
+	{
+		whiteBackgroundMode = b;
+		updateBackground();
+	}
+	public void updateBackground()
+	{
 		if(whiteBackgroundMode)
 		{
 			setBackgroundColor(0xffffffff);
@@ -123,7 +132,6 @@ public class NetHackTerminalView extends View
 			setBackgroundColor(0xff000000);
 		}
 	}
-
 	public void setSizeX(int numColumns)
 	{
 		sizeX = numColumns;
