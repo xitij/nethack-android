@@ -861,6 +861,8 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 	{
 		super.onStart();
 
+		UIMode uiModeBefore = uiModeNew;
+		
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -877,6 +879,14 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		else
 		{
 			this.getWindow().setFlags(0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		}
+
+		if(uiModeNew != uiModeBefore)
+		{
+			Dialog dialog = new Dialog(this);
+			dialog.setContentView(R.layout.uimodechanged);
+			dialog.setTitle(getString(R.string.uimodechanged_title));
+			dialog.show();
 		}
 	}	
 
