@@ -1,5 +1,5 @@
-1.2
----
+1.2.1
+-----
 
 - Much improved virtual keyboard.
 - Added choice between "Pure TTY" and "Android TTY" UI mode, where the latter
