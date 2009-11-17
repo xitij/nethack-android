@@ -59,7 +59,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	NetHackTerminalView dbgTerminalTranscriptView;
 	static NetHackTerminalState dbgTerminalTranscriptState;
 
-	public boolean pureTTY = false;
+	static UIMode uiModeActual = UIMode.Invalid;
+	UIMode uiModeNew = UIMode.Invalid;
 	
 	NetHackTerminalView currentDbgTerminalView;
 	
@@ -120,6 +121,13 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		CtrlKey,
 		ShiftKey,
 		VirtualKeyboard
+	}
+	
+	enum UIMode
+	{
+		Invalid,
+		PureTTY,
+		AndroidTTY
 	}
 
 	boolean optFullscreen = true;
@@ -535,6 +543,8 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 
 			}
 
+			uiModeActual = uiModeNew;
+			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
 			if(NetHackInit(pureTTY ? 1 : 0) == 0)
 			{
 				// TODO
@@ -893,6 +903,8 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		screenLayout.removeAllViews();
 		if(!menuShown)
 		{
+			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
+
 			//layout.addView(dbgTerminalTranscript);
 			if(!pureTTY)
 			{
@@ -955,6 +967,15 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 //		dbgTerminalTranscriptState = new NetHackTerminalState(53, 5);
 		statusTerminalState = new NetHackTerminalState();
 		menuTerminalState = new NetHackTerminalState();
+
+		getPrefs();
+
+		boolean pureTTY;
+		if(!gameInitialized)
+		{
+			uiModeActual = uiModeNew;
+		}
+		pureTTY = (uiModeActual == UIMode.PureTTY);
 
 		mainView = new NetHackTerminalView(this, mainTerminalState);
 //		mainView.offsetY = messageRows;
@@ -1092,6 +1113,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
+		uiModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
 	}
 
 	public static boolean terminalInitialized = false;

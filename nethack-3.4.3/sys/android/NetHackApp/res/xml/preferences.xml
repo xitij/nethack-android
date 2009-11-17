@@ -6,6 +6,15 @@
 			android:title="Fullscreen"
 			android:summary="If set, the notification bar will be hidden."
 			android:defaultValue="true"/>
+
+		<ListPreference
+			android:title="UI Mode"
+			android:key="UIMode"
+			android:defaultValue="AndroidTTY"
+			android:entries="@array/UIModeEntries"
+			android:entryValues="@array/UIModeValues"/>
+
+
 	</PreferenceCategory>
 	<PreferenceCategory android:title="Input">
 		<CheckBoxPreference android:key="MoveWithTrackball"
