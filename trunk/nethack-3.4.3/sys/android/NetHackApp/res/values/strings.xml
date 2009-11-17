@@ -20,4 +20,12 @@
 		<item>ShiftKey</item>
 		<item>VirtualKeyboard</item>
 	</string-array>
+	<string-array name="UIModeEntries">
+		<item>Pure TTY</item>
+		<item>Android TTY</item>
+	</string-array>
+	<string-array name="UIModeValues">
+		<item>PureTTY</item>
+		<item>AndroidTTY</item>
+	</string-array>
 </resources>
