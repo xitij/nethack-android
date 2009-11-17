@@ -60,7 +60,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	static NetHackTerminalState dbgTerminalTranscriptState;
 
 	static UIMode uiModeActual = UIMode.Invalid;
-	UIMode uiModeNew = UIMode.Invalid;
 	
 	NetHackTerminalView currentDbgTerminalView;
 	
@@ -131,6 +130,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 
 	boolean optFullscreen = true;
+	UIMode optUIModeNew = UIMode.Invalid;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
@@ -543,7 +543,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 
 			}
 
-			uiModeActual = uiModeNew;
+			uiModeActual = optUIModeNew;
 			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
 			if(NetHackInit(pureTTY ? 1 : 0) == 0)
 			{
@@ -861,7 +861,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 	{
 		super.onStart();
 
-		UIMode uiModeBefore = uiModeNew;
+		UIMode uiModeBefore = optUIModeNew;
 		
 		getPrefs();
 
@@ -881,7 +881,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 			this.getWindow().setFlags(0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		}
 
-		if(uiModeNew != uiModeBefore)
+		if(optUIModeNew != uiModeBefore)
 		{
 			Dialog dialog = new Dialog(this);
 			dialog.setContentView(R.layout.uimodechanged);
@@ -983,7 +983,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		boolean pureTTY;
 		if(!gameInitialized)
 		{
-			uiModeActual = uiModeNew;
+			uiModeActual = optUIModeNew;
 		}
 		pureTTY = (uiModeActual == UIMode.PureTTY);
 
@@ -1123,7 +1123,7 @@ if(keyCode == KeyEvent.KEYCODE_SEARCH)
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
-		uiModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
+		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
 	}
 
 	public static boolean terminalInitialized = false;
