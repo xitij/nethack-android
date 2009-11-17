@@ -1,4 +1,16 @@
+1.2
+---
+
+- Much improved virtual keyboard.
+- Added choice between "Pure TTY" and "Android TTY" UI mode, where the latter
+  is particularly useful with virtual keyboard.
+- Added white background mode as an option.
+- Improved fullscreen experience.
+
+
+
 1.1.3 (November 12, 2009)
+-------------------------
 
 - Hopefully fixed crashes on startup under Android 2.0 (for Motorola
   Droid, etc).
