@@ -180,6 +180,9 @@ void android_clear_nhwindow(winid window)
 	tty_clear_nhwindow(window);
 }
 
+#if 0
+static AndroidGameState s_PreMenuGameState = kAndroidGameStateInvalid;
+#endif
 
 /*
 void android_display_nhwindow(winid window, boolean blocking)
@@ -197,9 +200,26 @@ void android_display_nhwindow(winid window, BOOLEAN_P blocking)
 		return;
 	}
 
-
 	if(cw->type == NHW_MENU || cw->type == NHW_TEXT)
 	{
+#if 0
+if(s_PreMenuGameState == kAndroidGameStateInvalid)
+{
+		s_PreMenuGameState = android_getgamestate();
+}
+#endif
+		if(!cw->active)
+		{
+			if(cw->type == NHW_MENU)
+			{
+				android_pushgamestate(kAndroidGameStateMenu);
+			}
+			else
+			{
+				android_pushgamestate(kAndroidGameStateText);
+			}
+		}
+
 		android_puts("\033A4\033AS");
 
 		cw->active = 1;
@@ -265,7 +285,17 @@ static void android_dismiss_nhwindow(winid window)
 			    cw->active = 0;
 
 				android_puts("\033A0");
+
+				android_popgamestate();
 			}
+
+#if 0
+			if(s_PreMenuGameState != kAndroidGameStateInvalid)
+			{
+				android_setgamestate(s_PreMenuGameState);
+				s_PreMenuGameState = kAndroidGameStateInvalid;
+			}
+#endif
 			break;
     }
     cw->flags = 0;
@@ -832,7 +862,10 @@ int android_select_menu(winid window, int how, menu_item **menu_list)
 
 	android_display_nhwindow(window, TRUE);
 	cancelled = !!(cw->flags & WIN_CANCELLED);
+#if 0
 	tty_dismiss_nhwindow(window);	/* does not destroy window data */
+#endif
+	android_dismiss_nhwindow(window);	/* does not destroy window data */
 
  	if(cancelled)
 	{
@@ -1002,12 +1035,18 @@ int android_get_ext_cmd()
 	if (iflags.extmenu) return extcmd_via_menu();
 	/* maybe a runtime option? */
 	/* hooked_tty_getlin("#", buf, flags.cmd_comp ? ext_cmd_getlin_hook : (getlin_hook_proc) 0); */
+
+	android_pushgamestate(kAndroidGameStateExtCmd);
+
 #ifdef REDO
 	android_hooked_tty_getlin("#", buf, in_doagain ? (getlin_hook_proc)0
 		: ext_cmd_getlin_hook);
 #else
 	android_hooked_tty_getlin("#", buf, ext_cmd_getlin_hook);
 #endif
+
+	android_popgamestate();
+
 	(void) mungspaces(buf);
 	if (buf[0] == 0 || buf[0] == '\033') return -1;
 

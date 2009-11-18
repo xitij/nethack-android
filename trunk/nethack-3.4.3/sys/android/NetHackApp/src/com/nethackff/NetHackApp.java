@@ -342,6 +342,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public int quitCount = 0;
 
 	NetHackTerminalView currentView;
+	NetHackTerminalView preLogView;
 	boolean escSeq = false;
 	boolean escSeqAndroid = false;
 	String currentString = "";
@@ -440,7 +441,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					{
 						if(c == '0')
 						{
-							currentView = mainView;
+							if((currentView == null) && (preLogView != null))
+							{
+								currentView = preLogView;
+								preLogView = null;
+							}
+							else
+							{
+								currentView = mainView;
+							}
 						}
 						else if(c == '1')
 						{
@@ -473,6 +482,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 						else if(c == '3')
 						{
 							// TEMP
+							if(currentView != null)
+							{
+								preLogView = currentView;
+							}
 							currentView = null;							
 						}
 						escSeq = escSeqAndroid = false;	
@@ -811,6 +824,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 	public void onLongPress(MotionEvent e)
 	{
+		// TEMP
+		mainView.scrollToCursor();
+		Log.i("NetHack", "onLongPress");
 	}
 	public void onShowPress(MotionEvent e)
 	{

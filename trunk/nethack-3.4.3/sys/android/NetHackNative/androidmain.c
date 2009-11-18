@@ -30,6 +30,15 @@ static int s_ReceiveWaitingForData;
 static int s_ReceiveWaitingForConsumption;
 static int s_WaitingForCommandPerformed;
 
+static AndroidGameState s_GameState = kAndroidGameStateInvalid;
+
+enum
+{
+	kGameStateStackSize = 1
+};
+static AndroidGameState s_GameStateStack[kGameStateStackSize];
+static int s_GameStateStackCount = 0;
+
 enum
 {
 	kCmdNone = 0,
@@ -62,6 +71,113 @@ void android_debuglog(const char *fmt, ...)
 	android_puts(buff);
 	android_puts("\033A0");
 }
+
+
+void android_debugerr(const char *fmt, ...)
+{
+	/* TODO: Make this more sophisticated. */
+
+	char buff[1024];
+	int r;
+
+	va_list args;
+	va_start(args, fmt);
+	r = vsnprintf(buff, sizeof(buff), fmt, args);
+	va_end(args);
+
+	android_puts("\033A3");
+	android_puts(buff);
+	android_puts("\033A0");
+}
+
+
+AndroidGameState android_getgamestate()
+{
+	return s_GameState;
+}
+
+
+static const char *s_statenames[] =
+{
+	"Invalid",
+	"ExtCmd",
+	"Init",
+	"Menu",
+	"MoveLoop",
+	"Text"
+};
+
+
+void android_switchgamestate(AndroidGameState s)
+{
+	if(s != s_GameState)
+	{
+		const char *statename;
+		if(s >= 0 && s < kAndroidNumGameStates)
+		{
+			statename = s_statenames[s];
+		}
+		else
+		{
+			statename = "?";
+		}
+		android_debuglog("Switching state to %s.", statename);
+	}
+	s_GameState = s;
+}
+
+
+
+void android_pushgamestate(AndroidGameState s)
+{
+	if(s_GameStateStackCount < kGameStateStackSize)
+	{
+		const char *statename;
+		if(s >= 0 && s < kAndroidNumGameStates)
+		{
+			statename = s_statenames[s];
+		}
+		else
+		{
+			statename = "?";
+		}
+
+		android_debuglog("Pushing state %s.", statename);
+		s_GameStateStack[s_GameStateStackCount++] = s_GameState;
+
+		s_GameState = s;
+	}
+	else
+	{
+		android_debugerr("Game state stack full.");
+	}
+}
+
+
+void android_popgamestate()
+{
+	if(s_GameStateStackCount >= 0)
+	{
+		s_GameState = s_GameStateStack[--s_GameStateStackCount];
+
+		const char *statename;
+		if(s_GameState >= 0 && s_GameState < kAndroidNumGameStates)
+		{
+			statename = s_statenames[s_GameState];
+		}
+		else
+		{
+			statename = "?";
+		}
+		android_debuglog("Popping state back to %s.", statename);
+	}
+	else
+	{
+		android_debugerr("Popped from empty stack.");
+	}
+}
+
+
 
 static void android_putchar_internal(int c)
 {
@@ -393,6 +509,8 @@ static void *sThreadFunc()
 
 	char buff[256];
 
+	android_switchgamestate(kAndroidGameStateInit);
+
 	chdir("/data/data/com.nethackff/nethackdir");
 
 	if(s_PureTTY)
@@ -489,6 +607,8 @@ not_recovered:
 	}
 
 	s_ReadyForSave = 1;
+	android_switchgamestate(kAndroidGameStateMoveLoop);
+
 	moveloop();
 
 	nethack_exit(EXIT_SUCCESS);

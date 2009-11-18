@@ -66,6 +66,24 @@ extern int android_getch(void);
 #undef PRINTF_F
 #define PRINTF_F(a, b)
 
+typedef enum
+{
+	kAndroidGameStateInvalid,
+
+	kAndroidGameStateExtCmd,
+	kAndroidGameStateInit,
+	kAndroidGameStateMenu,
+	kAndroidGameStateMoveLoop,
+	kAndroidGameStateText,
+
+	kAndroidNumGameStates
+} AndroidGameState;
+
+extern AndroidGameState android_getgamestate(void);
+extern void android_switchgamestate(AndroidGameState s);
+extern void android_pushgamestate(AndroidGameState s);
+extern void android_popgamestate();
+
 #endif /* ANDROIDCONF_H */
 
 /* End of file androidconf.h */
