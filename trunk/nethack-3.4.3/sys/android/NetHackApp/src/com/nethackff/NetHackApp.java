@@ -488,6 +488,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 							}
 							currentView = null;							
 						}
+						else if(c == 'C')
+						{
+							if(currentView != null)
+							{
+								currentView.setDrawCursor(!currentView.getDrawCursor());
+								//currentView.invalidate();
+							}
+						}
 						escSeq = escSeqAndroid = false;	
 					}
 				}
@@ -1061,8 +1069,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		// TEMP
 //		mainTerminalState.offsetY = 2;		
 
-		messageView.drawCursor = false;
-		statusView.drawCursor = false;
+		messageView.setDrawCursor(false);
+		statusView.setDrawCursor(false);
 
 		currentView = mainView;
 

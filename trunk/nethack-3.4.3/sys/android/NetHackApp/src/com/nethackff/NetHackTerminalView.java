@@ -9,7 +9,7 @@ import android.view.View;
 
 public class NetHackTerminalView extends View
 {
-	public boolean drawCursor = true;
+	private boolean drawCursor = true;
 	private boolean whiteBackgroundMode = false;
 
 	public int offsetX = 0;
@@ -23,6 +23,20 @@ public class NetHackTerminalView extends View
 
 	int textSize = 10;
 
+	public void setDrawCursor(boolean b)
+	{
+		if(b != drawCursor)
+		{
+			terminal.registerChange(terminal.currentColumn, terminal.currentRow);
+			drawCursor = b;
+		}
+	}
+	
+	public boolean getDrawCursor()
+	{
+		return drawCursor;
+	}
+	
 	public void scrollToCursor()
 	{
 		int cursorcenterx = terminal.currentColumn*charWidth + charWidth/2;

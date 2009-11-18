@@ -1025,7 +1025,15 @@ char android_yn_function(const char *query, const char *resp, CHAR_P def)
 
 	android_pushgamestate(kAndroidGameStateWaitingForResponse);
 
+	android_puts("\033A1");
+	android_puts("\033AC");		/* Toggle cursor on. */
+	android_puts("\033A0");
+
 	ret = tty_yn_function(query, resp, def);
+
+	android_puts("\033A1");
+	android_puts("\033AC");		/* Toggle cursor off again. */
+	android_puts("\033A0");
 
 	android_popgamestate();
 
