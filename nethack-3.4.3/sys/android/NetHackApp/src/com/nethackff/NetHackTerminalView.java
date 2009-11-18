@@ -23,6 +23,38 @@ public class NetHackTerminalView extends View
 
 	int textSize = 10;
 
+	public void scrollToCursor()
+	{
+		int cursorcenterx = terminal.currentColumn*charWidth + charWidth/2;
+		int cursorcentery = terminal.currentRow*charHeight + charHeight/2;
+		int newscrollx = cursorcenterx - getWidth()/2;
+		int newscrolly = cursorcentery - getHeight()/2;
+
+		int termx = charWidth*sizeX;
+		int termy = charHeight*sizeY;
+
+		int maxx = termx - getWidth();
+		int maxy = termy - getHeight();
+		if(maxx < 0)
+		{
+			maxx = 0;
+		}
+		if(maxy < 0)
+		{
+			maxy = 0;
+		}
+		if(newscrollx >= maxx)
+		{
+			newscrollx = maxx - 1;
+		}
+		if(newscrolly >= maxy)
+		{
+			newscrolly = maxy - 1;
+		}
+
+		scrollTo(newscrollx, newscrolly);
+	}
+	
 	public void computeSizePixels()
 	{
 		sizePixelsX = sizeX*charWidth;
