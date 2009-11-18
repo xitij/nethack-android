@@ -76,6 +76,8 @@ typedef enum
 	kAndroidGameStateMoveLoop,
 	kAndroidGameStateText,
 
+	kAndroidGameStateWaitingForResponse,
+
 	kAndroidNumGameStates
 } AndroidGameState;
 
