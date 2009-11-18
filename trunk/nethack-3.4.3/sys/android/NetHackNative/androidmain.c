@@ -104,7 +104,8 @@ static const char *s_statenames[] =
 	"Init",
 	"Menu",
 	"MoveLoop",
-	"Text"
+	"Text",
+	"WaitingForResponse"
 };
 
 

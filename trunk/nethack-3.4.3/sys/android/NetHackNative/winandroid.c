@@ -18,6 +18,8 @@ E void FDECL(android_display_nhwindow, (winid, BOOLEAN_P));
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
 int android_select_menu(winid window, int how, menu_item **menu_list);
+char android_yn_function(const char *query, const char *resp, CHAR_P def);
+/*E char FDECL(android_yn_function, (const char *, const char *, CHAR_P));*/
 int android_get_ext_cmd();
 
 
@@ -68,7 +70,7 @@ struct window_procs android_procs = {
     tty_nh_poskey,
     tty_nhbell,
     tty_doprev_message,
-    tty_yn_function,
+    android_yn_function,
     tty_getlin,
     android_get_ext_cmd,
     tty_number_pad,
@@ -1016,6 +1018,19 @@ getlin_hook_proc hook;
 	clear_nhwindow(WIN_MESSAGE);	/* clean up after ourselves */
 }
 
+
+char android_yn_function(const char *query, const char *resp, CHAR_P def)
+{
+	char ret;
+
+	android_pushgamestate(kAndroidGameStateWaitingForResponse);
+
+	ret = tty_yn_function(query, resp, def);
+
+	android_popgamestate();
+
+	return ret;
+}
 
 
 /*
