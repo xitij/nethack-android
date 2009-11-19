@@ -226,49 +226,71 @@ public class NetHackTerminalView extends View
 		{
 			paint.setUnderlineText(false);
 		}
-		switch(col)
+		if(whiteBackgroundMode)
 		{
-			case NetHackTerminalState.kColBlack:
-				if(whiteBackgroundMode)
-				{
+			switch(col)
+			{
+				case NetHackTerminalState.kColBlack:
 					paint.setARGB(0xff, 0xff, 0xff, 0xff);
-				}
-				else
-				{
+					break;
+				case NetHackTerminalState.kColRed:
+					paint.setARGB(0xff, 0xff, 0x00, 0x00);
+					break;
+				case NetHackTerminalState.kColGreen:
+					paint.setARGB(0xff, 0x00, 0xc0, 0x00);
+					break;
+				case NetHackTerminalState.kColYellow:
+					paint.setARGB(0xff, 0xb0, 0xb0, 0x00);
+					break;
+				case NetHackTerminalState.kColBlue:
+					paint.setARGB(0xff, 0x00, 0x00, 0xff);
+					break;
+				case NetHackTerminalState.kColMagenta:
+					paint.setARGB(0xff, 0xff, 0x00, 0xff);
+					break;
+				case NetHackTerminalState.kColCyan:
+					paint.setARGB(0xff, 0x00, 0xb0, 0xb0);
+					break;
+				case NetHackTerminalState.kColWhite:
 					paint.setARGB(0xff, 0x00, 0x00, 0x00);
-				}
-				break;
-			case NetHackTerminalState.kColRed:
-				paint.setARGB(0xff, 0xff, 0x00, 0x00);
-				break;
-			case NetHackTerminalState.kColGreen:
-				paint.setARGB(0xff, 0x00, 0xff, 0x00);
-				break;
-			case NetHackTerminalState.kColYellow:
-				paint.setARGB(0xff, 0xff, 0xff, 0x00);
-				break;
-			case NetHackTerminalState.kColBlue:
-				paint.setARGB(0xff, 0x00, 0x00, 0xff);
-				break;
-			case NetHackTerminalState.kColMagenta:
-				paint.setARGB(0xff, 0xff, 0x00, 0xff);
-				break;
-			case NetHackTerminalState.kColCyan:
-				paint.setARGB(0xff, 0x00, 0xff, 0xff);
-				break;
-			case NetHackTerminalState.kColWhite:
-				if(whiteBackgroundMode)
-				{
+					break;
+				default:
+					paint.setARGB(0x80, 0x80, 0x80, 0x80);
+					break;
+			}
+		}
+		else
+		{			
+			switch(col)
+			{
+				case NetHackTerminalState.kColBlack:
 					paint.setARGB(0xff, 0x00, 0x00, 0x00);
-				}
-				else
-				{
+					break;
+				case NetHackTerminalState.kColRed:
+					paint.setARGB(0xff, 0xff, 0x00, 0x00);
+					break;
+				case NetHackTerminalState.kColGreen:
+					paint.setARGB(0xff, 0x00, 0xff, 0x00);
+					break;
+				case NetHackTerminalState.kColYellow:
+					paint.setARGB(0xff, 0xff, 0xff, 0x00);
+					break;
+				case NetHackTerminalState.kColBlue:
+					paint.setARGB(0xff, 0x00, 0x00, 0xff);
+					break;
+				case NetHackTerminalState.kColMagenta:
+					paint.setARGB(0xff, 0xff, 0x00, 0xff);
+					break;
+				case NetHackTerminalState.kColCyan:
+					paint.setARGB(0xff, 0x00, 0xff, 0xff);
+					break;
+				case NetHackTerminalState.kColWhite:
 					paint.setARGB(0xff, 0xff, 0xff, 0xff);
-				}
-				break;
-			default:
-				paint.setARGB(0x80, 0x80, 0x80, 0x80);
-				break;
+					break;
+				default:
+					paint.setARGB(0x80, 0x80, 0x80, 0x80);
+					break;
+			}
 		}
 	}
 
