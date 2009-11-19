@@ -49,13 +49,13 @@ public class NetHackTerminalView extends View
 
 		int maxx = termx - getWidth();
 		int maxy = termy - getHeight();
-		if(maxx < 0)
+		if(newscrollx < 0)
 		{
-			maxx = 0;
+			newscrollx = 0;
 		}
-		if(maxy < 0)
+		if(newscrolly < 0)
 		{
-			maxy = 0;
+			newscrolly = 0;
 		}
 		if(newscrollx >= maxx)
 		{
