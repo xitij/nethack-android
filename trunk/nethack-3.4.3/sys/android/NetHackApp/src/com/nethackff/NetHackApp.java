@@ -116,10 +116,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	enum KeyAction
 	{
 		None,
+		VirtualKeyboard,
 		AltKey,
 		CtrlKey,
 		ShiftKey,
-		VirtualKeyboard
+		EscKey
 	}
 	
 	enum ColorMode
@@ -217,9 +218,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			shiftKey.keyDown();
 			return true;
 		}
-
-		
 		char c = 0;
+		if(keyAction == KeyAction.EscKey)
+		{
+			c = 27;
+		}
 		if(optMoveWithTrackball)
 		{
 			switch(keyCode)

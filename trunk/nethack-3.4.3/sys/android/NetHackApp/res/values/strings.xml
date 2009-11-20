@@ -9,17 +9,19 @@
 	<string name="preferences">Preferences</string>
 	<string-array name="KeyActions">
 		<item>None</item>
+		<item>Virtual Keyboard</item>
 		<item>Alt Key</item>
 		<item>Ctrl Key</item>
 		<item>Shift Key</item>
-		<item>Virtual Keyboard</item>
+		<item>Esc Key</item>
 	</string-array>
 	<string-array name="KeyActionValues">
 		<item>None</item>
+		<item>VirtualKeyboard</item>
 		<item>AltKey</item>
 		<item>CtrlKey</item>
 		<item>ShiftKey</item>
-		<item>VirtualKeyboard</item>
+		<item>EscKey</item>
 	</string-array>
 	<string-array name="UIModeEntries">
 		<item>Pure TTY</item>
