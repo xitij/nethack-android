@@ -26,7 +26,8 @@
     >
 
     <Row>
-        <Key android:codes="1" android:keyLabel="^A" android:keyEdgeFlags="left" android:horizontalGap="5%p"/>
+        <Key android:codes="27" android:keyLabel="Esc" android:keyEdgeFlags="left"/>
+        <Key android:codes="1" android:keyLabel="^A"/>
         <Key android:codes="4" android:keyLabel="^D"/>
         <Key android:codes="16" android:keyLabel="^P"/>
         <Key android:codes="18" android:keyLabel="^R"/>
