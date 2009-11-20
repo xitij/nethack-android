@@ -345,6 +345,7 @@ void android_autosave_remove()
 /*
 extern int g_android_prevent_output;
 */
+static int s_ShouldRefresh = 0;
 
 int android_getch(void)
 {
@@ -384,16 +385,7 @@ int android_getch(void)
 			}
 			else if(cmd == kCmdRefresh)
 			{
-#if 0
-				doredraw();
-#endif
-#if 0
-/* TEMP */
-if(s_ReadyForSave)
-{
-				bot();
-}
-#endif
+				s_ShouldRefresh = 1;
 			}
 
 			if(s_WaitingForCommandPerformed)
@@ -409,6 +401,15 @@ if(s_ReadyForSave)
 			}
 
 			continue;
+		}
+
+		if(s_ShouldRefresh)
+		{
+			if(android_getgamestate() == kAndroidGameStateMoveLoop)
+			{
+				bot();
+				s_ShouldRefresh = 0;
+			}
 		}
 
 		if(s_ReceiveCnt > 0)
