@@ -611,7 +611,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				copyNetHackData();
 
 				copyAsset("version.txt");
-
+				copyAsset("NetHack.cnf", "nethackdir/.nethackrc");
 			}
 
 			uiModeActual = optUIModeNew;
@@ -741,13 +741,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	public void copyAsset(String assetname)
 	{
-		String destname = "/data/data/com.nethackff/" + assetname;
+		copyAsset(assetname, assetname);
+	}
+	
+	public void copyAsset(String srcname, String basedestname)
+	{
+		String destname = "/data/data/com.nethackff/" + basedestname;
 		File newasset = new File(destname);
 		try
 		{
 			newasset.createNewFile();
 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(newasset));
-			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(assetname));
+			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(srcname));
 			int b;
 			while((b = in.read()) != -1)
 			{
@@ -759,7 +764,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		catch (IOException ex)
 		{
-			mainView.terminal.write("Failed to copy file '" + assetname + "'.\n");
+			mainView.terminal.write("Failed to copy file '" + srcname + "'.\n");
 		}
 	}
 
@@ -1171,7 +1176,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		
 		if(!gameInitialized)
 		{
-			mainView.terminal.write("Please wait, initializing...\n");
+//			mainView.terminal.write("Please wait, initializing...\n");
+			messageView.terminal.write("Please wait, initializing...\n");
 		}
 
 		gestureScanner = new GestureDetector(this);
