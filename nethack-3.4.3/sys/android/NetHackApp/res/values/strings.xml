@@ -6,6 +6,12 @@
 	<string name="about_title">NetHack 3.4.3</string>
 	<string name="uimodechanged_msg">The new UI mode will take effect the next time you start the application.</string>
 	<string name="uimodechanged_title">UI mode changed</string>
+	<string name="menu_exportconfig">Export Config</string>
+	<string name="menu_importconfig">Import Config</string>
+	<string name="configexport_msg">This will make a copy of your NetHack configuration file named NetHack.cnf on your SD card.</string>
+	<string name="configexport_title">Export Configuration File.</string>
+	<string name="configimport_msg">This will copy your NetHack configuration file named NetHack.cnf from your SD card.</string>
+	<string name="configimport_title">Import Configuration File.</string>
 	<string name="preferences">Preferences</string>
 	<string-array name="KeyActions">
 		<item>None</item>

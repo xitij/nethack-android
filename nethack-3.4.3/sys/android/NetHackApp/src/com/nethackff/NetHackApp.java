@@ -1207,6 +1207,29 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				startActivity(new Intent(this, NetHackPreferences.class));
 				return true;
 			}
+			case R.id.importconfig:
+			{
+				Dialog dialog = new Dialog(this);
+				dialog.setContentView(R.layout.configimport);
+				dialog.setTitle(getString(R.string.configimport_title));
+
+				dialog.show();
+
+				copyFile("/sdcard/NetHack.cnf", "/data/data/com.nethackff/nethackdir/.nethackrc"); 
+
+				return true;
+			}
+			case R.id.exportconfig:
+			{
+				Dialog dialog = new Dialog(this);
+				dialog.setContentView(R.layout.configexport);
+				dialog.setTitle(getString(R.string.configexport_title));
+				dialog.show();
+
+				copyFile("/data/data/com.nethackff/nethackdir/.nethackrc", "/sdcard/NetHack.cnf"); 
+
+				return true;
+			}
 		}
 		return false;  
 	}
