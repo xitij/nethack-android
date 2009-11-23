@@ -193,7 +193,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 //			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
 //			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
-			keyboardShown = !keyboardShown;
+			keyboardShownInConfig[screenConfig.ordinal()] = !keyboardShownInConfig[screenConfig.ordinal()]; 
 			updateLayout();
 			return true;
 		}
@@ -378,6 +378,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public void onConfigurationChanged(Configuration newConfig)
 	{
 		super.onConfigurationChanged(newConfig);
+
+		Configuration config = getResources().getConfiguration();		
+		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
+		{
+			screenConfig = ScreenConfig.Portrait;
+		}
+		else
+		{
+			screenConfig = ScreenConfig.Landscape;
+		}
 
 		screenLayout.removeAllViews();
 		
@@ -956,8 +966,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	LinearLayout screenLayout;
 
-	boolean keyboardShown = false;
+	enum ScreenConfig
+	{
+		Landscape,
+		Portrait
+	}
+	ScreenConfig screenConfig;
 	boolean menuShown = false;
+
+	boolean []keyboardShownInConfig;
 
 	void updateLayout()
 	{
@@ -998,7 +1015,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			screenLayout.addView(dbgTerminalTranscriptView);
 		}
-		if(keyboardShown)
+		if(keyboardShownInConfig[screenConfig.ordinal()])
 		{
 			screenLayout.addView(virtualKeyboard.virtualKeyboardView);
 		}
@@ -1120,14 +1137,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 //		mainView.sizePixelsY -= 120;	// TEMP
 		mainView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 
+		keyboardShownInConfig = new boolean[ScreenConfig.values().length];
+		keyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = true;
+		keyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = false;
+
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
 		{
-			keyboardShown = true;
+			screenConfig = ScreenConfig.Portrait;
 		}
 		else
 		{
-			keyboardShown = false;
+			screenConfig = ScreenConfig.Landscape;
 		}
 		
 		messageView = new NetHackTerminalView(this, messageTerminalState);
