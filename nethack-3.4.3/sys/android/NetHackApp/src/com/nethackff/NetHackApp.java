@@ -394,7 +394,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
 		int sizeY = display.getHeight();
-		
+
+		messageView.setSizeXFromPixels(sizeX);
+		messageView.setSizeY(messageRows);
+		messageView.computeSizePixels();
+		messageView.initStateFromView();
+
 		statusView.setSizeXFromPixels(sizeX);
 		statusView.setSizeY(statusRows);
 		statusView.computeSizePixels();
