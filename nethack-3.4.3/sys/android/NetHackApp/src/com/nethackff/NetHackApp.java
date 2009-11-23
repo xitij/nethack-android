@@ -519,6 +519,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 							if(currentView == menuView)
 							{
 								menuShown = true;
+								menuView.scrollTo(0, 0);
 								updateLayout();
 							}
 						}
@@ -836,8 +837,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
 	{
-		int newscrollx = mainView.getScrollX() + (int)distanceX;
-		int newscrolly = mainView.getScrollY() + (int)distanceY;
+		NetHackTerminalView scrollView = mainView;
+		if(uiModeActual != UIMode.PureTTY && menuShown)
+		{
+			scrollView = menuView;
+		}
+
+		int newscrollx = scrollView.getScrollX() + (int)distanceX;
+		int newscrolly = scrollView.getScrollY() + (int)distanceY;
 		if(newscrollx < 0)
 		{
 			newscrollx = 0;
@@ -847,11 +854,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			newscrolly = 0;
 		}
 
-		int termx = mainView.charWidth*mainView.sizeX;
-		int termy = mainView.charHeight*mainView.sizeY;
+		int termx = scrollView.charWidth*scrollView.sizeX;
+		int termy = scrollView.charHeight*scrollView.sizeY;
 
-		int maxx = termx - mainView.getWidth();
-		int maxy = termy - mainView.getHeight();
+		int maxx = termx - scrollView.getWidth();
+		int maxy = termy - scrollView.getHeight();
 		if(maxx < 0)
 		{
 			maxx = 0;
@@ -869,7 +876,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			newscrolly = maxy - 1;
 		}
 
-		mainView.scrollTo(newscrollx, newscrolly);
+		scrollView.scrollTo(newscrollx, newscrolly);
 		return true;
 	}
 
