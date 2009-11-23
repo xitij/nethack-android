@@ -375,6 +375,39 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	boolean refreshDisplay = false;
 
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+
+		screenLayout.removeAllViews();
+		
+		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+		int sizeX = display.getWidth();
+		int sizeY = display.getHeight();
+		
+		statusView.setSizeXFromPixels(sizeX);
+		statusView.setSizeY(statusRows);
+		statusView.computeSizePixels();
+		statusView.initStateFromView();
+		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
+
+		screenLayout.removeAllViews();
+		screenLayout = new LinearLayout(this);
+
+		virtualKeyboard = new NetHackKeyboard(this);
+
+		updateLayout();
+
+		screenLayout.setOrientation(LinearLayout.VERTICAL);
+		setContentView(screenLayout);
+
+		int sx = screenLayout.getMeasuredWidth();
+		int sy = screenLayout.getMeasuredHeight();
+		Log.i("NetHack", "measured " + sx + "," + sy);
+
+		NetHackRefreshDisplay();
+	}
+
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
@@ -972,7 +1005,65 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		mainView.invalidate();
 	}
+
 	
+	public void initDisplay()
+	{
+		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+		int sizeX = display.getWidth();
+		int sizeY = display.getHeight();
+
+		virtualKeyboard = new NetHackKeyboard(this);
+
+		messageView.setSizeXFromPixels(sizeX);
+		messageView.setSizeY(messageRows);
+		messageView.computeSizePixels();
+
+		menuView.setSizeX(sizeX);
+		menuView.setSizeY(24);
+		menuView.computeSizePixels();
+
+		messageView.initStateFromView();
+		menuView.initStateFromView();
+
+		statusView.setSizeXFromPixels(sizeX);
+		statusView.setSizeY(statusRows);
+		statusView.computeSizePixels();
+		statusView.initStateFromView();
+		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
+
+		// TEMP
+//		mainTerminalState.offsetY = 2;		
+
+		messageView.setDrawCursor(false);
+		statusView.setDrawCursor(false);
+
+		currentView = mainView;
+
+		//currentDbgTerminalView = messageView;
+		if(currentDbgTerminalView != null)
+		{
+			dbgTerminalTranscriptState = new NetHackTerminalState();
+			dbgTerminalTranscriptState.colorForeground = NetHackTerminalState.kColGreen;
+			dbgTerminalTranscriptView = new NetHackTerminalView(this, dbgTerminalTranscriptState);
+			dbgTerminalTranscriptView.setSizeXFromPixels(sizeX);
+			dbgTerminalTranscriptView.setSizeY(5);
+			dbgTerminalTranscriptView.initStateFromView();
+		}
+
+		screenLayout = new LinearLayout(this);
+		updateLayout();
+
+		screenLayout.setOrientation(LinearLayout.VERTICAL);
+		setContentView(screenLayout);
+//		setContentView(mainView);
+
+		refreshDisplay = true;
+	}
+	
+	int messageRows = 2;
+	int statusRows = 2;
+
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -981,17 +1072,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		ctrlKey = new ModifierKey();
 		shiftKey = new ModifierKey();
 
-		virtualKeyboard = new NetHackKeyboard(this);
-
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 //        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NO_STATUS_BAR,
 //      		WindowManager.LayoutParams.FLAG_NO_STATUS_BAR);
 
 		int width = 80;
 		int height = 24;		// 26
-
-		int messageRows = 2;
-		int statusRows = 2;
 
 		if(!terminalInitialized)
 		{
@@ -1034,10 +1120,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 //		mainView.sizePixelsY -= 120;	// TEMP
 		mainView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 
-		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-		int sizeX = display.getWidth();
-		int sizeY = display.getHeight();
-
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
 		{
@@ -1052,55 +1134,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView = new NetHackTerminalView(this, statusTerminalState);
 		menuView = new NetHackTerminalView(this, menuTerminalState); 
 
-		messageView.setSizeXFromPixels(sizeX);
-		messageView.setSizeY(messageRows);
-		messageView.computeSizePixels();
-		statusView.setSizeXFromPixels(sizeX);
-		statusView.setSizeY(statusRows);
-		statusView.computeSizePixels();
-
-		menuView.setSizeX(sizeX);
-		menuView.setSizeY(24);
-		menuView.computeSizePixels();
-
-		messageView.initStateFromView();
-		statusView.initStateFromView();
-		menuView.initStateFromView();
-
-		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
-
-		// TEMP
-//		mainTerminalState.offsetY = 2;		
-
-		messageView.setDrawCursor(false);
-		statusView.setDrawCursor(false);
-
-		currentView = mainView;
-
+		initDisplay();
+		
 		if(!gameInitialized)
 		{
 			mainView.terminal.write("Please wait, initializing...\n");
 		}
-
-		//currentDbgTerminalView = messageView;
-		if(currentDbgTerminalView != null)
-		{
-			dbgTerminalTranscriptState = new NetHackTerminalState();
-			dbgTerminalTranscriptState.colorForeground = NetHackTerminalState.kColGreen;
-			dbgTerminalTranscriptView = new NetHackTerminalView(this, dbgTerminalTranscriptState);
-			dbgTerminalTranscriptView.setSizeXFromPixels(sizeX);
-			dbgTerminalTranscriptView.setSizeY(5);
-			dbgTerminalTranscriptView.initStateFromView();
-		}
-
-		screenLayout = new LinearLayout(this);
-		updateLayout();
-
-		screenLayout.setOrientation(LinearLayout.VERTICAL);
-		setContentView(screenLayout);
-//		setContentView(mainView);
-
-		refreshDisplay = true;
 
 		gestureScanner = new GestureDetector(this);
 	}
