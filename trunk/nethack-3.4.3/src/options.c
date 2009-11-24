@@ -187,7 +187,13 @@ static struct Bool_Opt
 	{"timed_delay", (boolean *)0, FALSE, SET_IN_GAME},
 #endif
 	{"tombstone",&flags.tombstone, TRUE, SET_IN_GAME},
+/* May as well default this to TRUE on Android, as there is nowhere else
+   to display it than in a window. /FF */
+#ifdef ANDROID
+	{"toptenwin",&flags.toptenwin, TRUE, SET_IN_GAME},
+#else
 	{"toptenwin",&flags.toptenwin, FALSE, SET_IN_GAME},
+#endif
 	{"travel", &iflags.travelcmd, TRUE, SET_IN_GAME},
 #ifdef WIN32CON
 	{"use_inverse",   &iflags.wc_inverse, TRUE, SET_IN_GAME},		/*WC*/
