@@ -8,10 +8,21 @@
 	<string name="uimodechanged_title">UI mode changed</string>
 	<string name="menu_exportconfig">Export Config</string>
 	<string name="menu_importconfig">Import Config</string>
-	<string name="configexport_msg">This will make a copy of your NetHack configuration file named NetHack.cnf on your SD card.</string>
+	<string name="configexport_msg">This will make a copy of your NetHack configuration file, on your SD card or elsewhere, so you can edit and re-import.</string>
 	<string name="configexport_title">Export Configuration File.</string>
-	<string name="configimport_msg">This will copy your NetHack configuration file named NetHack.cnf from your SD card.</string>
+	<string name="configexport_failed">Failed to copy to</string>
+	<string name="configexport_success">Configuration exported to</string>
+	<string name="configimport_msg">This will copy a NetHack configuration file from your SD card or elsewhere, to where the game can read it.</string>
 	<string name="configimport_title">Import Configuration File.</string>
+	<string name="configimport_failed">Failed to copy from</string>
+	<string name="configimport_failed2">If copying from SD card, make sure it's not mounted on your PC.</string>
+	<string name="configimport_success">Configuration imported from</string>
+	<string name="configimport_success2">These settings will take effect the next time the application starts.</string>
+	<string name="config_defaultfile">/sdcard/NetHack.cnf</string>
+	<string name="dialog_OK">OK</string>
+	<string name="dialog_Cancel">Cancel</string>
+	<string name="dialog_Success">Success</string>
+	<string name="dialog_Error">Error</string>
 	<string name="preferences">Preferences</string>
 	<string-array name="KeyActions">
 		<item>None</item>
