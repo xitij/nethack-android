@@ -2628,6 +2628,28 @@ copy_of(s)
     return strcpy((char *) alloc((unsigned) (strlen(s) + 1)), s);
 }
 
+/* This section was added only so that the "Android TTY" code could
+   call some functions which were declared static here. A bit of a
+   hack, really. /FF */
+#ifdef ANDROID
+
+void android_free_window_info(struct WinDesc *wd, BOOLEAN_P b)
+{
+	free_window_info(wd, b);
+}
+
+void android_process_menu_window(winid wid, struct WinDesc *wd)
+{
+	process_menu_window(wid, wd);
+}
+
+void android_process_text_window(winid wid, struct WinDesc *wd)
+{
+	process_text_window(wid, wd);
+}
+
+#endif /* ANDROID */
+
 #endif /* TTY_GRAPHICS */
 
 /*wintty.c*/

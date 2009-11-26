@@ -22,6 +22,14 @@ char android_yn_function(const char *query, const char *resp, CHAR_P def);
 /*E char FDECL(android_yn_function, (const char *, const char *, CHAR_P));*/
 int android_get_ext_cmd();
 
+/* These are defined in 'wintty.c', wrappers to sneakily access static
+	functions in that file. Long term, it would probably be best to
+	make the Android TTY code independent of the regular TTY graphics
+	code, if it can be done without too much code duplication. */
+void android_free_window_info(struct WinDesc *wd, BOOLEAN_P b);
+void android_process_menu_window(winid wid, struct WinDesc *wd);
+void android_process_text_window(winid wid, struct WinDesc *wd);
+
 
 /* Interface definition, for windows.c */
 struct window_procs android_procs = {
@@ -230,9 +238,9 @@ if(s_PreMenuGameState == kAndroidGameStateInvalid)
 		clear_screen();
 
 		if (cw->data || !cw->maxrow)
-			process_text_window(window, cw);
+			android_process_text_window(window, cw);
 		else
-			process_menu_window(window, cw);
+			android_process_menu_window(window, cw);
 		return;
 	}
 
@@ -322,9 +330,9 @@ void android_destroy_nhwindow(winid window)
 			clear_screen();
 	}
 
-    free_window_info(cw, TRUE);
-    free((genericptr_t)cw);
-    wins[window] = 0;
+	android_free_window_info(cw, TRUE);
+	free((genericptr_t)cw);
+	wins[window] = 0;
 }
 
 
