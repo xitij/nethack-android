@@ -20,6 +20,7 @@ void android_putstr(winid window, int attr, const char *str);
 int android_select_menu(winid window, int how, menu_item **menu_list);
 char android_yn_function(const char *query, const char *resp, CHAR_P def);
 /*E char FDECL(android_yn_function, (const char *, const char *, CHAR_P));*/
+void android_getlin(const char *query, char *bufp);
 int android_get_ext_cmd();
 
 /* These are defined in 'wintty.c', wrappers to sneakily access static
@@ -79,7 +80,7 @@ struct window_procs android_procs = {
     tty_nhbell,
     tty_doprev_message,
     android_yn_function,
-    tty_getlin,
+    android_getlin,
     android_get_ext_cmd,
     tty_number_pad,
     tty_delay_output,
@@ -1047,6 +1048,27 @@ char android_yn_function(const char *query, const char *resp, CHAR_P def)
 
 	return ret;
 }
+
+
+
+void android_getlin(const char *query, char *bufp)
+{
+	android_pushgamestate(kAndroidGameStateWaitingForResponse);
+
+	android_puts("\033A1");
+	android_puts("\033AC");		/* Toggle cursor on. */
+/*
+	android_puts("\033A0");
+*/
+	android_hooked_tty_getlin(query, bufp, (getlin_hook_proc)0);
+
+	android_puts("\033A1");
+	android_puts("\033AC");		/* Toggle cursor off. */
+	android_puts("\033A0");
+
+	android_popgamestate();
+}
+
 
 
 /*
