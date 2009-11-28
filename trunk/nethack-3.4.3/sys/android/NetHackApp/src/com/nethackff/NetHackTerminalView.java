@@ -21,7 +21,21 @@ public class NetHackTerminalView extends View
 
 	Paint textPaint;
 
-	int textSize = 10;
+	private int textSize = 10;
+
+	public void setTextSize(int sz)
+	{
+		textSize = sz;
+		updateTextSize();
+	}
+
+	public void updateTextSize()
+	{
+		textPaint.setTextSize(textSize);
+		charHeight = (int)Math.ceil(textPaint.getFontSpacing());
+		charWidth = (int)textPaint.measureText("X", 0, 1);
+		computeSizePixels();
+	}
 
 	public void setDrawCursor(boolean b)
 	{
@@ -147,18 +161,14 @@ public class NetHackTerminalView extends View
 		// Paint paint = createPaint();
 		textPaint = new Paint();
 		textPaint.setTypeface(Typeface.MONOSPACE);
-		textPaint.setTextSize(textSize);
 		textPaint.setAntiAlias(true);
-
-		charHeight = (int)Math.ceil(textPaint.getFontSpacing());
-		charWidth = (int)textPaint.measureText("X", 0, 1);
 
 		offsetX = 0;
 		offsetY = 0;
 		sizeX = term.numColumns;
 		sizeY = term.numRows;
 
-		computeSizePixels();
+		updateTextSize();
 
 		updateBackground();
 	}

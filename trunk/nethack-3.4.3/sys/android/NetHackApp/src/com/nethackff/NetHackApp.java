@@ -141,9 +141,19 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		AndroidTTY
 	}
 
+	enum FontSize
+	{
+		FontSize10,
+		FontSize11,
+		FontSize12,
+		FontSize13,
+		FontSize14,
+		FontSize15
+	}
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
 	UIMode optUIModeNew = UIMode.Invalid;
+	FontSize optFontSize = FontSize.FontSize10;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
@@ -994,6 +1004,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		menuView.setWhiteBackgroundMode(blackonwhite);
 		messageView.setWhiteBackgroundMode(blackonwhite);
 		statusView.setWhiteBackgroundMode(blackonwhite);
+
+		int textsize = getOptFontSize();
+		mainView.setTextSize(textsize);
+		messageView.setTextSize(textsize);
+		statusView.setTextSize(textsize);
+		menuView.setTextSize(textsize);
 	}	
 
 	LinearLayout screenLayout;
@@ -1113,6 +1129,35 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	int messageRows = 2;
 	int statusRows = 2;
 
+	public int getOptFontSize()
+	{
+		int sz = 10;
+		switch(optFontSize)
+		{
+			case FontSize10:
+				sz = 10;
+				break;
+			case FontSize11:
+				sz = 11;
+				break;
+			case FontSize12:
+				sz = 12;
+				break;
+			case FontSize13:
+				sz = 13;
+				break;
+			case FontSize14:
+				sz = 14;
+				break;
+			case FontSize15:
+				sz = 15;
+				break;
+			default:
+				break;
+		}
+		return sz;
+	}
+	
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -1153,8 +1198,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		pureTTY = (uiModeActual == UIMode.PureTTY);
 
+		int textsize = getOptFontSize();
 		mainView = new NetHackTerminalView(this, mainTerminalState);
-//		mainView.offsetY = messageRows;
+		mainView.setTextSize(textsize);
+		//		mainView.offsetY = messageRows;
 		if(!pureTTY)
 		{
 			mainView.sizeY -= messageRows + statusRows;
@@ -1186,6 +1233,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView = new NetHackTerminalView(this, messageTerminalState);
 		statusView = new NetHackTerminalView(this, statusTerminalState);
 		menuView = new NetHackTerminalView(this, menuTerminalState); 
+		messageView.setTextSize(textsize);
+		statusView.setTextSize(textsize);
+		menuView.setTextSize(textsize);
 
 		initDisplay();
 		
@@ -1354,6 +1404,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
+		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 	}
 
 	public static boolean terminalInitialized = false;
@@ -1362,7 +1413,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public /*static*/ NetHackTerminalState messageTerminalState;
 	public /*static*/ NetHackTerminalState statusTerminalState;
 	public NetHackTerminalState menuTerminalState;
-	
+
 	public native int NetHackInit(int puretty);
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
@@ -1371,7 +1422,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native int NetHackSave();
 	public native void NetHackSetScreenDim(int width, int nummsglines);
 	public native void NetHackRefreshDisplay();
-	
+
 	static
 	{
 		System.loadLibrary("nethack");

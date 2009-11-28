@@ -21,6 +21,13 @@
 			android:entries="@array/UIModeEntries"
 			android:entryValues="@array/UIModeValues"/>
 
+		<ListPreference
+			android:title="Font Size"
+			android:key="FontSize"
+			android:defaultValue="FontSize10"
+			android:entries="@array/FontSizeEntries"
+			android:entryValues="@array/FontSizeValues"/>
+
 	</PreferenceCategory>
 	<PreferenceCategory android:title="Input">
 		<CheckBoxPreference android:key="MoveWithTrackball"
