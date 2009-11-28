@@ -56,5 +56,20 @@
 		<item>WhiteOnBlack</item>
 		<item>BlackOnWhite</item>
 	</string-array>
-
+	<string-array name="FontSizeEntries">
+		<item>10 pt</item>
+		<item>11 pt</item>
+		<item>12 pt</item>
+		<item>13 pt</item>
+		<item>14 pt</item>
+		<item>15 pt</item>
+	</string-array>
+	<string-array name="FontSizeValues">
+		<item>FontSize10</item>
+		<item>FontSize11</item>
+		<item>FontSize12</item>
+		<item>FontSize13</item>
+		<item>FontSize14</item>
+		<item>FontSize15</item>
+	</string-array>
 </resources>
