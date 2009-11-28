@@ -45,7 +45,8 @@ struct window_procs android_procs = {
     WC_COLOR|WC_HILITE_PET|WC_INVERSE|WC_EIGHT_BIT_IN,
     0L,
     tty_init_nhwindows,
-	android_player_selection,
+/*	android_player_selection,*/
+	tty_player_selection,
     tty_askname,
     tty_get_nh_event,
     tty_exit_nhwindows,
@@ -143,6 +144,94 @@ void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
 static int s_MsgCol = 0;
 static int s_MsgRow = 0;
 
+#if 0
+
+/* HACK */
+void tty_putsym(winid window, int x, int y, char ch);
+
+static int s_TextCol = 0;
+
+static void android_text_print_word(const char *wordstart, const char *wordend)
+{
+	char buff[256];
+
+	const int wordlen = wordend - wordstart;
+	if(s_TextCol > 0)
+	{
+		int maxcol = s_ScreenNumColumns;
+
+		if(s_TextCol + wordlen + 1 > maxcol)
+		{
+			/* The word doesn't fit, advance to the next line, unless
+			   we just wrapped around anyway. */
+			if(s_TextCol != s_ScreenNumColumns)
+			{
+				android_puts("\n");
+			}
+			s_TextCol = 0;
+		}
+		else
+		{
+			android_puts(" ");
+			s_TextCol++;
+		}
+	}
+
+	strncpy(buff, wordstart, sizeof(buff) - 1);
+	if(wordlen < sizeof(buff))
+	{
+		buff[wordlen] = '\0';
+	}
+	else
+	{
+		buff[sizeof(buff) - 1] = '\0';
+	}
+	android_puts(buff);
+	s_TextCol += strlen(buff);
+	while(s_TextCol >= s_ScreenNumColumns)
+	{
+		s_TextCol -= s_ScreenNumColumns;
+	}
+}
+
+
+void android_output_text_wrapped(winid win, const char *str)
+{
+	const char *ptr;
+	int i;
+	const char *wordstart = NULL;
+	int foundend = 0;
+	int continued = 0;
+
+	while(!foundend)
+	{
+		ptr = str;
+		wordstart = NULL;
+		while(1)
+		{
+			char c = *ptr++;
+			if(c == ' ' || !c)
+			{
+				if(wordstart)
+				{
+					android_text_print_word(wordstart, ptr - 1);
+				}
+				wordstart = NULL;
+
+				if(!c)
+				{
+					foundend = 1;
+					break;
+				}
+			}
+			else if(!wordstart)
+			{
+				wordstart = ptr - 1;
+			}
+		}
+	}
+}
+
 
 /* Adapted from tty_player_selection() - seems like a sad amount of code
    to duplicate, but appears to have been done for other ports (Amiga,
@@ -170,7 +259,12 @@ void android_player_selection()
 
 		tty_putstr(BASE_WINDOW, 0, "");
 		echoline = wins[BASE_WINDOW]->cury;
+/*
 		tty_putstr(BASE_WINDOW, 0, prompt);
+*/
+
+		android_output_text_wrapped(BASE_WINDOW, prompt);
+
 		do {
 		pick4u = lowc(readchar());
 		if (index(quitchars, pick4u)) pick4u = 'y';
@@ -190,7 +284,10 @@ void android_player_selection()
 		if (pick4u != 'y' && pick4u != 'n') {
 give_up:	/* Quit */
 		if (selected) free((genericptr_t) selected);
+/* TEMP */
+#if 0
 		bail((char *)0);
+#endif
 		/*NOTREACHED*/
 		return;
 		}
@@ -486,7 +583,7 @@ give_up:	/* Quit */
 	tty_display_nhwindow(BASE_WINDOW, FALSE);
 }
 
-
+#endif
 
 /*
 extern struct WinDesc *wins[MAXWIN];
@@ -818,22 +915,9 @@ static void android_update_topl_word(const char *wordstart,
 	if(s_MsgCol > 0)
 	{
 		int maxcol = s_ScreenNumColumns;
-#if 0
-		if(s_MsgRow == s_NumMsgLines - 1)
-		{
-			maxcol -= 8;	/* Room for --More-- */
-		}
-#endif
 
 		if(s_MsgCol + wordlen + 1 > maxcol)
 		{
-#if 0
-			if(s_MsgRow == s_NumMsgLines - 1)
-			{
-				android_puts("--More--");
-				s_MsgCol += 8;
-			}
-#endif
 			/* The word doesn't fit, advance to the next line, unless
 			   we just wrapped around anyway. */
 			if(s_MsgCol != s_ScreenNumColumns)
