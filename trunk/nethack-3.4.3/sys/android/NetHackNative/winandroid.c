@@ -967,6 +967,7 @@ static void android_update_topl(struct WinDesc *cw, const char *str)
 	const char *wordstart = NULL;
 	int foundend = 0;
 	int continued = 0;
+	int numspacesskipped = 0;
 
 while(!foundend)
 {
@@ -974,6 +975,7 @@ while(!foundend)
 	if(s_MsgRow < s_NumMsgLines - 1 || continued)
 	{
 		wordstart = NULL;
+		numspacesskipped = 0;
 		while(1)
 		{
 			char c = *ptr++;
@@ -1004,8 +1006,27 @@ continued = 1;
 
 				if(!c)
 				{
+					/* Make sure to output a space at the end, if we found any
+					   after the last word. This is needed to make the cursor
+					   appear like it does in the pure TTY version, after a
+					   question of some sort.
+					   Note: not sure if it would ever be appropriate to output
+					   more than one space here - for now, we only do one, as
+					   perhaps there is a greater risk of something going wrong
+					   otherwise. */
+					if(numspacesskipped && s_MsgCol < s_ScreenNumColumns - 1)
+					{
+						android_puts(" ");
+						s_MsgCol++;
+						numspacesskipped = 0;
+					}
+
 					foundend = 1;
 					break;
+				}
+				else
+				{
+					numspacesskipped++;
 				}
 			}
 			else if(!wordstart)
