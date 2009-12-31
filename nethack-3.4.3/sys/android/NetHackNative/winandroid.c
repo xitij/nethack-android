@@ -1455,6 +1455,12 @@ getlin_hook_proc hook;
 }
 
 
+static void sToggleCursor(void)
+{
+	android_puts("\033AC");
+}
+
+
 char android_yn_function(const char *query, const char *resp, CHAR_P def)
 {
 	char ret;
@@ -1462,13 +1468,13 @@ char android_yn_function(const char *query, const char *resp, CHAR_P def)
 	android_pushgamestate(kAndroidGameStateWaitingForResponse);
 
 	android_puts("\033A1");
-	android_puts("\033AC");		/* Toggle cursor on. */
+	sToggleCursor();		/* Toggle cursor on. */
 	android_puts("\033A0");
 
 	ret = tty_yn_function(query, resp, def);
 
 	android_puts("\033A1");
-	android_puts("\033AC");		/* Toggle cursor off again. */
+	sToggleCursor();		/* Toggle cursor off again. */
 	android_puts("\033A0");
 
 	android_popgamestate();
@@ -1483,14 +1489,14 @@ void android_getlin(const char *query, char *bufp)
 	android_pushgamestate(kAndroidGameStateWaitingForResponse);
 
 	android_puts("\033A1");
-	android_puts("\033AC");		/* Toggle cursor on. */
+	sToggleCursor();		/* Toggle cursor on. */
 /*
 	android_puts("\033A0");
 */
 	android_hooked_tty_getlin(query, bufp, (getlin_hook_proc)0);
 
 	android_puts("\033A1");
-	android_puts("\033AC");		/* Toggle cursor off. */
+	sToggleCursor();		/* Toggle cursor off again. */
 	android_puts("\033A0");
 
 	android_popgamestate();
@@ -1518,12 +1524,17 @@ int android_get_ext_cmd()
 
 	android_pushgamestate(kAndroidGameStateExtCmd);
 
+	sToggleCursor();		/* Toggle cursor on. */
+
 #ifdef REDO
 	android_hooked_tty_getlin("#", buf, in_doagain ? (getlin_hook_proc)0
 		: ext_cmd_getlin_hook);
 #else
 	android_hooked_tty_getlin("#", buf, ext_cmd_getlin_hook);
 #endif
+
+	android_puts("\033A1");
+	sToggleCursor();		/* Toggle cursor off again. */
 
 	android_popgamestate();
 
