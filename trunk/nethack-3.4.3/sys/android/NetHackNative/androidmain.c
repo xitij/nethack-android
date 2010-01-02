@@ -30,6 +30,11 @@ static int s_ReceiveWaitingForData;
 static int s_ReceiveWaitingForConsumption;
 static int s_WaitingForCommandPerformed;
 
+static int s_PlayerPosShouldRecenter = 0;	/* Protected by s_ReceiveMutex */
+static int s_PlayerPosX = 0;				/* Protected by s_ReceiveMutex */
+static int s_PlayerPosY = 0;				/* Protected by s_ReceiveMutex */
+static d_level s_PrevDungeonLevel;
+
 static AndroidGameState s_GameState = kAndroidGameStateInvalid;
 
 enum
@@ -353,6 +358,17 @@ int android_getch(void)
 	{
 		pthread_mutex_lock(&s_ReceiveMutex);
 
+		/* Request recentering on the player if the dungeon level changed. */
+		if(s_PrevDungeonLevel.dnum != u.uz.dnum || s_PrevDungeonLevel.dlevel != u.uz.dlevel)
+		{
+			s_PrevDungeonLevel.dnum = u.uz.dnum;
+			s_PrevDungeonLevel.dlevel = u.uz.dlevel;
+			s_PlayerPosShouldRecenter = 1;
+		}
+
+		s_PlayerPosX = u.ux;
+		s_PlayerPosY = u.uy;
+
 		/* Not sure */
 		if(s_Command != kCmdNone)	/* && !g_android_prevent_output)*/
 		{
@@ -611,6 +627,12 @@ not_recovered:
 	s_ReadyForSave = 1;
 	android_switchgamestate(kAndroidGameStateMoveLoop);
 
+	pthread_mutex_lock(&s_ReceiveMutex);
+	s_PlayerPosShouldRecenter = 1;
+	s_PrevDungeonLevel.dnum = u.uz.dnum;
+	s_PrevDungeonLevel.dlevel = u.uz.dlevel;
+	pthread_mutex_unlock(&s_ReceiveMutex);
+
 	moveloop();
 
 	nethack_exit(EXIT_SUCCESS);
@@ -756,6 +778,53 @@ void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
 }
 
 
+
+int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
+		jobject thiz)
+{
+	int ret;
+
+	pthread_mutex_lock(&s_ReceiveMutex);
+
+	ret = s_PlayerPosX;
+
+	pthread_mutex_unlock(&s_ReceiveMutex);
+
+	return ret;
+}
+
+
+int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
+		jobject thiz)
+{
+	int ret;
+
+	pthread_mutex_lock(&s_ReceiveMutex);
+
+	ret = s_PlayerPosY;
+
+	pthread_mutex_unlock(&s_ReceiveMutex);
+
+	return ret;
+}
+
+
+int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
+		jobject thiz)
+{
+	int ret;
+
+	pthread_mutex_lock(&s_ReceiveMutex);
+
+	ret = s_PlayerPosShouldRecenter;
+
+	/* Not sure: */
+	s_PlayerPosShouldRecenter = 0;
+
+	pthread_mutex_unlock(&s_ReceiveMutex);
+
+	return ret;
+}
 
 
 void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
