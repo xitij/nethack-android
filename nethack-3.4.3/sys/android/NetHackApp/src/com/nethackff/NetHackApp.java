@@ -447,7 +447,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				terminalInitialized = false;
 
 				quit();
-				return;	
+				return;
 			}
 			if(clearScreen)
 			{
@@ -455,6 +455,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				mainView.terminal.clearScreen();
 				mainView.invalidate();
 				return;
+			}
+
+			if(NetHackGetPlayerPosShouldRecenter() != 0)
+			{
+				centerOnPlayer();
 			}
 
 			String s = NetHackTerminalReceive();
@@ -920,9 +925,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 	public void onLongPress(MotionEvent e)
 	{
-		// TEMP
-		mainView.scrollToCursor();
-		Log.i("NetHack", "onLongPress");
+		centerOnPlayer();
 	}
 	public void onShowPress(MotionEvent e)
 	{
@@ -932,6 +935,27 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
+	public void centerOnPlayer()
+	{
+		// Probably would be better to get these two with one function call, but
+		// seems a bit messy to return two values at once through JNI.
+		int posx = NetHackGetPlayerPosX();
+		int posy = NetHackGetPlayerPosY();
+
+		// This is a bit funky. I think the difference of two between posx and posy
+		// comes from two different things:
+		// - NetHack subtracts one from the column as stored in u.ux, but not from the row? 
+		//   (see wintty.c:    cw->curx = --x;	/* column 0 is never used */
+ 		// - Y offset of 1 in tty_create_nhwindow():
+		//	 (see wintty.c:    newwin->offy = 1;
+		posx--;
+		posy++;
+		posx -= mainView.offsetX;
+		posy -= mainView.offsetY;
+
+		mainView.scrollToCenterAtPos(posx, posy);
+	}
+	
 	public synchronized void startCommThread()
 	{
 		if(!commThreadRunning)
@@ -1096,9 +1120,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.computeSizePixels();
 		statusView.initStateFromView();
 		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
-
-		// TEMP
-//		mainTerminalState.offsetY = 2;		
 
 		messageView.setDrawCursor(false);
 		statusView.setDrawCursor(false);
@@ -1423,6 +1444,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackSetScreenDim(int width, int nummsglines);
 	public native void NetHackRefreshDisplay();
 
+	public native int NetHackGetPlayerPosX();
+	public native int NetHackGetPlayerPosY();
+	public native int NetHackGetPlayerPosShouldRecenter();
+	
 	static
 	{
 		System.loadLibrary("nethack");

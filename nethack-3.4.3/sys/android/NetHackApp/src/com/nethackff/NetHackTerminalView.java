@@ -50,11 +50,11 @@ public class NetHackTerminalView extends View
 	{
 		return drawCursor;
 	}
-	
-	public void scrollToCursor()
+
+	public void scrollToCenterAtPos(int centercolumn, int centerrow)
 	{
-		int cursorcenterx = terminal.currentColumn*charWidth + charWidth/2;
-		int cursorcentery = terminal.currentRow*charHeight + charHeight/2;
+		int cursorcenterx = centercolumn*charWidth + charWidth/2;
+		int cursorcentery = centerrow*charHeight + charHeight/2;
 		int newscrollx = cursorcenterx - getWidth()/2;
 		int newscrolly = cursorcentery - getHeight()/2;
 
@@ -81,6 +81,10 @@ public class NetHackTerminalView extends View
 		}
 
 		scrollTo(newscrollx, newscrolly);
+	}
+	public void scrollToCursor()
+	{
+		scrollToCenterAtPos(terminal.currentColumn, terminal.currentRow);
 	}
 	
 	public void computeSizePixels()
