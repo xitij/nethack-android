@@ -338,7 +338,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			// This could supposedly be used to kill ourselves - but, I only
 			// got some sort of exception from it.
 			//	ActivityManager am = (ActivityManager)getSystemService(ACTIVITY_SERVICE); 
-			//	am.restartPackage("com.nethackff11");
+			//	am.restartPackage("com.nethackff");
 
 			// This seems to work. For sure, this is not encouraged for Android
 			// applications, but the only alternative I could find would be to dig
@@ -403,6 +403,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			screenConfig = ScreenConfig.Landscape;
 		}
 
+		rebuildViews();
+	}
+	
+	public void rebuildViews()
+	{
 		screenLayout.removeAllViews();
 		
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -996,7 +1001,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		super.onStart();
 
 		UIMode uiModeBefore = optUIModeNew;
-		
+
+		int textsizebefore = getOptFontSize();
+
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -1034,6 +1041,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setTextSize(textsize);
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
+
+		if(textsizebefore != textsize)
+		{
+			rebuildViews();
+		}
 	}	
 
 	LinearLayout screenLayout;
