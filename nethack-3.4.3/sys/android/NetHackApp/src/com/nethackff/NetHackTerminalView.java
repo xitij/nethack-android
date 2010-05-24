@@ -37,6 +37,7 @@ public class NetHackTerminalView extends View
 		textPaint.setTextSize(textSize);
 		charHeight = (int)Math.ceil(textPaint.getFontSpacing());
 		charWidth = (int)textPaint.measureText("X", 0, 1);
+
 		computeSizePixels();
 	}
 
@@ -473,6 +474,30 @@ Log.i("NetHack", "sizeX = " + sizeX);
 		canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
 	}	
 
+	protected void drawText(Canvas canvas, String currentstr, float currentx1, float y, Paint textPaint)
+	{
+		// For some reason, despite using a fixed width font, while the value of a call to measureText()
+		// on the string gives the expected result, I was seeing some misalignment of the characters
+		// for example when using a 15pt font on Nexus, as if some extra horizontal spacing was sneaking
+		// in, when using this simple call:
+		//		canvas.drawText(currentstr, 0, currentstr.length(),
+		//				(float)currentx1, (float)y, textPaint);
+		// To avoid the possibility of this, using drawPosText() instead of drawText() seems to work
+		// better (though it might add some overhead for building the array).
+		
+		int len = currentstr.length();
+		float positions[] = new float[len*2];
+
+		int k = 0;
+		for(int i = 0; i < len; i++)
+		{
+			positions[k++] = currentx1;
+			positions[k++] = y;
+			currentx1 += charWidth;
+		}
+		canvas.drawPosText(currentstr, positions, textPaint);
+	}
+	
 	protected void drawRowForeground(Canvas canvas,
 			int x, final int y,
 			final char []txtBuffer, final char []fmtBuffer,
@@ -521,15 +546,14 @@ Log.i("NetHack", "sizeX = " + sizeX);
 			if(currentx1 >= 0)
 			{
 				setPaintColorForeground(textPaint, currentcolor);
-				canvas.drawText(currentstr, 0, currentstr.length(),
-						(float)currentx1, (float)y, textPaint);
+				drawText(canvas, currentstr, (float)currentx1, (float)y, textPaint);
 			}
 			currentx1 = x;
 			currentcolor = color;
 			currentstr = "" + c;
 		}
 		setPaintColorForeground(textPaint, currentcolor);
-		canvas.drawText(currentstr, 0, currentstr.length(),
+		drawText(canvas, currentstr,
 				(float)currentx1, (float)y, textPaint);
 	}
 
@@ -732,7 +756,6 @@ Log.i("NetHack", "'" + s + "' " + col0 + "c = '" + c + "'");
 				{
 					col++;
 				}
-Log.i("NetHack", "col = " + col);
 				viewY += charHeight;
 			}
 			if(last)
@@ -747,6 +770,22 @@ Log.i("NetHack", "col = " + col);
 			}
 		}
 	}
+
+	// This can be enabled to test some text alignment stuff:
+	/*
+	String s = "123456789012345678901234567890123456789012345678901234567890";
+	drawRowForeground(canvas, 0, charHeight, s.toCharArray(), terminal.fmtBuffer, 0, 60, -1);
+	for(int x = 0; x < sizePixelsX; x += charWidth)
+	{
+		for(int y = 0; y < sizePixelsY; y += charHeight)
+		{
+			canvas.drawPoint(x - 0, y, textPaint); 
+			canvas.drawPoint(x - 1, y, textPaint); 
+			canvas.drawPoint(x - 0, y - 1, textPaint); 
+			canvas.drawPoint(x - 1, y - 1, textPaint); 
+		}
+	}
+	*/
 	}
 
 
