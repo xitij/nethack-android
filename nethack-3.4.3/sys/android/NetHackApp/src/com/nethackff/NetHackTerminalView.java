@@ -5,15 +5,12 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.util.Log;
 import android.view.View;
 
 public class NetHackTerminalView extends View
 {
 	private boolean drawCursor = true;
 	private boolean whiteBackgroundMode = false;
-
-	public boolean reformatText = false;	
 
 	public int offsetX = 0;
 	public int offsetY = 0;
@@ -63,12 +60,6 @@ public class NetHackTerminalView extends View
 
 		int termx = charWidth*sizeX;
 		int termy = charHeight*sizeY;
-
-// TEMP
-if(reformatText)
-{
-	termy = termy > 1000 ? termy : 1000;	
-}
 
 		int maxx = termx - getWidth();
 		int maxy = termy - getHeight();
@@ -133,12 +124,6 @@ if(reformatText)
 		width = sizePixelsX;
 		height = sizePixelsY;
 
-// TEMP
-if(reformatText)
-{
-	height = height > 1000 ? height : 1000;	
-}
-		
 		if (width < minwidth)
 		{
 			width = minwidth;
@@ -416,343 +401,7 @@ if(reformatText)
 
 	protected void onDraw(Canvas canvas)
 	{
-		if(reformatText)
-		{
-			// TEMP - should probably check how much is used:
-			int numColsNeeded = 80;
-/* TEMP */
-Log.i("NetHack", "sizeX = " + sizeX);
-			if(sizeX < numColsNeeded)
-			{
-				onDrawReformat(canvas);
-				return;
-			}
-		}
-		onDrawFixed(canvas);	
-	}
-	
-	
-	protected void drawRowBackground(Canvas canvas,
-			int x, final int y, final char []fmtBuffer,
-			final int buffOffs, final int numChars, final int cursorIndex)
-	{
-		int currentx1 = -1;
-		int currentcolor = -1;
-
-		for(int index = 0; index < numChars; x += charWidth, index++)
-		{
-			char fmt;
-			int buffIndex = buffOffs + index;
-			if(buffIndex >= 0 && buffIndex < fmtBuffer.length)
-			{
-				fmt = fmtBuffer[buffIndex];
-			}
-			else
-			{
-				fmt = 0;	// Not sure!				
-			}
-			int color = terminal.decodeFormatBackground(fmt);
-
-			if(cursorIndex == index && drawCursor)
-			{
-				color = 7 - color;
-			}
-			if(color == currentcolor)
-			{
-				continue;
-			}
-			if(currentx1 >= 0)
-			{
-				setPaintColorBackground(textPaint, currentcolor);
-				canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
-			}
-			currentx1 = x;
-			currentcolor = color;
-		}
-		setPaintColorBackground(textPaint, currentcolor);
-		canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
-	}	
-
-	protected void drawRowForeground(Canvas canvas,
-			int x, final int y,
-			final char []txtBuffer, final char []fmtBuffer,
-			final int buffOffs, final int numChars, final int cursorIndex)
-	{
-		int currentx1 = -1;
-		int currentcolor = -1;
-		String currentstr = "";
-		for(int index = 0; index < numChars; x += charWidth, index++)
-		{
-			char c;
-			char fmt;
-			int buffIndex = buffOffs + index;
-			if(buffIndex >= 0 && buffIndex < fmtBuffer.length)
-			{
-				fmt = fmtBuffer[buffIndex];
-				c = txtBuffer[buffIndex];
-			}
-			else
-			{
-				fmt = 0;	// Not sure!				
-				c = ' ';
-			}
-			int color = terminal.decodeFormatForeground(fmt);
-
-			if(cursorIndex == index && drawCursor)
-			{
-				boolean bold = false;
-				if(color >= 8)
-				{
-					color -= 8;
-					bold = true;
-				}
-				color = 7 - color;
-				if(bold)
-				{
-					color += 8;
-				}
-			}
-
-			if(color == currentcolor)
-			{
-				currentstr += c;
-				continue;
-			}
-			if(currentx1 >= 0)
-			{
-				setPaintColorForeground(textPaint, currentcolor);
-				canvas.drawText(currentstr, 0, currentstr.length(),
-						(float)currentx1, (float)y, textPaint);
-			}
-			currentx1 = x;
-			currentcolor = color;
-			currentstr = "" + c;
-		}
-		setPaintColorForeground(textPaint, currentcolor);
-		canvas.drawText(currentstr, 0, currentstr.length(),
-				(float)currentx1, (float)y, textPaint);
-	}
-
-
-	protected int FindLastNonEmptyPosOnLine(int termYNoOffs, int viewCols)
-	{
-		int rowTerm = termYNoOffs + offsetY;
-
-		if(rowTerm >= 0 && rowTerm < terminal.numRows)
-		{
-			char c;//, fmt;
-			for(int i = terminal.numColumns - 1; i >= 0; i--)
-			{
-				//fmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + i];
-				c = terminal.textBuffer[rowTerm*terminal.numColumns + i];
-				if(c != ' ')
-				{
-					return i;
-				}
-			}
-		}
-		return -1;
-	}
-	
-	protected void onDrawReformat(Canvas canvas)
-	{
-		int viewCols = sizeX;
-
-		char []rowTxt = new char[viewCols];
-		char []rowFmt = new char[viewCols];
-
-for(int pass = 0; pass < 2; pass++)
-{
-		for(int i = 0; i < viewCols; i++)
-		{
-			rowTxt[i] = ' ';
-			rowFmt[i] = 0;
-		}
-
-		int viewX = 0, viewY = 0;
-
-		final boolean stripspaces = false;
-
-//		final int strlen = str.length();
-//		int currentwordstart = -1;
-//		String currentword = "";
-//		String currentline = "";
-		int col = 0;
-		int termXNoOffs = 0, termYNoOffs = 0;
-//		for(int pos = 0; pos < strlen; pos++)
-// TEMP
-		int lastnonemptyposonline = FindLastNonEmptyPosOnLine(termYNoOffs, viewCols);
-		char lastchar = 0;
-		boolean foundNonspaceOnLine = false;
-
-		int linebreakcnt = 0;
-		while(true)
-		{
-			char fmt;
-			char c;
-			boolean last = false;
-			boolean linebreak = false;
-			boolean addchar = false;
-			boolean breaklast = true;
-			if(linebreakcnt == 0)
-			{
-				addchar = true;
-
-				int colTerm = termXNoOffs + offsetX;
-				int rowTerm = termYNoOffs + offsetY;
-//Log.i("NetHack", colTerm + ", " + rowTerm);
-				if(rowTerm >= terminal.numRows)
-				{
-					last = true;
-				}
-				if(colTerm >= 0 && colTerm < terminal.numColumns
-						&& rowTerm >= 0 && rowTerm < terminal.numRows)
-				{
-					fmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + colTerm];
-					c = terminal.textBuffer[rowTerm*terminal.numColumns + colTerm];
-				}
-				else
-				{
-					fmt = 0;	// Not sure!
-					c = ' ';
-				}
-				if(c != ' ')
-				{
-					foundNonspaceOnLine = true;
-				}
-				termXNoOffs++;
-				boolean pastlast = termXNoOffs + offsetX > lastnonemptyposonline + 1;
-				if(termXNoOffs + offsetX >= terminal.numColumns || pastlast)
-				{
-					termXNoOffs = 0;
-					termYNoOffs++;
-					lastnonemptyposonline = FindLastNonEmptyPosOnLine(termYNoOffs, viewCols);
-					if(stripspaces)
-					{
-						if(!foundNonspaceOnLine)
-						{
-							linebreak = true;
-							linebreakcnt = 1;
-						}
-					}
-					else if(pastlast)
-					{
-						addchar = false;
-						breaklast = false;
-						linebreak = true;
-						linebreakcnt = 0;
-					}
-					foundNonspaceOnLine = false;
-				}
-			
-				if(stripspaces)
-				{
-					if(c == ' ' && lastchar == ' ' && !last && !linebreak)
-					{
-						continue;
-					}
-				}
-				lastchar = c;
-			}
-			else
-			{
-				linebreakcnt--;
-				linebreak = true;
-
-				// Shouldn't be used:
-				c = ' ';
-				fmt = 0;
-			}
-
-			if(col >= viewCols || last || linebreak)
-			{
-				char []nextRowTxt = new char[viewCols];
-				char []nextRowFmt = new char[viewCols];
-				for(int i = 0; i < viewCols; i++)
-				{
-					nextRowTxt[i] = ' ';
-					nextRowFmt[i] = 0;
-				}
-				if(breaklast)
-				{
-					if(c != ' ')
-					{
-						col--;
-						int col0 = col;
-						while(col >= 0 && rowTxt[col] != ' ')
-						{
-							col--;
-						}
-						if(col >= 0)
-						{
-String s = "";
-							for(int i = col + 1, j = 0; i <= col0; i++)
-							{
-								nextRowTxt[j] = rowTxt[i];
-								nextRowFmt[j] = rowFmt[i];
-								j++;
-s += nextRowTxt[j - 1];
-							}
-Log.i("NetHack", "'" + s + "' " + col0 + "c = '" + c + "'");
-						}
-						else
-						{
-							col = col0 + 1;	
-						}
-					}
-					else
-					{
-						addchar = false;					
-					}
-				}
-				while(col < viewCols)
-				{
-					rowTxt[col] = ' ';
-					rowFmt[col] = 0;
-					col++;
-				}
-
-				if(pass == 0)
-				{
-					drawRowBackground(canvas, viewX, viewY, rowFmt, 0, viewCols, -1);
-				}
-				else
-				{
-					int ybackgroffs = 2;
-					int viewYF = viewY + charHeight - ybackgroffs;
-
-					drawRowForeground(canvas, viewX, viewYF, rowTxt, rowFmt, 0, viewCols, -1);
-				}
-
-				System.arraycopy(nextRowTxt, 0, rowTxt, 0, viewCols);
-				System.arraycopy(nextRowFmt, 0, rowFmt, 0, viewCols);
-
-				col = 0;
-				while(col < viewCols && rowTxt[col] != ' ')
-				{
-					col++;
-				}
-Log.i("NetHack", "col = " + col);
-				viewY += charHeight;
-			}
-			if(last)
-			{
-				break;
-			}
-			if(addchar)
-			{
-				rowTxt[col] = c;
-				rowFmt[col] = fmt;
-				col++;
-			}
-		}
-	}
-	}
-
-
-	protected void onDrawFixed(Canvas canvas)
-	{
-		int y;
+		int x, y;
 
 		int rowView1 = 0;
 		int rowView2 = sizeY;
@@ -768,40 +417,112 @@ Log.i("NetHack", "col = " + col);
 			rowView2 = Math.min(computeViewRowFromCoordY(cliprect.bottom + charHeight - 1), sizeY);
 		}
 
+		x = 0;
 		y = computeViewCoordY(rowView1);
 		for(int rowView = rowView1; rowView < rowView2; rowView++)
 		{
-			final int rowTerm = rowView + offsetY;
-			final int buffOffs = rowTerm*terminal.numColumns + colView1 + offsetX; 
-			int cursorIndex = -1;
-			if(rowTerm == terminal.currentRow)
+			x = computeViewCoordX(colView1);
+			int currentx1 = -1;
+			int currentcolor = -1;
+			for(int colView = colView1; colView < colView2; colView++, x += charWidth)
 			{
-				cursorIndex = terminal.currentColumn - colView1 - offsetX;
+				int colTerm = colView + offsetX;
+				int rowTerm = rowView + offsetY;
+				char fmt;
+				if(colTerm >= 0 && colTerm < terminal.numColumns
+						&& rowTerm >= 0 && rowTerm < terminal.numRows)
+				{
+					fmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + colTerm];
+				}
+				else
+				{
+					fmt = 0;	// Not sure!				
+				}
+				int color = terminal.decodeFormatBackground(fmt);
+
+				if(colTerm == terminal.currentColumn && rowTerm == terminal.currentRow && drawCursor)
+				{
+					color = 7 - color;
+				}
+				if(color == currentcolor)
+				{
+					continue;
+				}
+				if(currentx1 >= 0)
+				{
+					setPaintColorBackground(textPaint, currentcolor);
+					canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
+				}
+				currentx1 = x;
+				currentcolor = color;
 			}
-
-			final int x = computeViewCoordX(colView1);
-
-			drawRowBackground(canvas, x, y, terminal.fmtBuffer, buffOffs, colView2 - colView1, cursorIndex);
-			
+			setPaintColorBackground(textPaint, currentcolor);
+			canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
 			y += charHeight;
 		}
+
+		x = 0;
 
 		int ybackgroffs = 2;
 		y = charHeight + computeViewCoordY(rowView1) - ybackgroffs;
 		for(int rowView = rowView1; rowView < rowView2; rowView++)
 		{
-			final int rowTerm = rowView + offsetY;
-			final int buffOffs = rowTerm*terminal.numColumns + colView1 + offsetX; 
-			int cursorIndex = -1;
-			if(rowTerm == terminal.currentRow)
+			x = computeViewCoordX(colView1);
+			int currentx1 = -1;
+			int currentcolor = -1;
+			String currentstr = "";
+			for(int colView = colView1; colView < colView2; colView++, x += charWidth)
 			{
-				cursorIndex = terminal.currentColumn - colView1 - offsetX;
+				int colTerm = colView + offsetX;
+				int rowTerm = rowView + offsetY;
+				char c;
+				char fmt;
+				if(colTerm >= 0 && colTerm < terminal.numColumns
+						&& rowTerm >= 0 && rowTerm < terminal.numRows)
+				{
+					fmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + colTerm];
+					c = terminal.getTextAt(colTerm, rowTerm);
+				}
+				else
+				{
+					fmt = 0;	// Not sure!				
+					c = ' ';
+				}
+				int color = terminal.decodeFormatForeground(fmt);
+
+				if(colTerm == terminal.currentColumn && rowTerm == terminal.currentRow && drawCursor)
+				{
+					boolean bold = false;
+					if(color >= 8)
+					{
+						color -= 8;
+						bold = true;
+					}
+					color = 7 - color;
+					if(bold)
+					{
+						color += 8;
+					}
+				}
+
+				if(color == currentcolor)
+				{
+					currentstr += c;
+					continue;
+				}
+				if(currentx1 >= 0)
+				{
+					setPaintColorForeground(textPaint, currentcolor);
+					canvas.drawText(currentstr, 0, currentstr.length(),
+							(float)currentx1, (float)y, textPaint);
+				}
+				currentx1 = x;
+				currentcolor = color;
+				currentstr = "" + c;
 			}
-
-			int x = computeViewCoordX(colView1);
-
-			drawRowForeground(canvas, x, y, terminal.textBuffer, terminal.fmtBuffer, buffOffs, colView2 - colView1, cursorIndex);
-
+			setPaintColorForeground(textPaint, currentcolor);
+			canvas.drawText(currentstr, 0, currentstr.length(),
+					(float)currentx1, (float)y, textPaint);
 			y += charHeight;
 		}
 

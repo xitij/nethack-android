@@ -54,65 +54,6 @@ public class NetHackTerminalState
 		}
 	}
 
-	public String getAsString(boolean stripleadingspace, boolean stripendofline)
-	{
-		String ret = "";
-		boolean prevrowempty = true;
-		for(int row = 0; row < numRows; row++)
-		{
-			int lastCol = -1;
-			for(int col = numColumns - 1; col >= 0; col--)
-			{
-				if(textBuffer[row*numColumns + col] != ' ')
-				{
-					lastCol = col;
-					break;
-				}
-			}
-			int firstcol = 0;
-			if(stripleadingspace && lastCol >= 0)
-			{
-				for(int col = 0; col <= lastCol; col++)
-				{
-					char c = textBuffer[row*numColumns + col]; 
-					if(c != ' ' && c != '\t')
-					{
-						firstcol = col;
-						break;
-					}
-				}
-			}
-			String thisrow = "";
-			if(lastCol >= 0)
-			{
-				for(int col = firstcol; col <= lastCol; col++)
-				{
-					thisrow += textBuffer[row*numColumns + col];
-				}
-
-				if(!stripendofline)
-				{
-					thisrow += "\n";
-				}
-				else
-				{
-					thisrow += " ";
-				}
-				prevrowempty = false;
-			}
-			else
-			{
-				if(!prevrowempty && stripendofline)
-				{
-					thisrow += "\n";		
-				}
-				thisrow += "\n";
-				prevrowempty = true;
-			}
-			ret += thisrow;
-		}
-		return ret;
-	}
 	public int offsetX = 0;
 	public int offsetY = 0;
 	

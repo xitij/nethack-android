@@ -13,7 +13,6 @@ import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
-import android.graphics.Typeface;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.os.Bundle;
@@ -37,7 +36,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 //import android.widget.ScrollView;
 
 import java.io.BufferedReader;
@@ -58,7 +56,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	NetHackTerminalView messageView;
 	NetHackTerminalView statusView;
 	NetHackTerminalView menuView;
-	TextView testView;
 
 	NetHackKeyboard virtualKeyboard;
 	
@@ -422,10 +419,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.computeSizePixels();
 		messageView.initStateFromView();
 
-		menuView.setSizeXFromPixels(sizeX);
-		menuView.setSizeY(24);
-		menuView.computeSizePixels();
-
 		statusView.setSizeXFromPixels(sizeX);
 		statusView.setSizeY(statusRows);
 		statusView.computeSizePixels();
@@ -449,11 +442,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		NetHackRefreshDisplay();
 	}
 
-	public void updateTestView()
-	{
-		testView.setText(menuView.terminal.getAsString(true, true));
-	}
-	
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
@@ -512,11 +500,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 							else
 							{
 								currentView.write(currentString);
-
-								if(currentView == menuView)
-								{
-									updateTestView();									
-								}
 							}
 							currentString = "";
 							escSeqAndroid = true;
@@ -605,10 +588,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					else
 					{
 						currentView.write(currentString);
-						if(currentView == menuView)
-						{
-							updateTestView();									
-						}
 					}
 					currentString = "";
 				}
@@ -898,22 +877,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
 	{
-		View scrollView = mainView;
-		int termx, termy;
+		NetHackTerminalView scrollView = mainView;
 		if(uiModeActual != UIMode.PureTTY && menuShown)
 		{
 			scrollView = menuView;
-			termx = menuView.charWidth*menuView.sizeX;
-			termy = menuView.charHeight*menuView.sizeY;
-//			scrollView = testView;
-// TEMP
-//			termx = 1000;
-//			termy = 1000;
-		}
-		else
-		{
-			termx = mainView.charWidth*mainView.sizeX;
-			termy = mainView.charHeight*mainView.sizeY;
 		}
 
 		int newscrollx = scrollView.getScrollX() + (int)distanceX;
@@ -926,6 +893,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			newscrolly = 0;
 		}
+
+		int termx = scrollView.charWidth*scrollView.sizeX;
+		int termy = scrollView.charHeight*scrollView.sizeY;
 
 		int maxx = termx - scrollView.getWidth();
 		int maxy = termy - scrollView.getHeight();
@@ -1071,7 +1041,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setTextSize(textsize);
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
-		testView.setTextSize(textsize);
 
 		if(textsizebefore != textsize)
 		{
@@ -1105,10 +1074,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setLayoutParams(
 				new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
 				LayoutParams.WRAP_CONTENT, 0.0f));
-// TEMP
-		testView.setLayoutParams(
-				new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
-				LayoutParams.WRAP_CONTENT, 1.0f));
 
 		screenLayout.removeAllViews();
 		if(!menuShown)
@@ -1129,7 +1094,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		else
 		{
 			screenLayout.addView(menuView);
-//			screenLayout.addView(testView);
 		}
 		if(currentDbgTerminalView != null)
 		{
@@ -1156,7 +1120,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setSizeY(messageRows);
 		messageView.computeSizePixels();
 
-		menuView.setSizeXFromPixels(sizeX);
+		menuView.setSizeX(sizeX);
 		menuView.setSizeY(24);
 		menuView.computeSizePixels();
 
@@ -1305,15 +1269,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setTextSize(textsize);
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
-
-		// TEMP
-		menuView.reformatText = true;
-
-		testView = new TextView(this);
-		testView.setTextSize(textsize);
-		testView.setText("Test test abc abc def ghj abc abc abc 123 45678aaaaa bbb ccc\n1289 1728971 21791 7827193 12719");
-		testView.setTypeface(Typeface.MONOSPACE);
-		//testView.setAntiAlias(true);
 
 		initDisplay();
 		
