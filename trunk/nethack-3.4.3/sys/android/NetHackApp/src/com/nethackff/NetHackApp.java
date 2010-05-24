@@ -13,6 +13,7 @@ import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.os.Bundle;
@@ -418,6 +419,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setSizeY(messageRows);
 		messageView.computeSizePixels();
 		messageView.initStateFromView();
+
+		menuView.setSizeXFromPixels(sizeX);
+		menuView.setSizeY(24);
+		menuView.computeSizePixels();
 
 		statusView.setSizeXFromPixels(sizeX);
 		statusView.setSizeY(statusRows);
@@ -877,10 +882,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
 	{
-		NetHackTerminalView scrollView = mainView;
+		View scrollView = mainView;
+		int termx, termy;
 		if(uiModeActual != UIMode.PureTTY && menuShown)
 		{
 			scrollView = menuView;
+			termx = menuView.charWidth*menuView.sizeX;
+			termy = menuView.charHeight*menuView.sizeY;
+		}
+		else
+		{
+			termx = mainView.charWidth*mainView.sizeX;
+			termy = mainView.charHeight*mainView.sizeY;
 		}
 
 		int newscrollx = scrollView.getScrollX() + (int)distanceX;
@@ -893,9 +906,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			newscrolly = 0;
 		}
-
-		int termx = scrollView.charWidth*scrollView.sizeX;
-		int termy = scrollView.charHeight*scrollView.sizeY;
 
 		int maxx = termx - scrollView.getWidth();
 		int maxy = termy - scrollView.getHeight();
@@ -1120,7 +1130,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setSizeY(messageRows);
 		messageView.computeSizePixels();
 
-		menuView.setSizeX(sizeX);
+		menuView.setSizeXFromPixels(sizeX);
 		menuView.setSizeY(24);
 		menuView.computeSizePixels();
 
@@ -1269,6 +1279,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setTextSize(textsize);
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
+
+		// TEMP
+		menuView.reformatText = true;
 
 		initDisplay();
 		
