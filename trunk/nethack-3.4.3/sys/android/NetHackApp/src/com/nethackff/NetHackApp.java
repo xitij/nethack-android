@@ -407,6 +407,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		rebuildViews();
 	}
 
+	final int menuViewWidth = 80;
+	
 	public void initViewsCommon()
 	{
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -418,7 +420,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.computeSizePixels();
 		messageView.initStateFromView();
 
-		menuView.setSizeXFromPixels(sizeX);
+		if(menuView.reformatText)
+		{
+			menuView.setSizeXFromPixels(sizeX);
+		}
+		else
+		{
+			menuView.setSizeX(menuViewWidth);
+		}
 		menuView.setSizeY(24);
 		menuView.computeSizePixels();
 
