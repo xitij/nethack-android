@@ -130,13 +130,16 @@ void android_askname()
 
 #endif
 
-static int s_ScreenNumColumns = 80;
+static int s_MessageNumColumns = 80;
+static int s_StatusNumColumns = 80;
 static int s_NumMsgLines = 1;
 
 void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
-		JNIEnv *env, jobject thiz, int width, int nummsglines)
+		JNIEnv *env, jobject thiz, int msgwidth, int nummsglines,
+		int statuswidth)
 {
-	s_ScreenNumColumns = width;
+	s_MessageNumColumns = msgwidth;
+	s_StatusNumColumns = statuswidth;
 	s_NumMsgLines = nummsglines;
 }
 
@@ -784,7 +787,7 @@ void android_curs(winid window, int x, int y)
 	{
 		/* HACK */
 		int oldco = CO;
-		CO = s_ScreenNumColumns;
+		CO = s_MessageNumColumns;
 
 		android_puts("\033A1");
 		tty_curs(window, x, y);
@@ -826,7 +829,7 @@ static void android_putstr_status(struct WinDesc *cw, const char *str)
 	ob = &cw->data[cw->cury][j = cw->curx];
 	if(flags.botlx) *ob = 0;
 
-	if(!cw->cury && (int)strlen(str) >= s_ScreenNumColumns)
+	if(!cw->cury && (int)strlen(str) >= s_StatusNumColumns)
 	{
 		const char *nb;
 
@@ -914,13 +917,13 @@ static void android_update_topl_word(const char *wordstart,
 	const int wordlen = wordend - wordstart;
 	if(s_MsgCol > 0)
 	{
-		int maxcol = s_ScreenNumColumns;
+		int maxcol = s_MessageNumColumns;
 
 		if(s_MsgCol + wordlen + 1 > maxcol)
 		{
 			/* The word doesn't fit, advance to the next line, unless
 			   we just wrapped around anyway. */
-			if(s_MsgCol != s_ScreenNumColumns)
+			if(s_MsgCol != s_MessageNumColumns)
 			{
 				android_puts("\n");
 			}
@@ -945,9 +948,9 @@ static void android_update_topl_word(const char *wordstart,
 	}
 	android_puts(buff);
 	s_MsgCol += strlen(buff);
-	while(s_MsgCol >= s_ScreenNumColumns)
+	while(s_MsgCol >= s_MessageNumColumns)
 	{
-		s_MsgCol -= s_ScreenNumColumns;
+		s_MsgCol -= s_MessageNumColumns;
 		s_MsgRow++;
 	}
 
@@ -988,7 +991,7 @@ while(!foundend)
 #if 0
 						if(s_MsgCol + ptr - 1 - wordstart >= s_ScreenNumColumns - 8)
 #endif
-						if(s_MsgCol + ptr - wordstart >= s_ScreenNumColumns - 8)
+						if(s_MsgCol + ptr - wordstart >= s_MessageNumColumns - 8)
 						{
 							ptr = wordstart;
 							break;
@@ -1014,7 +1017,7 @@ continued = 1;
 					   more than one space here - for now, we only do one, as
 					   perhaps there is a greater risk of something going wrong
 					   otherwise. */
-					if(numspacesskipped && s_MsgCol < s_ScreenNumColumns - 1)
+					if(numspacesskipped && s_MsgCol < s_MessageNumColumns - 1)
 					{
 						android_puts(" ");
 						s_MsgCol++;
@@ -1046,7 +1049,7 @@ continued = 1;
 		{
 			lastcol++;
 		}
-		if(lastcol < s_ScreenNumColumns - 8)	/* Room for --More-- */
+		if(lastcol < s_MessageNumColumns - 8)	/* Room for --More-- */
 		{
 			if(s_MsgCol)
 			{
