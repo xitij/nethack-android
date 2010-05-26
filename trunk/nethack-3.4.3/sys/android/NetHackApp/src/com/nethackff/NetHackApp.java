@@ -408,7 +408,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 
 	final int menuViewWidth = 80;
-	
+	final int statusViewWidth = 80;
+
 	public void initViewsCommon()
 	{
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -431,12 +432,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		menuView.setSizeY(24);
 		menuView.computeSizePixels();
 
-		statusView.setSizeXFromPixels(sizeX);
+		// Compute how many characters would fit on screen in the status line. This gets passed
+		// on to the native code so it knows if it should shorten the status or not.
+		int statuswidthonscreen = sizeX/statusView.charWidth;
+
+		// Regardless of how much we can actually fit, we still keep the width of the actual
+		// view constant. This is done so that in case the text on the first line still doesn't fit
+		// on screen after being shortened, it doesn't wrap around and kill the whole second line.
+		// We may need to add the ability to scroll this view.
+		statusView.setSizeX(statusViewWidth);
+
 		statusView.setSizeY(statusRows);
 		statusView.computeSizePixels();
 		statusView.initStateFromView();
 
-		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
+		NetHackSetScreenDim(messageView.getSizeX(), messageRows, statuswidthonscreen);
 	}
 	
 	public void rebuildViews()
@@ -1473,7 +1483,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackTerminalSend(String str);
 	public native int NetHackHasQuit();
 	public native int NetHackSave();
-	public native void NetHackSetScreenDim(int width, int nummsglines);
+	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
 	public native void NetHackRefreshDisplay();
 
 	public native int NetHackGetPlayerPosX();
