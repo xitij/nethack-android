@@ -406,11 +406,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		rebuildViews();
 	}
-	
-	public void rebuildViews()
+
+	public void initViewsCommon()
 	{
-		screenLayout.removeAllViews();
-		
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
 		int sizeY = display.getHeight();
@@ -428,7 +426,19 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setSizeY(statusRows);
 		statusView.computeSizePixels();
 		statusView.initStateFromView();
+
 		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
+	}
+	
+	public void rebuildViews()
+	{
+		screenLayout.removeAllViews();
+
+		initViewsCommon();	
+
+		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+		int sizeX = display.getWidth();
+		int sizeY = display.getHeight();
 
 		screenLayout.removeAllViews();
 		screenLayout = new LinearLayout(this);
@@ -1120,28 +1130,13 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	public void initDisplay()
 	{
-		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-		int sizeX = display.getWidth();
-		int sizeY = display.getHeight();
-
 		virtualKeyboard = new NetHackKeyboard(this);
 
-		messageView.setSizeXFromPixels(sizeX);
-		messageView.setSizeY(messageRows);
-		messageView.computeSizePixels();
+		initViewsCommon();	
 
-		menuView.setSizeXFromPixels(sizeX);
-		menuView.setSizeY(24);
-		menuView.computeSizePixels();
-
-		messageView.initStateFromView();
+		// Note: it's possible that this should be moved into initViewsCommon(), and thus
+		// also be used by rebuildViews(). Not sure if not doing that is intentional or a mistake.
 		menuView.initStateFromView();
-
-		statusView.setSizeXFromPixels(sizeX);
-		statusView.setSizeY(statusRows);
-		statusView.computeSizePixels();
-		statusView.initStateFromView();
-		NetHackSetScreenDim(statusView.getSizeX(), messageRows);
 
 		messageView.setDrawCursor(false);
 		statusView.setDrawCursor(false);
@@ -1151,6 +1146,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		//currentDbgTerminalView = messageView;
 		if(currentDbgTerminalView != null)
 		{
+			Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+			int sizeX = display.getWidth();
+
 			dbgTerminalTranscriptState = new NetHackTerminalState();
 			dbgTerminalTranscriptState.colorForeground = NetHackTerminalState.kColGreen;
 			dbgTerminalTranscriptView = new NetHackTerminalView(this, dbgTerminalTranscriptState);
