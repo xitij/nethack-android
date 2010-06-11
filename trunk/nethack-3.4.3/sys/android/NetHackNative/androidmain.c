@@ -554,6 +554,12 @@ static void *sThreadFunc()
 
 	getlock();
 
+	/* When asked if an old game with the same name should be destroyed,
+	   I had some issue where the cursor didn't reset to the beginning of the
+	   line. Simply printing an extra line break here probably takes care of
+	   that issue. */
+	printf("\n");
+
 	dlb_init();	/* must be before newgame() */
 
 	/*
