@@ -23,6 +23,9 @@ public class NetHackTerminalView extends View
 	public int sizePixelsX;
 	public int sizePixelsY;
 
+	public int extraSizeX = 0;
+	public int extraSizeY = 0;
+
 	Paint textPaint;
 
 	private int textSize = 10;
@@ -106,8 +109,8 @@ public class NetHackTerminalView extends View
 	
 	public void computeSizePixels()
 	{
-		sizePixelsX = sizeX*charWidth;
-		sizePixelsY = sizeY*charHeight;
+		sizePixelsX = sizeX*charWidth + extraSizeX;
+		sizePixelsY = sizeY*charHeight + extraSizeY;
 	}
 	
 	public void write(String s)
