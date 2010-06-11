@@ -507,7 +507,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 			if(NetHackGetPlayerPosShouldRecenter() != 0)
 			{
-				centerOnPlayer();
+				// This doesn't seem to work very well in pure TTY mode. 
+				if(uiModeActual == UIMode.AndroidTTY)
+				{
+					centerOnPlayer();
+				}
 			}
 
 			String s = NetHackTerminalReceive();
@@ -688,6 +692,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				// TODO
 				return;
 			}
+
+			messageView.terminal.clearScreen();	// Remove the "Please wait..." stuff.
 
 			//	copyFile("/data/data/com.nethackff/dat/save/10035foo.gz", "/sdcard/10035foo.gz");
 
