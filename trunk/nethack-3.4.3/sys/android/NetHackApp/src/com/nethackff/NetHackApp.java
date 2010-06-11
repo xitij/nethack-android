@@ -418,6 +418,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		messageView.setSizeXFromPixels(sizeX);
 		messageView.setSizeY(messageRows);
+
+		messageView.extraSizeY = 1;
+
 		messageView.computeSizePixels();
 		messageView.initStateFromView();
 
