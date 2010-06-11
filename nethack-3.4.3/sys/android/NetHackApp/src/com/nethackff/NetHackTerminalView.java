@@ -19,6 +19,7 @@ public class NetHackTerminalView extends View
 	public int offsetY = 0;
 	public int sizeX;
 	public int sizeY;
+	public int displayedLinesOnReformat = 0;
 	public int sizePixelsX;
 	public int sizePixelsY;
 
@@ -26,6 +27,18 @@ public class NetHackTerminalView extends View
 
 	private int textSize = 10;
 
+	public int getNumDisplayedLines()
+	{
+		if(reformatText)
+		{
+			return displayedLinesOnReformat > sizeY ? displayedLinesOnReformat : sizeY;
+		}
+		else
+		{
+			return sizeY;			
+		}
+	}
+	
 	public void setTextSize(int sz)
 	{
 		textSize = sz;
@@ -63,13 +76,7 @@ public class NetHackTerminalView extends View
 		int newscrolly = cursorcentery - getHeight()/2;
 
 		int termx = charWidth*sizeX;
-		int termy = charHeight*sizeY;
-
-// TEMP
-if(reformatText)
-{
-	termy = termy > 1000 ? termy : 1000;	
-}
+		int termy = charHeight*getNumDisplayedLines();
 
 		int maxx = termx - getWidth();
 		int maxy = termy - getHeight();
@@ -134,12 +141,12 @@ if(reformatText)
 		width = sizePixelsX;
 		height = sizePixelsY;
 
-// TEMP
-if(reformatText)
-{
-	height = height > 1000 ? height : 1000;	
-}
-		
+		// This was done temporarily before, but hopefully there is no need for it now.
+		//	if(reformatText)
+		//	{
+		//		height = height > 1000 ? height : 1000;	
+		//	}
+
 		if (width < minwidth)
 		{
 			width = minwidth;
@@ -421,8 +428,6 @@ if(reformatText)
 		{
 			// TEMP - should probably check how much is used:
 			int numColsNeeded = 80;
-/* TEMP */
-Log.i("NetHack", "sizeX = " + sizeX);
 			if(sizeX < numColsNeeded)
 			{
 				onDrawReformat(canvas);
@@ -594,6 +599,8 @@ for(int pass = 0; pass < 2; pass++)
 		}
 
 		int viewX = 0, viewY = 0;
+		displayedLinesOnReformat = 0;
+		int displayedLines = 0;
 
 		final boolean stripspaces = false;
 
@@ -624,7 +631,6 @@ for(int pass = 0; pass < 2; pass++)
 
 				int colTerm = termXNoOffs + offsetX;
 				int rowTerm = termYNoOffs + offsetY;
-//Log.i("NetHack", colTerm + ", " + rowTerm);
 				if(rowTerm >= terminal.numRows)
 				{
 					last = true;
@@ -717,7 +723,6 @@ String s = "";
 								j++;
 s += nextRowTxt[j - 1];
 							}
-Log.i("NetHack", "'" + s + "' " + col0 + "c = '" + c + "'");
 						}
 						else
 						{
@@ -729,6 +734,12 @@ Log.i("NetHack", "'" + s + "' " + col0 + "c = '" + c + "'");
 						addchar = false;					
 					}
 				}
+
+				// Check if this should be considered a blank line.
+				// Note: could be improved by checking the actual contents if col > 0,
+				// but not sure if it's needed.
+				boolean blankline = (col == 0);				
+
 				while(col < viewCols)
 				{
 					rowTxt[col] = ' ';
@@ -748,6 +759,16 @@ Log.i("NetHack", "'" + s + "' " + col0 + "c = '" + c + "'");
 					drawRowForeground(canvas, viewX, viewYF, rowTxt, rowFmt, 0, viewCols, -1);
 				}
 
+				// TEMP
+				String rowTxtTmp = new String(rowTxt);
+				displayedLines++;
+
+				if(!blankline)
+				{
+					// For displayedLinesOnReformat, we don't count empty lines at the end.
+					displayedLinesOnReformat = displayedLines;	
+				}
+				
 				System.arraycopy(nextRowTxt, 0, rowTxt, 0, viewCols);
 				System.arraycopy(nextRowFmt, 0, rowFmt, 0, viewCols);
 
@@ -853,5 +874,7 @@ Log.i("NetHack", "'" + s + "' " + col0 + "c = '" + c + "'");
 			// from its previous position.
 			terminal.registerChange(terminal.currentColumn, terminal.currentRow);
 		}
+
+		displayedLinesOnReformat = 0;
 	}
 }
