@@ -410,7 +410,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	final int menuViewWidth = 80;
 	final int statusViewWidth = 80;
 
-	public void initViewsCommon()
+	public void initViewsCommon(boolean initial)
 	{
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
@@ -421,6 +421,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.computeSizePixels();
 		messageView.initStateFromView();
 
+		menuView.setSizeX(menuViewWidth);
+		menuView.setSizeY(24);
+		menuView.computeSizePixels();
+
+		if(initial)
+		{
+			menuView.initStateFromView();
+		}
 		if(menuView.reformatText)
 		{
 			menuView.setSizeXFromPixels(sizeX);
@@ -429,8 +437,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			menuView.setSizeX(menuViewWidth);
 		}
-		menuView.setSizeY(24);
-		menuView.computeSizePixels();
 
 		// Compute how many characters would fit on screen in the status line. This gets passed
 		// on to the native code so it knows if it should shorten the status or not.
@@ -453,7 +459,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		screenLayout.removeAllViews();
 
-		initViewsCommon();	
+		initViewsCommon(false);	
 
 		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
@@ -917,14 +923,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			scrollView = menuView;
 			termx = menuView.charWidth*menuView.sizeX;
-			termy = menuView.charHeight*menuView.sizeY;
+//			termy = menuView.charHeight*menuView.sizeY;
+			termy = menuView.charHeight*menuView.getNumDisplayedLines();
+
 		}
 		else
 		{
 			termx = mainView.charWidth*mainView.sizeX;
 			termy = mainView.charHeight*mainView.sizeY;
 		}
-
+	
 		int newscrollx = scrollView.getScrollX() + (int)distanceX;
 		int newscrolly = scrollView.getScrollY() + (int)distanceY;
 		if(newscrollx < 0)
@@ -1151,11 +1159,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		virtualKeyboard = new NetHackKeyboard(this);
 
-		initViewsCommon();	
-
-		// Note: it's possible that this should be moved into initViewsCommon(), and thus
-		// also be used by rebuildViews(). Not sure if not doing that is intentional or a mistake.
-		menuView.initStateFromView();
+		initViewsCommon(true);
 
 		messageView.setDrawCursor(false);
 		statusView.setDrawCursor(false);
