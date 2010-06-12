@@ -82,15 +82,7 @@ public class NetHackTerminalView extends View
 		int termy = charHeight*getNumDisplayedLines();
 
 		int maxx = termx - getWidth();
-		int maxy = termy - getHeight();
-		if(newscrollx < 0)
-		{
-			newscrollx = 0;
-		}
-		if(newscrolly < 0)
-		{
-			newscrolly = 0;
-		}
+		int maxy = termy - getHeight();		// Note: could be negative, so we do the max clamping first.
 		if(newscrollx >= maxx)
 		{
 			newscrollx = maxx - 1;
@@ -98,6 +90,14 @@ public class NetHackTerminalView extends View
 		if(newscrolly >= maxy)
 		{
 			newscrolly = maxy - 1;
+		}
+		if(newscrollx < 0)
+		{
+			newscrollx = 0;
+		}
+		if(newscrolly < 0)
+		{
+			newscrolly = 0;
 		}
 
 		scrollTo(newscrollx, newscrolly);
