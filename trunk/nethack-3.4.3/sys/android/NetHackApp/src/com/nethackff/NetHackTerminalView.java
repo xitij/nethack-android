@@ -581,6 +581,12 @@ public class NetHackTerminalView extends View
 				{
 					return i;
 				}
+				if(drawCursor && rowTerm == terminal.currentRow && i == terminal.currentColumn)
+				{
+					// This is a visible cursor - shouldn't be treated as an empty position even
+					// if the character there is a space.
+					return i;
+				}
 			}
 		}
 		return -1;
@@ -616,14 +622,17 @@ for(int pass = 0; pass < 2; pass++)
 //		for(int pos = 0; pos < strlen; pos++)
 // TEMP
 		int lastnonemptyposonline = FindLastNonEmptyPosOnLine(termYNoOffs, viewCols);
-		char lastchar = 0;
+		char lastchar = 0;						// Previous character we looked at.
+		boolean lastcharwascursor = false;		// True if lastchar was a visible cursor.
 		boolean foundNonspaceOnLine = false;
 
 		int linebreakcnt = 0;
+		int cursorindex = -1;					// Index of the cursor in rowTxt[], when found.
 		while(true)
 		{
-			char fmt;
-			char c;
+			char currentchar;	// The character at the position we are reading.
+			char currentfmt;	// Format code for currentchar.
+			boolean iscursor = false;	// True if currentchar is a visible cursor.
 			boolean last = false;
 			boolean linebreak = false;
 			boolean addchar = false;
@@ -641,15 +650,20 @@ for(int pass = 0; pass < 2; pass++)
 				if(colTerm >= 0 && colTerm < terminal.numColumns
 						&& rowTerm >= 0 && rowTerm < terminal.numRows)
 				{
-					fmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + colTerm];
-					c = terminal.textBuffer[rowTerm*terminal.numColumns + colTerm];
+					currentfmt = terminal.fmtBuffer[rowTerm*terminal.numColumns + colTerm];
+					currentchar = terminal.textBuffer[rowTerm*terminal.numColumns + colTerm];
 				}
 				else
 				{
-					fmt = 0;	// Not sure!
-					c = ' ';
+					currentfmt = 0;	// Not sure!
+					currentchar = ' ';
 				}
-				if(c != ' ')
+				// Check if the cursor is supposed to be visible at this character's position.
+				if(drawCursor && rowTerm == terminal.currentRow && colTerm == terminal.currentColumn)
+				{
+					iscursor = true;
+				}
+				if(currentchar != ' ' || iscursor)
 				{
 					foundNonspaceOnLine = true;
 				}
@@ -680,12 +694,13 @@ for(int pass = 0; pass < 2; pass++)
 			
 				if(stripspaces)
 				{
-					if(c == ' ' && lastchar == ' ' && !last && !linebreak)
+					if(currentchar == ' ' && lastchar == ' ' && !last && !linebreak && !iscursor && !lastcharwascursor)
 					{
 						continue;
 					}
 				}
-				lastchar = c;
+				lastchar = currentchar;
+				lastcharwascursor = iscursor;
 			}
 			else
 			{
@@ -693,8 +708,8 @@ for(int pass = 0; pass < 2; pass++)
 				linebreak = true;
 
 				// Shouldn't be used:
-				c = ' ';
-				fmt = 0;
+				currentchar = ' ';
+				currentfmt = 0;
 			}
 
 			if(col >= viewCols || last || linebreak)
@@ -708,7 +723,7 @@ for(int pass = 0; pass < 2; pass++)
 				}
 				if(breaklast)
 				{
-					if(c != ' ')
+					if(currentchar != ' ' || iscursor)
 					{
 						col--;
 						int col0 = col;
@@ -752,15 +767,16 @@ s += nextRowTxt[j - 1];
 
 				if(pass == 0)
 				{
-					drawRowBackground(canvas, viewX, viewY, rowFmt, 0, viewCols, -1);
+					drawRowBackground(canvas, viewX, viewY, rowFmt, 0, viewCols, cursorindex);
 				}
 				else
 				{
 					int ybackgroffs = 2;
 					int viewYF = viewY + charHeight - ybackgroffs;
 
-					drawRowForeground(canvas, viewX, viewYF, rowTxt, rowFmt, 0, viewCols, -1);
+					drawRowForeground(canvas, viewX, viewYF, rowTxt, rowFmt, 0, viewCols, cursorindex);
 				}
+				cursorindex = -1;
 
 				// TEMP
 				String rowTxtTmp = new String(rowTxt);
@@ -788,8 +804,12 @@ s += nextRowTxt[j - 1];
 			}
 			if(addchar)
 			{
-				rowTxt[col] = c;
-				rowFmt[col] = fmt;
+				if(iscursor)
+				{
+					cursorindex = col;
+				}
+				rowTxt[col] = currentchar;
+				rowFmt[col] = currentfmt;
 				col++;
 			}
 		}
