@@ -539,6 +539,16 @@ static void *sThreadFunc()
 	{
 		choose_windows(DEFAULT_WINDOW_SYS);
 	}
+
+	if(!s_PureTTY)
+	{
+		/* As far as the Java side is concerned, we actually pretend to
+		   use the menu window for the startup screen. This is done to get
+		   word wrapping if needed.
+		*/
+		android_puts("\033A4\033AS");
+	}
+
 	initoptions();
 
 	init_nhwindows(&argc,argv);
@@ -632,6 +642,15 @@ not_recovered:
 
 	s_ReadyForSave = 1;
 	android_switchgamestate(kAndroidGameStateMoveLoop);
+
+	if(!s_PureTTY)
+	{
+		/* Since we pretend to use a menu window, we need to tell the Java
+		   side of the UI to go back to the main view now, and close the
+		   menu window. */
+		android_puts("\033A4\033AH");
+		android_puts("\033A0");
+	}
 
 	pthread_mutex_lock(&s_ReceiveMutex);
 	s_PlayerPosShouldRecenter = 1;
