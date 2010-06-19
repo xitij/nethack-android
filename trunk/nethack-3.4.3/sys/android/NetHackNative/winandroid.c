@@ -619,6 +619,7 @@ void android_clear_nhwindow(winid window)
 	{
 		android_puts("\033A1");
 		android_puts("\033[H\033[J");
+
 		s_MsgCol = 0;
 		s_MsgRow = 0;
 		android_puts("\033A0");
@@ -628,6 +629,7 @@ void android_clear_nhwindow(winid window)
 	{
 		android_puts("\033A2");
 		android_puts("\033[H\033[J");
+
 		android_puts("\033A0");
 		return;
 	}
@@ -1069,6 +1071,12 @@ continued = 1;
 			g_android_prevent_output++;
 			xwaitforspace("\033 ");
 			g_android_prevent_output--;
+
+			/* Not sure exactly why, but this seems to be necessary to prevent
+			   some cases where the main (map) view could be cleared out. Since
+			   this whole function is about the message line, we should be able
+			   to safely send the code for selecting that here. */
+			android_puts("\033A1");
 
 			android_puts("\033[H\033[J");
 
