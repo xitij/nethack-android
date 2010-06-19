@@ -478,10 +478,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		screenLayout.setOrientation(LinearLayout.VERTICAL);
 		setContentView(screenLayout);
 
-		int sx = screenLayout.getMeasuredWidth();
-		int sy = screenLayout.getMeasuredHeight();
-		Log.i("NetHack", "measured " + sx + "," + sy);
-
 		NetHackRefreshDisplay();
 	}
 
