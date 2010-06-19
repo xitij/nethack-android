@@ -61,6 +61,7 @@ static void NDECL(wd_message);
 static boolean wiz_error_flag = FALSE;
 #endif
 
+#if 0	/* Enable for debug output */
 
 void android_debuglog(const char *fmt, ...)
 {
@@ -95,6 +96,17 @@ void android_debugerr(const char *fmt, ...)
 	android_puts("\033A0");
 }
 
+#else
+
+void android_debuglog(const char *fmt, ...)
+{
+}
+
+void android_debugerr(const char *fmt, ...)
+{
+}
+
+#endif
 
 AndroidGameState android_getgamestate()
 {
@@ -616,6 +628,17 @@ static void *sThreadFunc()
 #ifdef WIZARD
 		if(!wizard && remember_wiz_mode) wizard = TRUE;
 #endif
+
+	if(!s_PureTTY)
+	{
+		/* Since we pretend to use a menu window, we need to tell the Java
+		   side of the UI to go back to the main view now, and close the
+		   menu window. */
+		android_puts("\033A4\033AH");
+		android_puts("\033A0");
+	}
+
+
 		check_special_room(FALSE);
 		wd_message();
 
@@ -632,6 +655,16 @@ static void *sThreadFunc()
 not_recovered:
 		player_selection();
 
+	if(!s_PureTTY)
+	{
+		/* Since we pretend to use a menu window, we need to tell the Java
+		   side of the UI to go back to the main view now, and close the
+		   menu window. */
+		android_puts("\033A4\033AH");
+		android_puts("\033A0");
+	}
+
+
 		newgame();
 		wd_message();
 
@@ -642,15 +675,6 @@ not_recovered:
 
 	s_ReadyForSave = 1;
 	android_switchgamestate(kAndroidGameStateMoveLoop);
-
-	if(!s_PureTTY)
-	{
-		/* Since we pretend to use a menu window, we need to tell the Java
-		   side of the UI to go back to the main view now, and close the
-		   menu window. */
-		android_puts("\033A4\033AH");
-		android_puts("\033A0");
-	}
 
 	pthread_mutex_lock(&s_ReceiveMutex);
 	s_PlayerPosShouldRecenter = 1;
