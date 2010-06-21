@@ -1,13 +1,16 @@
-1.2.1
------
+1.2.1 (June 20, 2010)
+---------------------
 
 - Much improved virtual keyboard.
-- Added choice between "Pure TTY" and "Android TTY" UI mode, where the latter
-  is particularly useful with virtual keyboard.
+- Added choice between "Pure TTY" and "Android TTY" UI mode:
+-- Multi-line message bar.
+-- Fullscreen menus and text.
+-- Optional word wrapping of menus and text.
+-- Non-scrolling message and status bars.
+- Added text size option.
 - Added white background mode as an option.
 - Improved fullscreen experience.
-
-
+- Enabled access to nethack.cnf file.
 
 1.1.3 (November 12, 2009)
 -------------------------
