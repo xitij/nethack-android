@@ -1115,10 +1115,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	void updateLayout()
 	{
 		mainView.setLayoutParams(
-				new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+				new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
 				LayoutParams.WRAP_CONTENT, 1.0f));
 		menuView.setLayoutParams(
-				new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+				new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
 				LayoutParams.WRAP_CONTENT, 1.0f));
 		messageView.setLayoutParams(
 				new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
