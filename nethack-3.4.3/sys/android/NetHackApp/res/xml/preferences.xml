@@ -7,6 +7,11 @@
 			android:summary="If set, the notification bar will be hidden."
 			android:defaultValue="true"/>
 
+		<CheckBoxPreference android:key="AllowTextReformat"
+			android:title="Allow Text Reformat"
+			android:summary="If set, text and menu views may use word wrapping to fit on screen."
+			android:defaultValue="true"/>
+
 		<ListPreference
 			android:title="Color Mode"
 			android:key="ColorMode"

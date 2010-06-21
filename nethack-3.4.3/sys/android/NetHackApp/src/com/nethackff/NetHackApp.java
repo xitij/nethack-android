@@ -151,6 +151,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		FontSize14,
 		FontSize15
 	}
+	boolean optAllowTextReformat = true;
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
 	UIMode optUIModeNew = UIMode.Invalid;
@@ -427,6 +428,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		menuView.setSizeX(menuViewWidth);
 		menuView.setSizeY(24);
 		menuView.computeSizePixels();
+
+		menuView.reformatText = optAllowTextReformat;
 
 		if(initial)
 		{
@@ -1055,6 +1058,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		UIMode uiModeBefore = optUIModeNew;
 
 		int textsizebefore = getOptFontSize();
+		boolean allowreformatbefore = optAllowTextReformat;
 
 		getPrefs();
 
@@ -1094,7 +1098,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
 
-		if(textsizebefore != textsize)
+		if(textsizebefore != textsize || optAllowTextReformat != allowreformatbefore)
 		{
 			rebuildViews();
 		}
@@ -1306,9 +1310,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
 
-		// TEMP
-		menuView.reformatText = true;
-
 		initDisplay();
 		
 		if(!gameInitialized)
@@ -1473,6 +1474,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
+		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
