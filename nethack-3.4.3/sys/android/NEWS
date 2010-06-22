@@ -1,3 +1,10 @@
+1.2.2 (June 21, 2010)
+---------------------
+
+- Replaced use of external commands.
+- Made use of proper function for getting application directory.
+- May fix crashes on startup reported on some systems.
+
 1.2.1 (June 20, 2010)
 ---------------------
 
