@@ -515,6 +515,7 @@ static void sSendCmd(int cmd, int sync)
 
 
 pthread_t g_ThreadHandle;
+char *g_NetHackDir = NULL;	// "/data/data/com.nethackff/nethackdir"
 
 void nethack_exit(int result)
 {
@@ -541,7 +542,10 @@ static void *sThreadFunc()
 
 	android_switchgamestate(kAndroidGameStateInit);
 
-	chdir("/data/data/com.nethackff/nethackdir");
+	if(g_NetHackDir)
+	{
+		chdir(g_NetHackDir);
+	}
 
 	if(s_PureTTY)
 	{
@@ -689,17 +693,28 @@ not_recovered:
 	return(0);
 }
 
-
 int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
-		int puretty)
+		int puretty, jstring nethackdir)
 {
 	char *p;
 	int x, y;
+	const char *nethackdirnative;
 
 	if(g_ThreadHandle)
 	{
 		return 0;
 	}
+
+	nethackdirnative = (*env)->GetStringUTFChars(env, nethackdir, 0);
+	if(g_NetHackDir)
+	{
+		/* This shouldn't happen, but probably best to deal with it in case. */
+		free((void*)g_NetHackDir);
+		g_NetHackDir = NULL;
+	}
+	g_NetHackDir = malloc(strlen(nethackdirnative + 1));
+	strcpy(g_NetHackDir, nethackdirnative);
+	(*env)->ReleaseStringUTFChars(env, nethackdir, nethackdirnative);
 
 	s_PureTTY = puretty;
 	s_SendWaitingForNotFull = 0;
@@ -788,6 +803,12 @@ void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 		sem_destroy(&s_SendNotFullSema);
 		sem_destroy(&s_CommandPerformedSema);
 		g_ThreadHandle = 0;
+	}
+
+	if(g_NetHackDir)
+	{
+		free((void*)g_NetHackDir);
+		g_NetHackDir = NULL;
 	}
 }
 
