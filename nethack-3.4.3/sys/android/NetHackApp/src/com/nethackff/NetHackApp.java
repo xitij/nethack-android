@@ -736,9 +736,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public String getAppDir()
 	{
-		// TODO: Find a way to get this automatically, and/or install the NetHack
-		// files in a user-specified directory.
-		return "/data/data/com.nethackff";		
+		return appDir;
 	}
 
 	public String getNetHackDir()
@@ -749,6 +747,27 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		if(!gameInitialized)
 		{
+			// Up until version 1.2.1, the application hardcoded the path.
+			// Not sure if this caused a problem in practice, but it's possible
+			// that for example people running the application from the SD card
+			// with a mod could run into trouble, and it's much more proper to
+			// use getFilesDir(). But, unfortunately, that may not actually return
+			// the same value for people with existing installations (in my case,
+			// it returns "/data/data/com.nethackff/files", so we have to be really
+			// careful to not lose saved data. For that reason, we check for the
+			// presence of the "version.txt" file at the old hardcoded location,
+			// and if it's there, we continue to use the old location.
+			String obsoletePath = "/data/data/com.nethackff";
+			if(new File(obsoletePath + "/version.txt").exists())
+			{
+				appDir = obsoletePath;
+			}
+			else
+			{
+				appDir = getFilesDir().getAbsolutePath();	
+			}
+			Log.i("NetHackDbg", "Using directory '" + appDir + "' for application files.");
+
 			String nethackdir = getNetHackDir();
 
 			if(!compareAsset("version.txt"))
@@ -1544,6 +1563,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 	}
 
+	public static String appDir;
 	public static boolean terminalInitialized = false;
 	public static boolean gameInitialized = false;
 	public static NetHackTerminalState mainTerminalState;
