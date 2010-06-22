@@ -823,6 +823,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		//TestShutdown();
 	}
 
+	// This should work, but relying on external commands is generally undesirable,
+	// and all current use of it has been eliminated. /FF
+	/*
 	public void doCommand(String command, String arg0, String arg1)
 	{
 		try
@@ -840,6 +843,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			throw new RuntimeException(e.getMessage());
 		}
 	}
+	*/
 
 	public boolean compareAsset(String assetname)
 	{
@@ -952,25 +956,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			{
 				copyAsset("nethackdir/" + assets[i]);
 				chmod("/data/data/com.nethackff/nethackdir/" + assets[i], 0666);
-			}
-		}
-		catch (IOException e)
-		{
-			throw new RuntimeException(e.getMessage());
-		}
-	}
-
-	public void deleteNetHackData()
-	{
-		AssetManager am = getResources().getAssets();
-		String assets[] = null;
-		try
-		{
-			assets = am.list("nethackdir");
-
-			for(int i = 0; i < assets.length; i++)
-			{
-				doCommand("/system/bin/rm", "/data/data/com.nethackff/nethackdir/" + assets[i], "");
 			}
 		}
 		catch (IOException e)
