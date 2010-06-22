@@ -669,14 +669,33 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return commThreadRunning;
 	}
 
+	public void mkdir(String dirname)
+	{
+		// This is how it used to be done, but it's probably not a good idea
+		// to rely on some external command in a hardcoded path... /FF
+		//	doCommand("/system/bin/mkdir", dirname, "");
+
+		boolean status = new File(dirname).mkdir();
+
+		// Probably good to keep the debug spew here for now. /FF
+		if(status)
+		{
+			Log.i("NetHackDbg", "Created dir '" + dirname + "'");
+		}
+		else
+		{
+			Log.i("NetHackDbg", "Failed to create dir '" + dirname + "', may already exist");
+		}
+	}
+	
 	public void run()
 	{
 		if(!gameInitialized)
 		{
 			if(!compareAsset("version.txt"))
 			{
-				doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir", "");
-				doCommand("/system/bin/mkdir", "/data/data/com.nethackff/nethackdir/save", "");
+				mkdir("/data/data/com.nethackff/nethackdir");
+				mkdir("/data/data/com.nethackff/nethackdir/save");
 
 				copyNetHackData();
 
