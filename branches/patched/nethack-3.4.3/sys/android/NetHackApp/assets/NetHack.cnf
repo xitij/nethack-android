@@ -17,3 +17,11 @@
 #OPTIONS=align:chaotic
 # Other general options
 #OPTIONS=time,rest_on_space,noautopickup
+
+# menucolors patch
+OPTIONS=menucolors
+MENUCOLOR="* blessed *"=green
+MENUCOLOR="* holy *"=green
+MENUCOLOR="* cursed *"=red
+MENUCOLOR="* unholy *"=red
+MENUCOLOR="* cursed * (being worn)"=orange&underline
