@@ -733,25 +733,38 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			Log.i("NetHackDbg", "Failed to create dir '" + dirname + "', may already exist");
 		}
 	}
-	
+
+	public String getAppDir()
+	{
+		// TODO: Find a way to get this automatically, and/or install the NetHack
+		// files in a user-specified directory.
+		return "/data/data/com.nethackff";		
+	}
+
+	public String getNetHackDir()
+	{
+		return getAppDir() + "/nethackdir"; 
+	}
 	public void run()
 	{
 		if(!gameInitialized)
 		{
+			String nethackdir = getNetHackDir();
+
 			if(!compareAsset("version.txt"))
 			{
-				mkdir("/data/data/com.nethackff/nethackdir");
-				mkdir("/data/data/com.nethackff/nethackdir/save");
+				mkdir(nethackdir);
+				mkdir(nethackdir + "/save");
 
 				copyNetHackData();
 
 				copyAsset("version.txt");
-				copyAsset("NetHack.cnf", "nethackdir/.nethackrc");
+				copyAsset("NetHack.cnf", nethackdir + "/.nethackrc");
 			}
 
 			uiModeActual = optUIModeNew;
 			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
-			if(NetHackInit(pureTTY ? 1 : 0) == 0)
+			if(NetHackInit(pureTTY ? 1 : 0, nethackdir) == 0)
 			{
 				// TODO
 				return;
@@ -849,7 +862,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		boolean match = false;
 
-		String destname = "/data/data/com.nethackff/" + assetname;
+		String destname = getAppDir() + "/" + assetname;
 		File newasset = new File(destname);
 		try
 		{
@@ -882,12 +895,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	public void copyAsset(String assetname)
 	{
-		copyAsset(assetname, assetname);
+		copyAsset(assetname, getAppDir() + "/" + assetname);
 	}
 	
-	public void copyAsset(String srcname, String basedestname)
+	public void copyAsset(String srcname, String destname)
 	{
-		String destname = "/data/data/com.nethackff/" + basedestname;
 		File newasset = new File(destname);
 		try
 		{
@@ -954,8 +966,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 			for(int i = 0; i < assets.length; i++)
 			{
-				copyAsset("nethackdir/" + assets[i]);
-				chmod("/data/data/com.nethackff/nethackdir/" + assets[i], 0666);
+				String destname = getNetHackDir() + "/" + assets[i]; 
+				copyAsset("nethackdir/" + assets[i], destname);
+				chmod(destname, 0666);
 			}
 		}
 		catch (IOException e)
@@ -1382,7 +1395,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		try
 		{
-			copyFileRaw("/data/data/com.nethackff/nethackdir/.nethackrc", outname);
+			copyFileRaw(getNetHackDir() + "/.nethackrc", outname);
 
 			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
 			alert.setTitle(getString(R.string.dialog_Success));
@@ -1402,7 +1415,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		try
 		{
-			copyFileRaw(inname, "/data/data/com.nethackff/nethackdir/.nethackrc"); 
+			copyFileRaw(inname, getNetHackDir() + "/.nethackrc"); 
 
 			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
 			alert.setTitle(getString(R.string.dialog_Success));
@@ -1538,7 +1551,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public /*static*/ NetHackTerminalState statusTerminalState;
 	public NetHackTerminalState menuTerminalState;
 
-	public native int NetHackInit(int puretty);
+	public native int NetHackInit(int puretty, String nethackdir);
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
