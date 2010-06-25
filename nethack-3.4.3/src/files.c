@@ -1243,7 +1243,7 @@ const char *filename;
 
 static int nesting = 0;
 
-#ifdef NO_FILE_LINKS	/* implies UNIX */
+#if defined(NO_FILE_LINKS) || defined(ANDROID)	/* implies UNIX */
 static int lockfd;	/* for lock_file() to pass to unlock_file() */
 #endif
 
@@ -1309,8 +1309,14 @@ int retryct;
 	lockname = fqname(lockname, LOCKPREFIX, 2);
 #endif
 
+	/* On Android, it appears that some devices don't support the link()
+	   call to create a hard link. Specifically, this appears to fail
+	   on all(?) Samsung devices. So, if ANDROID is set, we do most things
+	   as if NO_FILE_LINKS had been set, except that we don't use LOCKDIR.
+	   /FF */
+
 #if defined(UNIX) || defined(VMS)
-# ifdef NO_FILE_LINKS
+# if defined(NO_FILE_LINKS) || defined(ANDROID)
 	while ((lockfd = open(lockname, O_RDWR|O_CREAT|O_EXCL, 0666)) == -1) {
 # else
 	while (link(filename, lockname) == -1) {
@@ -1426,7 +1432,7 @@ const char *filename;
 #if defined(UNIX) || defined(VMS)
 		if (unlink(lockname) < 0)
 			HUP raw_printf("Can't unlink %s.", lockname);
-# ifdef NO_FILE_LINKS
+# if defined(NO_FILE_LINKS) || defined(ANDROID)
 		(void) close(lockfd);
 # endif
 
