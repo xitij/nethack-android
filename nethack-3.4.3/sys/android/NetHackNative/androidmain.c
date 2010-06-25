@@ -1,5 +1,6 @@
 #include "hack.h"
 #include "dlb.h"
+#include "wintty.h"
 
 #include <string.h>
 #include <jni.h>
@@ -54,7 +55,7 @@ enum
 static int s_ReadyForSave = 0;
 static int s_Command = kCmdNone;
 static int s_Quit = 0;
-static int s_PureTTY = 0;
+int g_AndroidPureTTY = 0;
 
 static void NDECL(wd_message);
 #ifdef WIZARD
@@ -359,6 +360,30 @@ void android_autosave_remove()
 	remove(AUTOSAVE_FILENAME);
 }
 
+/* If we need the status lines to redraw, we may need to clear out the
+   previous state like this - if not, characters may not be reprinted if
+   android_putstr_status() thinks they are already there.
+*/
+static void android_clear_winstatus_state()
+{
+	struct WinDesc *cw = wins[WIN_STATUS];
+	int i, j;
+
+	if(cw)
+	{
+		for(i = 0; i < cw->maxrow; i++)
+		{
+			if(cw->data[i])
+			{
+				for(j = 0; j < cw->maxcol; j++)
+				{
+					cw->data[i][j] = '\0';	/* Should this be ' ' instead? */
+				}
+			}
+		}
+	}
+}
+
 /*
 extern int g_android_prevent_output;
 */
@@ -435,7 +460,13 @@ int android_getch(void)
 		{
 			if(android_getgamestate() == kAndroidGameStateMoveLoop)
 			{
+				if(!g_AndroidPureTTY)
+				{
+					android_clear_winstatus_state();
+				}
+
 				bot();
+
 				s_ShouldRefresh = 0;
 			}
 		}
@@ -547,7 +578,7 @@ static void *sThreadFunc()
 		chdir(g_NetHackDir);
 	}
 
-	if(s_PureTTY)
+	if(g_AndroidPureTTY)
 	{
 		choose_windows("tty");
 	}
@@ -556,7 +587,7 @@ static void *sThreadFunc()
 		choose_windows(DEFAULT_WINDOW_SYS);
 	}
 
-	if(!s_PureTTY)
+	if(!g_AndroidPureTTY)
 	{
 		/* As far as the Java side is concerned, we actually pretend to
 		   use the menu window for the startup screen. This is done to get
@@ -633,7 +664,7 @@ static void *sThreadFunc()
 		if(!wizard && remember_wiz_mode) wizard = TRUE;
 #endif
 
-	if(!s_PureTTY)
+	if(!g_AndroidPureTTY)
 	{
 		/* Since we pretend to use a menu window, we need to tell the Java
 		   side of the UI to go back to the main view now, and close the
@@ -659,7 +690,7 @@ static void *sThreadFunc()
 not_recovered:
 		player_selection();
 
-	if(!s_PureTTY)
+	if(!g_AndroidPureTTY)
 	{
 		/* Since we pretend to use a menu window, we need to tell the Java
 		   side of the UI to go back to the main view now, and close the
@@ -716,7 +747,7 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	strcpy(g_NetHackDir, nethackdirnative);
 	(*env)->ReleaseStringUTFChars(env, nethackdir, nethackdirnative);
 
-	s_PureTTY = puretty;
+	g_AndroidPureTTY = puretty;
 	s_SendWaitingForNotFull = 0;
 	s_ReceiveWaitingForData = 0;
 	s_ReceiveWaitingForConsumption = 0;
