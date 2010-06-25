@@ -1,3 +1,9 @@
+1.2.3 (June 25, 2010)
+---------------------
+
+- Changed file locking to prevent "Cannot lock perm for unknown reason"
+  error on Samsung phones.
+
 1.2.2 (June 21, 2010)
 ---------------------
 
