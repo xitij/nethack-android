@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">NetHack</string>
 	<string name="about">About</string>
-	<string name="about_msg">Android version 1.2.2\nPort by Fredrik Farnstrom\nfarnstrom@gmail.com\nIcon by Rich Jones (rich@anomos.info)\nSee Preferences screen for key bindings.\nTouch the screen to scroll (if needed).\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/\n</string>
+	<string name="about_msg">Android version 1.2.3\nPort by Fredrik Farnstrom\nfarnstrom@gmail.com\nIcon by Rich Jones (rich@anomos.info)\nSee Preferences screen for key bindings.\nTouch the screen to scroll (if needed).\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/\n</string>
 	<string name="about_title">NetHack 3.4.3</string>
 	<string name="uimodechanged_msg">The new UI mode will take effect the next time you start the application.</string>
 	<string name="uimodechanged_title">UI mode changed</string>
