@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NetHack</string>
+	<string name="about">About</string>
+	<string name="about_msg">Android version 1.2.3\nPort by Fredrik Farnstrom\nfarnstrom@gmail.com\nIcon by Rich Jones (rich@anomos.info)\nSee Preferences screen for key bindings.\nTouch the screen to scroll (if needed).\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/\n</string>
+	<string name="about_title">NetHack 3.4.3</string>
+	<string name="uimodechanged_msg">The new UI mode will take effect the next time you start the application.</string>
+	<string name="uimodechanged_title">UI mode changed</string>
+	<string name="menu_exportconfig">Export Config</string>
+	<string name="menu_importconfig">Import Config</string>
+	<string name="configexport_msg">This will make a copy of your NetHack configuration file, on your SD card or elsewhere, so you can edit and re-import.</string>
+	<string name="configexport_title">Export Configuration File.</string>
+	<string name="configexport_failed">Failed to copy to</string>
+	<string name="configexport_success">Configuration exported to</string>
+	<string name="configimport_msg">This will copy a NetHack configuration file from your SD card or elsewhere, to where the game can read it.</string>
+	<string name="configimport_title">Import Configuration File.</string>
+	<string name="configimport_failed">Failed to copy from</string>
+	<string name="configimport_failed2">If copying from SD card, make sure it's not mounted on your PC.</string>
+	<string name="configimport_success">Configuration imported from</string>
+	<string name="configimport_success2">These settings will take effect the next time the application starts.</string>
+	<string name="config_defaultfile">/sdcard/NetHack.cnf</string>
+	<string name="dialog_OK">OK</string>
+	<string name="dialog_Cancel">Cancel</string>
+	<string name="dialog_Success">Success</string>
+	<string name="dialog_Error">Error</string>
+	<string name="preferences">Preferences</string>
+	<string-array name="KeyActions">
+		<item>None</item>
+		<item>Virtual Keyboard</item>
+		<item>Alt Key</item>
+		<item>Ctrl Key</item>
+		<item>Shift Key</item>
+		<item>Esc Key</item>
+	</string-array>
+	<string-array name="KeyActionValues">
+		<item>None</item>
+		<item>VirtualKeyboard</item>
+		<item>AltKey</item>
+		<item>CtrlKey</item>
+		<item>ShiftKey</item>
+		<item>EscKey</item>
+	</string-array>
+	<string-array name="UIModeEntries">
+		<item>Pure TTY</item>
+		<item>Android TTY</item>
+	</string-array>
+	<string-array name="UIModeValues">
+		<item>PureTTY</item>
+		<item>AndroidTTY</item>
+	</string-array>
+	<string-array name="ColorModeEntries">
+		<item>White on Black</item>
+		<item>Black on White</item>
+	</string-array>
+	<string-array name="ColorModeValues">
+		<item>WhiteOnBlack</item>
+		<item>BlackOnWhite</item>
+	</string-array>
+	<string-array name="FontSizeEntries">
+		<item>10 pt</item>
+		<item>11 pt</item>
+		<item>12 pt</item>
+		<item>13 pt</item>
+		<item>14 pt</item>
+		<item>15 pt</item>
+	</string-array>
+	<string-array name="FontSizeValues">
+		<item>FontSize10</item>
+		<item>FontSize11</item>
+		<item>FontSize12</item>
+		<item>FontSize13</item>
+		<item>FontSize14</item>
+		<item>FontSize15</item>
+	</string-array>
+</resources>
