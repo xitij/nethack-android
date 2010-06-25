@@ -108,6 +108,7 @@ struct window_procs android_procs = {
 
 static char winpanicstr[] = "Bad window id %d";
 
+
 void android_wininit_data(int *argcp, char **argv)	/* should we have these params? */
 {
 	win_tty_init();
@@ -609,7 +610,6 @@ winid android_create_nhwindow(int type)
 	return newid;
 }
 
-extern int g_AndroidPureTTY;
 
 void android_clear_nhwindow(winid window)
 {
@@ -781,32 +781,6 @@ void android_destroy_nhwindow(winid window)
 	wins[window] = 0;
 }
 
-void android_curs_status(winid window, int x, int y)
-{
-	/* Adapted from tty_curs(). */
-
-    struct WinDesc *cw = 0;
-    int cx = ttyDisplay->curx;
-    int cy = ttyDisplay->cury;
-
-    if(window == WIN_ERR || (cw = wins[window]) == (struct WinDesc *) 0)
-	{
-		panic(winpanicstr,  window);
-	}
-
-    ttyDisplay->lastwin = window;
-
-    cw->curx = --x;	/* column 0 is never used */
-    cw->cury = y;
-
-    x += cw->offx;
-    y += cw->offy;
-
-	cmov(x, y);
-
-    ttyDisplay->curx = x;
-    ttyDisplay->cury = y;
-}
 
 void android_curs(winid window, int x, int y)
 {
@@ -827,8 +801,13 @@ void android_curs(winid window, int x, int y)
 	else if(cw && cw->type == NHW_STATUS)
 	{
 		android_puts("\033A2");
-
-		android_curs_status(window, x, y);
+#if 0
+		int oldco = CO;
+		CO = s_ScreenNumColumns;
+		tty_curs(window, x, y);
+		CO = oldco;
+#endif
+		cmov(x - 1, y);
 
 		android_puts("\033A0");
 		return;
@@ -844,25 +823,24 @@ static void android_putstr_status(struct WinDesc *cw, const char *str)
 {
 	/* Adapted from tty_putstr(). */
 
-	int i, j, n0;
+	int j;
 	char *ob;
-	const char *nb;
 
 	android_puts("\033A2");
 
 	ob = &cw->data[cw->cury][j = cw->curx];
-	if(flags.botlx)
-	{
-		*ob = 0;
-	}
+	if(flags.botlx) *ob = 0;
 
 	if(!cw->cury && (int)strlen(str) >= s_StatusNumColumns)
 	{
+		const char *nb;
+
 	    /* the characters before "St:" are unnecessary */
 	    nb = index(str, ':');
 	    if(nb && nb > str+2)
 			str = nb - 2;
 	}
+#if 0
 	nb = str;
 	for(i = cw->curx + 1, n0 = cw->cols; i < n0; i++, nb++)
 	{
@@ -871,32 +849,24 @@ static void android_putstr_status(struct WinDesc *cw, const char *str)
 			if(*ob || flags.botlx)
 			{
 			    /* last char printed may be in middle of line */
-				tty_curs(WIN_STATUS, i, cw->cury);
+			 	android_curs(WIN_STATUS, i, cw->cury);
 			    cl_end();
 			}
 			break;
 	    }
 	    if(*ob != *nb)
-		{
-			/* Adapted from tty_putsym() */
-
-			tty_curs(WIN_STATUS, i, cw->cury);
-			putchar(*nb);
-
-			ttyDisplay->curx++;
-
-			cw->curx++;
-		}
+			tty_putsym(WIN_STATUS, i, cw->cury, *nb);
 	    if(*ob)
 			ob++;
 	}
+#endif
 
-	/* Keeping track of the old data here is important to support
-	   colors in the status window - it works in a way that's a bit
-	   funky, selecting the color first, and then reprinting the whole
-	   line, relying on that this function only prints the characters
-	   that have changed, using the new color. */
-	strncpy(&cw->data[cw->cury][j], str, cw->cols - j - 1);
+	android_puts(str);
+	cl_end();
+
+	/* Note: not sure exactly if there really is a point to storing
+	   the current contents here. */
+	(void)strncpy(&cw->data[cw->cury][j], str, cw->cols - j - 1);
 	cw->data[cw->cury][cw->cols-1] = '\0'; /* null terminate */
 	cw->cury = (cw->cury+1) % 2;
 	cw->curx = 0;
