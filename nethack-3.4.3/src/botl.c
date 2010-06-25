@@ -69,28 +69,53 @@ const struct percent_color_option *color_options;
 	return percentage_color_of(value, max, color_options->next);
 }
 
+#if ANDROID
+void android_push_winstatus();
+void android_pop_winstatus();
+#endif
+
 void
 start_color_option(color_option)
 struct color_option color_option;
 {
+#if ANDROID
+	/* This is needed to tell the Android UI that it is
+	   the color in the status window that we want to change,
+	   as we don't pass in any window ID to the term_start_...()
+	   functions. Not really clean, but it works. */
+	android_push_winstatus();
+#endif
 	int i;
 	if (color_option.color != NO_COLOR)
 		term_start_color(color_option.color);
 	for (i = 0; (1 << i) <= color_option.attr_bits; ++i)
 		if (i != ATR_NONE && color_option.attr_bits & (1 << i))
 			term_start_attr(i);
+#if ANDROID
+	android_pop_winstatus();
+#endif
 }
 
 void
 end_color_option(color_option)
 struct color_option color_option;
 {
+#if ANDROID
+	/* This is needed to tell the Android UI that it is
+	   the color in the status window that we want to change,
+	   as we don't pass in any window ID to the term_start_...()
+	   functions. Not really clean, but it works. */
+	android_push_winstatus();
+#endif
 	int i;
 	if (color_option.color != NO_COLOR)
 		term_end_color(color_option.color);
 	for (i = 0; (1 << i) <= color_option.attr_bits; ++i)
 		if (i != ATR_NONE && color_option.attr_bits & (1 << i))
 			term_end_attr(i);
+#if ANDROID
+	android_pop_winstatus();
+#endif
 }
 
 void

@@ -611,6 +611,24 @@ winid android_create_nhwindow(int type)
 
 extern int g_AndroidPureTTY;
 
+void android_push_winstatus()
+{
+	if(!g_AndroidPureTTY)
+	{
+		android_puts("\033A2");
+	}
+}
+
+
+void android_pop_winstatus()
+{
+	if(!g_AndroidPureTTY)
+	{
+		android_puts("\033A0");
+	}
+}
+
+
 void android_clear_nhwindow(winid window)
 {
 	struct WinDesc *cw = wins[window];
