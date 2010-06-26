@@ -196,7 +196,37 @@ void android_popgamestate()
 	}
 }
 
+struct AndroidUnicodeRemap
+{
+	char		ascii;
+	uint16_t	unicode;
+};
 
+static const struct AndroidUnicodeRemap s_IbmGraphicsRemap[] =
+{
+	{	0xb3, 0x2502	},
+	{	0xc4, 0x2500	},
+	{	0xda, 0x250c	},
+	{	0xbf, 0x2510	},
+	{	0xc0, 0x2514	},
+	{	0xd9, 0x2518	},
+	{	0xc5, 0x253c	},
+	{	0xc1, 0x2534	},
+	{	0xc2, 0x252c	},
+	{	0xb4, 0x2524	},
+	{	0xc3, 0x251c	},
+/*	{	0xb0, 0x2591	}, 		Missing in Droid monospace font? */
+	{	0xb0, '#'		},
+	{	0xb1, 0x2592	},
+	{	0xf0, 0x2261	},
+	{	0xf1, 0x00b1	},
+/*	{	0xf4, 0x2320	},		Missing in Droid monospace font? */
+	{	0xf4, '{'		},
+	{	0xf7, 0x2248	},
+	{	0xfa, 0x00b7	},
+	{	0xfe, 0x25a0	},
+	{	0x00, 0x0000	}
+};
 
 static void android_putchar_internal(int c)
 {
@@ -204,13 +234,76 @@ static void android_putchar_internal(int c)
 	{
 		pthread_mutex_lock(&s_SendMutex);
 
-		if(s_SendCnt < SENDBUFFSZ)
+		uint16_t unicode = c;
+
+		if(c >= 128)
 		{
-			s_SendBuff[s_SendCnt++] = (char)c;
+			/* Here, we map the relevant extended characters from MSDOS
+				to their Unicode equivalent. */
 
-			pthread_mutex_unlock(&s_SendMutex);
+			const struct AndroidUnicodeRemap *remapPtr = s_IbmGraphicsRemap;
 
-			return;
+			unicode = 0xbf;	/* Inverted question mark to indicate unknown */
+
+			/* TODO: Would be nice with binary search here. */
+			while(remapPtr->ascii)
+			{
+				if(remapPtr->ascii == c)
+				{
+					unicode = remapPtr->unicode;
+					break;
+				}
+				remapPtr++;
+			}
+		}
+
+		/* Store the Unicode in the buffer using UTF8 encoding. Note:
+		   we could potentially just store them with 2 byte per character
+		   Unicode in the array. */
+
+		if(unicode >= 0x800)
+		{
+			if(s_SendCnt < SENDBUFFSZ - 2)
+			{
+				unsigned char c1 = 0xe0 + ((unicode & 0xf000) >> 12);
+				unsigned char c2 = 0x80 + ((unicode & 0x0f00) >> 6) + ((unicode & 0x00c0) >> 6);
+				unsigned char c3 = 0x80 + (unicode & 0x003f);
+
+				s_SendBuff[s_SendCnt++] = (char)c1;
+				s_SendBuff[s_SendCnt++] = (char)c2;
+				s_SendBuff[s_SendCnt++] = (char)c3;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+		}
+		else if(unicode >= 0x80)
+		{
+			if(s_SendCnt < SENDBUFFSZ - 1)
+			{
+				unsigned char c1 = 0xc0 + ((unicode & 0x0700) >> 6) + ((unicode & 0x00c0) >> 6);
+				unsigned char c2 = 0x80 + (unicode & 0x003f);
+
+				s_SendBuff[s_SendCnt++] = (char)c1;
+				s_SendBuff[s_SendCnt++] = (char)c2;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+
+		}
+		else
+		{
+			if(s_SendCnt < SENDBUFFSZ)
+			{
+				s_SendBuff[s_SendCnt++] = (char)unicode;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
 		}
 
 		s_SendWaitingForNotFull = 1;
