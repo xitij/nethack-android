@@ -3,6 +3,8 @@
 
 #define TEXTCOLOR		/* Use colored monsters and objects */
 
+#define ASCIIGRAPH		/* Enable IBMgraphics option */
+
 // TODO
 #if 0
 #define HACKFONT		/* Use special hack.font */
