@@ -47,10 +47,23 @@ static int s_GameStateStackCount = 0;
 
 enum
 {
-	kCmdNone = 0,
-	kCmdSave = 1,
-	kCmdRefresh = 2
+	kCmdNone,
+	kCmdSave,
+	kCmdRefresh,
+	kCmdSwitchTo128,
+	kCmdSwitchToAmiga,
+	kCmdSwitchToIBM
 };
+
+enum
+{
+	kCharSet128,
+	kCharSetIBM,
+	kCharSetAmiga
+};
+
+static int s_CurrentCharSet = kCharSet128;
+static int s_InitCharSet = kCharSet128;
 
 static int s_ReadyForSave = 0;
 static int s_Command = kCmdNone;
@@ -196,6 +209,29 @@ void android_popgamestate()
 	}
 }
 
+
+void android_setcharset(int charsetindex)
+{
+	switch(charsetindex)
+	{
+		case kCharSetAmiga:
+			read_config_file("charset_amiga.cnf");
+			s_CurrentCharSet = kCharSetAmiga;
+			break;
+		case kCharSetIBM:
+			read_config_file("charset_ibm.cnf");
+			s_CurrentCharSet = kCharSetIBM;
+			break;
+		case kCharSet128:
+			read_config_file("charset_128.cnf");
+			s_CurrentCharSet = kCharSet128;
+			break;
+		default:
+			break;
+	}
+}
+
+
 struct AndroidUnicodeRemap
 {
 	char		ascii;
@@ -216,7 +252,8 @@ static const struct AndroidUnicodeRemap s_IbmGraphicsRemap[] =
 	{	0xb4, 0x2524	},
 	{	0xc3, 0x251c	},
 /*	{	0xb0, 0x2591	}, 		Missing in Droid monospace font? */
-	{	0xb0, '#'		},
+/*	{	0xb0, '#'		},*/
+	{	0xb0, 0x7000 + 218	},
 	{	0xb1, 0x2592	},
 	{	0xf0, 0x2261	},
 	{	0xf1, 0x00b1	},
@@ -236,35 +273,33 @@ static void android_putchar_internal(int c)
 
 		uint16_t unicode = c;
 
-#if 0
 		if(c >= 128)
 		{
-			/* Here, we map the relevant extended characters from MSDOS
-				to their Unicode equivalent. */
-
-			const struct AndroidUnicodeRemap *remapPtr = s_IbmGraphicsRemap;
-
-			unicode = 0xbf;	/* Inverted question mark to indicate unknown */
-
-			/* TODO: Would be nice with binary search here. */
-			while(remapPtr->ascii)
+			if(s_CurrentCharSet != kCharSetAmiga)
 			{
-				if(remapPtr->ascii == c)
+				/* Here, we map the relevant extended characters from MSDOS
+					to their Unicode equivalent. */
+
+				const struct AndroidUnicodeRemap *remapPtr = s_IbmGraphicsRemap;
+
+				unicode = 0xbf;	/* Inverted question mark to indicate unknown */
+
+				/* TODO: Would be nice with binary search here. */
+				while(remapPtr->ascii)
 				{
-					unicode = remapPtr->unicode;
-					break;
+					if(remapPtr->ascii == c)
+					{
+						unicode = remapPtr->unicode;
+						break;
+					}
+					remapPtr++;
 				}
-				remapPtr++;
+			}
+			else
+			{
+				unicode = 0x7000 + (unsigned int)c;
 			}
 		}
-#else
-/*		if(c >= 192)
-*/
-		if(c >= 128)
-		{
-			unicode = 0x7000 + (unsigned int)c;
-		}
-#endif
 
 		/* Store the Unicode in the buffer using UTF8 encoding. Note:
 		   we could potentially just store them with 2 byte per character
@@ -490,6 +525,7 @@ static void android_clear_winstatus_state()
 extern int g_android_prevent_output;
 */
 static int s_ShouldRefresh = 0;
+static int s_SwitchCharSetCmd = -1;
 
 int android_getch(void)
 {
@@ -542,6 +578,12 @@ int android_getch(void)
 			{
 				s_ShouldRefresh = 1;
 			}
+			else if(cmd == kCmdSwitchToAmiga ||
+					cmd == kCmdSwitchToIBM ||
+					cmd == kCmdSwitchTo128)
+			{
+				s_SwitchCharSetCmd = cmd;
+			}
 
 			if(s_WaitingForCommandPerformed)
 			{
@@ -556,6 +598,38 @@ int android_getch(void)
 			}
 
 			continue;
+		}
+
+		if(s_SwitchCharSetCmd >= 0)
+		{
+			if(android_getgamestate() == kAndroidGameStateMoveLoop)
+			{
+				switch(s_SwitchCharSetCmd)
+				{
+					case kCmdSwitchToAmiga:
+						android_setcharset(kCharSetAmiga);
+						break;
+					case kCmdSwitchToIBM:
+						android_setcharset(kCharSetIBM);
+						break;
+					case kCmdSwitchTo128:
+						android_setcharset(kCharSet128);
+						break;
+					default:
+						break;
+				}
+
+		if(s_ReceiveCnt < RECEIVEBUFFSZ)
+		{
+			s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+		}
+#if 0
+				doredraw();
+
+#endif
+
+				s_SwitchCharSetCmd = -1;
+			}
 		}
 
 		if(s_ShouldRefresh)
@@ -708,6 +782,10 @@ static void *sThreadFunc()
 		    || !strncmp(plname, "games", 4)) {
 		askname();
 	}
+
+	int charset = s_InitCharSet;
+	s_InitCharSet = -1;
+	android_setcharset(charset);
 
 	android_makelock();
 
@@ -980,6 +1058,40 @@ void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
 	sSendCmd(kCmdRefresh, 0);
 }
 
+
+void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
+		JNIEnv *env, jobject thiz, int charset)
+{
+	int cmd = -1;
+
+	if(s_InitCharSet >= 0)
+	{
+		s_InitCharSet = charset;
+		return;
+	}
+
+	switch(charset)
+	{
+		case kCharSet128:
+			cmd = kCmdSwitchTo128;
+			break;
+		case kCharSetIBM:
+			cmd = kCmdSwitchToIBM;
+			break;
+		case kCharSetAmiga:
+			cmd = kCmdSwitchToAmiga;
+			break;
+		default:
+			break;
+	}
+
+	if(cmd < 0)
+	{
+		return;
+	}
+
+	sSendCmd(cmd, 0);
+}
 
 
 int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,

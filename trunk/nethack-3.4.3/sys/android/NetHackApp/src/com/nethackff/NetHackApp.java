@@ -155,10 +155,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		FontSize14,
 		FontSize15
 	}
+
+	enum CharacterSet
+	{
+		Invalid,
+		ANSI128,
+		IBM,
+		Amiga
+	}
+	
 	boolean optAllowTextReformat = true;
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
 	UIMode optUIModeNew = UIMode.Invalid;
+	CharacterSet optCharacterSet = CharacterSet.Invalid;
 	FontSize optFontSize = FontSize.FontSize10;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
@@ -1145,6 +1155,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int textsizebefore = getOptFontSize();
 		boolean allowreformatbefore = optAllowTextReformat;
 
+		CharacterSet characterSetBefore = optCharacterSet;
+		
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -1171,6 +1183,33 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			dialog.show();
 		}
 
+// TEMP
+		Log.i("NetHackDbg", "Before: " + characterSetBefore.toString() + " After: " + optCharacterSet);
+		if(optCharacterSet != characterSetBefore)
+		{
+			int index = -1;
+			switch(optCharacterSet)
+			{
+				case ANSI128:
+					index = 0;
+					break;
+				case IBM:
+					index = 1;
+					break;
+				case Amiga:
+					index = 2;
+					break;
+					
+			}
+			if(index >= 0)
+			{
+				// TEMP
+				Log.i("NetHackDbg", "Switching to mode " + index);
+
+				NetHackSwitchCharSet(index);
+			}
+		}
+		
 		boolean blackonwhite = (optColorMode == ColorMode.BlackOnWhite);
 		mainView.setWhiteBackgroundMode(blackonwhite);
 		menuView.setWhiteBackgroundMode(blackonwhite);
@@ -1350,6 +1389,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		menuTerminalState = new NetHackTerminalState();
 
 		getPrefs();
+		optCharacterSet = CharacterSet.Invalid;
 
 		boolean pureTTY;
 		if(!gameInitialized)
@@ -1588,6 +1628,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
+		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 	}
 
@@ -1607,7 +1648,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native int NetHackSave();
 	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
 	public native void NetHackRefreshDisplay();
-
+	public native void NetHackSwitchCharSet(int charsetindex);
+	
 	public native int NetHackGetPlayerPosX();
 	public native int NetHackGetPlayerPosY();
 	public native int NetHackGetPlayerPosShouldRecenter();

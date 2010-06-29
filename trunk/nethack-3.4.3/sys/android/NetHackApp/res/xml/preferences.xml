@@ -27,6 +27,13 @@
 			android:entryValues="@array/UIModeValues"/>
 
 		<ListPreference
+			android:title="Character Set"
+			android:key="CharacterSet"
+			android:defaultValue="Amiga"
+			android:entries="@array/CharacterSetEntries"
+			android:entryValues="@array/CharacterSetValues"/>
+
+		<ListPreference
 			android:title="Font Size"
 			android:key="FontSize"
 			android:defaultValue="FontSize10"
