@@ -12,6 +12,9 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.inputmethodservice.Keyboard;
@@ -1312,7 +1315,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		return sz;
 	}
-	
+
+	Bitmap fontBitmap;
+
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -1371,6 +1376,29 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 //		mainView.sizePixelsY -= 120;	// TEMP
 		mainView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 
+		fontBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dungeonfont);
+		mainView.fontBitmap = fontBitmap;
+		mainView.amigaColors = true;
+		if(fontBitmap != null)
+		{
+/*
+			// Fix up the alpha, to make the background transparent. Could be done offline.
+			int sx = fontBitmap.getWidth();
+			int sy = fontBitmap.getHeight();
+			for(int y = 0; y < sy; y++)
+			{
+				for(int x = 0; x < sx; x++)
+				{
+					int col = fontBitmap.getPixel(x, y);
+					if(Color.red(col) == 0 && Color.green(col) == 0 && Color.blue(col) == 0)
+					{
+						//fontBitmap.setPixel(x, y, Color.argb(0, 0, 0, 0));
+					}
+				}
+			}
+*/
+		}
+		
 		keyboardShownInConfig = new boolean[ScreenConfig.values().length];
 		keyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = true;
 		keyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = false;
