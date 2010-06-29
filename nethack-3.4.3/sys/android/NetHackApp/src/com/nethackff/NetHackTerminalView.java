@@ -1,9 +1,14 @@
 package com.nethackff;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff.Mode;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.Log;
 import android.view.View;
@@ -15,6 +20,9 @@ public class NetHackTerminalView extends View
 
 	public boolean reformatText = false;	
 
+	public Bitmap fontBitmap;
+	
+	public final int ybackgroffs = 2;
 	public int offsetX = 0;
 	public int offsetY = 0;
 	public int sizeX;
@@ -26,8 +34,9 @@ public class NetHackTerminalView extends View
 	public int extraSizeX = 0;
 	public int extraSizeY = 0;
 
+	Paint bitmapPaint;
 	Paint textPaint;
-
+	
 	private int textSize = 10;
 
 	public int getNumDisplayedLines()
@@ -193,6 +202,9 @@ public class NetHackTerminalView extends View
 		textPaint.setTypeface(Typeface.MONOSPACE);
 		textPaint.setAntiAlias(true);
 
+		bitmapPaint = new Paint();
+		bitmapPaint.setAntiAlias(true);
+
 		offsetX = 0;
 		offsetY = 0;
 		sizeX = term.numColumns;
@@ -246,8 +258,59 @@ public class NetHackTerminalView extends View
 	{
 		return sizeY;
 	}
-	void setPaintColorForeground(Paint paint, int col)
+
+	boolean amigaColors = false;
+
+	void setPaintColorForegroundAmiga(Paint paint, int col, Paint bitmappaint, boolean cursor)
 	{
+		paint.setFakeBoldText(false);
+		if((col & 16) != 0)
+		{
+			paint.setUnderlineText(true);
+			col &= ~16;
+		}
+		else
+		{
+			paint.setUnderlineText(false);
+		}
+
+		int rgb[] = { 0x000, 0xfff, 0x830, 0x7ac, 0x181, 0xc06, 0x23e, 0xc00, 0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
+		int fgpens[] = { 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
+		int pen = fgpens[col];
+
+		if(cursor)
+		{
+			pen = (0xf & ~pen);
+		}
+		int argb = Color.argb(0xff, ((rgb[pen] & 0xf00) >> 8)*0x11, ((rgb[pen] & 0x0f0) >> 4)*0x11, (rgb[pen] & 0x00f)*0x11);
+		paint.setColor(argb);
+//		bitmappaint.setColorFilter(new PorterDuffColorFilter(argb, Mode.MULTIPLY));
+		bitmappaint.setColorFilter(new PorterDuffColorFilter(argb, Mode.SRC_ATOP));
+		
+	}
+	void setPaintColorForeground(Paint paint, int col, Paint bitmappaint, boolean cursor)
+	{
+		if(amigaColors && !whiteBackgroundMode)
+		{
+			setPaintColorForegroundAmiga(paint, col, bitmappaint, cursor);
+			return;
+		}
+
+		if(cursor)
+		{
+			boolean bold = false;
+			if(col >= 8)
+			{
+				col -= 8;
+				bold = true;
+			}
+			col = 7 - col;
+			if(bold)
+			{
+				col += 8;
+			}
+		}
+
 		if((col & 8) != 0)
 		{
 			paint.setFakeBoldText(true);
@@ -266,76 +329,168 @@ public class NetHackTerminalView extends View
 		{
 			paint.setUnderlineText(false);
 		}
+
+		int argb;		
 		if(whiteBackgroundMode)
 		{
 			switch(col)
 			{
 				case NetHackTerminalState.kColBlack:
-					paint.setARGB(0xff, 0xff, 0xff, 0xff);
+					argb = Color.argb(0xff, 0xff, 0xff, 0xff);
 					break;
 				case NetHackTerminalState.kColRed:
-					paint.setARGB(0xff, 0xff, 0x00, 0x00);
+					argb = Color.argb(0xff, 0xff, 0x00, 0x00);
 					break;
 				case NetHackTerminalState.kColGreen:
-					paint.setARGB(0xff, 0x00, 0xc0, 0x00);
+					argb = Color.argb(0xff, 0x00, 0xc0, 0x00);
 					break;
 				case NetHackTerminalState.kColYellow:
-					paint.setARGB(0xff, 0xb0, 0xb0, 0x00);
+					argb = Color.argb(0xff, 0xb0, 0xb0, 0x00);
 					break;
 				case NetHackTerminalState.kColBlue:
-					paint.setARGB(0xff, 0x00, 0x00, 0xff);
+					argb = Color.argb(0xff, 0x00, 0x00, 0xff);
 					break;
 				case NetHackTerminalState.kColMagenta:
-					paint.setARGB(0xff, 0xff, 0x00, 0xff);
+					argb = Color.argb(0xff, 0xff, 0x00, 0xff);
 					break;
 				case NetHackTerminalState.kColCyan:
-					paint.setARGB(0xff, 0x00, 0xb0, 0xb0);
+					argb = Color.argb(0xff, 0x00, 0xb0, 0xb0);
 					break;
 				case NetHackTerminalState.kColWhite:
-					paint.setARGB(0xff, 0x00, 0x00, 0x00);
+					argb = Color.argb(0xff, 0x00, 0x00, 0x00);
 					break;
 				default:
-					paint.setARGB(0x80, 0x80, 0x80, 0x80);
+					argb = Color.argb(0x80, 0x80, 0x80, 0x80);
 					break;
 			}
 		}
 		else
-		{			
-			switch(col)
+		{
+			if(amigaColors)
 			{
-				case NetHackTerminalState.kColBlack:
-					paint.setARGB(0xff, 0x00, 0x00, 0x00);
-					break;
-				case NetHackTerminalState.kColRed:
-					paint.setARGB(0xff, 0xff, 0x00, 0x00);
-					break;
-				case NetHackTerminalState.kColGreen:
-					paint.setARGB(0xff, 0x00, 0xff, 0x00);
-					break;
-				case NetHackTerminalState.kColYellow:
-					paint.setARGB(0xff, 0xff, 0xff, 0x00);
-					break;
-				case NetHackTerminalState.kColBlue:
-					paint.setARGB(0xff, 0x00, 0x00, 0xff);
-					break;
-				case NetHackTerminalState.kColMagenta:
-					paint.setARGB(0xff, 0xff, 0x00, 0xff);
-					break;
-				case NetHackTerminalState.kColCyan:
-					paint.setARGB(0xff, 0x00, 0xff, 0xff);
-					break;
-				case NetHackTerminalState.kColWhite:
-					paint.setARGB(0xff, 0xff, 0xff, 0xff);
-					break;
-				default:
-					paint.setARGB(0x80, 0x80, 0x80, 0x80);
-					break;
+				switch(col)
+				{
+					case NetHackTerminalState.kColBlack:
+						argb = Color.argb(0xff, 0x00, 0x00, 0x00);
+						break;
+					case NetHackTerminalState.kColRed:
+						argb = Color.argb(0xff, 0xcc, 0x00, 0x00);
+						break;
+					case NetHackTerminalState.kColGreen:
+						argb = Color.argb(0xff, 0x11, 0x88, 0x11);
+						break;
+					case NetHackTerminalState.kColYellow:
+						argb = Color.argb(0xff, 0x88, 0x33, 0x00);
+						break;
+					case NetHackTerminalState.kColBlue:
+						argb = Color.argb(0xff, 0x22, 0x33, 0xee);
+						break;
+					case NetHackTerminalState.kColMagenta:
+						argb = Color.argb(0xff, 0xcc, 0x00, 0x66);
+						break;
+					case NetHackTerminalState.kColCyan:
+						argb = Color.argb(0xff, 0x77, 0xaa, 0xcc);
+						break;
+					case NetHackTerminalState.kColWhite:
+						argb = Color.argb(0xff, 0x88, 0x88, 0x88);
+						break;
+					case 8:
+						argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+						break;
+					case 9:
+						argb = Color.argb(0xff, 0xff, 0x66, 0x00);
+						break;
+					case 10:
+						argb = Color.argb(0xff, 0x44, 0xff, 0x44);
+						break;
+					case 11:
+						argb = Color.argb(0xff, 0xff, 0xff, 0x00);
+						break;
+					case 12:
+						argb = Color.argb(0xff, 0x44, 0xaa, 0xff);
+						break;
+					case 13:
+						argb = Color.argb(0xff, 0xff, 0x88, 0xff);
+						break;
+					case 14:
+						argb = Color.argb(0xff, 0x88, 0xff, 0xff);
+						break;
+					case 15:
+						argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+						break;
+					default:
+						argb = Color.argb(0x80, 0x80, 0x80, 0x80);
+						break;
+				}
+			}
+			else
+			{
+				switch(col)
+				{
+					case NetHackTerminalState.kColBlack:
+						argb = Color.argb(0xff, 0x00, 0x00, 0x00);
+						break;
+					case NetHackTerminalState.kColRed:
+						argb = Color.argb(0xff, 0xff, 0x00, 0x00);
+						break;
+					case NetHackTerminalState.kColGreen:
+						argb = Color.argb(0xff, 0x00, 0xff, 0x00);
+						break;
+					case NetHackTerminalState.kColYellow:
+						argb = Color.argb(0xff, 0xff, 0xff, 0x00);
+						break;
+					case NetHackTerminalState.kColBlue:
+						argb = Color.argb(0xff, 0x00, 0x00, 0xff);
+						break;
+					case NetHackTerminalState.kColMagenta:
+						argb = Color.argb(0xff, 0xff, 0x00, 0xff);
+						break;
+					case NetHackTerminalState.kColCyan:
+						argb = Color.argb(0xff, 0x00, 0xff, 0xff);
+						break;
+					case NetHackTerminalState.kColWhite:
+						argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+						break;
+					default:
+						argb = Color.argb(0x80, 0x80, 0x80, 0x80);
+						break;
+				}
 			}
 		}
+
+		paint.setColor(argb);
+		bitmappaint.setColorFilter(new PorterDuffColorFilter(argb, Mode.SRC_ATOP));
 	}
 
-	void setPaintColorBackground(Paint paint, int col)
+	void setPaintColorBackgroundAmiga(Paint paint, int col, boolean cursor)
 	{
+		// TODO: Move out
+		int rgb[] = { 0x000, 0xfff, 0x830, 0x7ac, 0x181, 0xc06, 0x23e, 0xc00, 0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
+//		int bgpens[] = { 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		int bgpens[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		int pen = bgpens[col];
+
+		if(cursor)
+		{
+			pen = (0xf & ~pen);
+		}
+		int argb = Color.argb(0xff, ((rgb[pen] & 0xf00) >> 8)*0x11, ((rgb[pen] & 0x0f0) >> 4)*0x11, (rgb[pen] & 0x00f)*0x11);
+		paint.setColor(argb);
+		//paint.setColorFilter(new PorterDuffColorFilter(argb, Mode.MULTIPLY));
+	}
+	
+	void setPaintColorBackground(Paint paint, int col, boolean cursor)
+	{
+		if(amigaColors && !whiteBackgroundMode)
+		{
+			setPaintColorBackgroundAmiga(paint, col, cursor);
+			return;
+		}
+
+		if(cursor)
+		{
+			col = 7 - col;
+		}
 		switch(col)
 		{
 			case NetHackTerminalState.kColBlack:
@@ -437,7 +592,7 @@ public class NetHackTerminalView extends View
 				return;
 			}
 		}
-		onDrawFixed(canvas);	
+		onDrawFixed(canvas);
 	}
 	
 	
@@ -447,6 +602,7 @@ public class NetHackTerminalView extends View
 	{
 		int currentx1 = -1;
 		int currentcolor = -1;
+		boolean currentcursor = false;
 
 		for(int index = 0; index < numChars; x += charWidth, index++)
 		{
@@ -462,23 +618,25 @@ public class NetHackTerminalView extends View
 			}
 			int color = terminal.decodeFormatBackground(fmt);
 
+			boolean cursor = false;
 			if(cursorIndex == index && drawCursor)
 			{
-				color = 7 - color;
+				cursor = true;
 			}
-			if(color == currentcolor)
+			if(color == currentcolor && cursor == currentcursor)
 			{
 				continue;
 			}
 			if(currentx1 >= 0)
 			{
-				setPaintColorBackground(textPaint, currentcolor);
+				setPaintColorBackground(textPaint, currentcolor, currentcursor);
 				canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
 			}
 			currentx1 = x;
 			currentcolor = color;
+			currentcursor = cursor;
 		}
-		setPaintColorBackground(textPaint, currentcolor);
+		setPaintColorBackground(textPaint, currentcolor, currentcursor);
 		canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
 	}	
 
@@ -496,14 +654,48 @@ public class NetHackTerminalView extends View
 		int len = currentstr.length();
 		float positions[] = new float[len*2];
 
+		float x1 = currentx1;
+		char []newstr = new char[len];
 		int k = 0;
+		boolean foundspecial = false;
 		for(int i = 0; i < len; i++)
 		{
-			positions[k++] = currentx1;
+			positions[k++] = x1;
 			positions[k++] = y;
-			currentx1 += charWidth;
+			x1 += charWidth;
+			char c = currentstr.charAt(i);
+
+			if(c >= 0x7000 && fontBitmap != null)
+			{
+				c = ' ';
+				foundspecial = true;
+			}
+
+			newstr[i] = c;
 		}
-		canvas.drawPosText(currentstr, positions, textPaint);
+		canvas.drawPosText(newstr, 0, len, positions, textPaint);
+
+		if(fontBitmap != null && foundspecial)
+		{
+			x1 = currentx1;
+			for(int i = 0; i < len; i++)
+			{
+				char c = currentstr.charAt(i);
+				if(c >= 0x7000)
+				{
+					float topy = y - charHeight + ybackgroffs;
+
+					int charindex = c - 0x7000 - 32;
+					int bitmapcharwidth = 8;
+					int bitmapcharheight = 8;
+					//canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapcharwidth, 0, (charindex + 1)*bitmapcharwidth - 1, bitmapcharheight - 1), new RectF(x1, topy, x1 + charWidth - 1, topy + charHeight - 1), paint); 			
+					//canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapcharwidth, 0, (charindex + 1)*bitmapcharwidth - 1, bitmapcharheight - 1), new RectF(x1, topy, x1 + charWidth, topy + charHeight), paint); 			
+					canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapcharwidth, 0, (charindex + 1)*bitmapcharwidth, bitmapcharheight), new RectF(x1, topy, x1 + charWidth, topy + charHeight), bitmapPaint);
+				}
+				x1 += charWidth;
+			}
+		}
+
 	}
 	
 	protected void drawRowForeground(Canvas canvas,
@@ -513,6 +705,7 @@ public class NetHackTerminalView extends View
 	{
 		int currentx1 = -1;
 		int currentcolor = -1;
+		boolean currentcursor = false;
 		String currentstr = "";
 		for(int index = 0; index < numChars; x += charWidth, index++)
 		{
@@ -531,36 +724,28 @@ public class NetHackTerminalView extends View
 			}
 			int color = terminal.decodeFormatForeground(fmt);
 
+			boolean cursor = false;
 			if(cursorIndex == index && drawCursor)
 			{
-				boolean bold = false;
-				if(color >= 8)
-				{
-					color -= 8;
-					bold = true;
-				}
-				color = 7 - color;
-				if(bold)
-				{
-					color += 8;
-				}
+				cursor = true;
 			}
 
-			if(color == currentcolor)
+			if(color == currentcolor && cursor == currentcursor)
 			{
 				currentstr += c;
 				continue;
 			}
 			if(currentx1 >= 0)
 			{
-				setPaintColorForeground(textPaint, currentcolor);
+				setPaintColorForeground(textPaint, currentcolor, bitmapPaint, currentcursor);
 				drawText(canvas, currentstr, (float)currentx1, (float)y, textPaint);
 			}
 			currentx1 = x;
 			currentcolor = color;
+			currentcursor = cursor;
 			currentstr = "" + c;
 		}
-		setPaintColorForeground(textPaint, currentcolor);
+		setPaintColorForeground(textPaint, currentcolor, bitmapPaint, currentcursor);
 		drawText(canvas, currentstr,
 				(float)currentx1, (float)y, textPaint);
 	}
@@ -771,7 +956,6 @@ s += nextRowTxt[j - 1];
 				}
 				else
 				{
-					int ybackgroffs = 2;
 					int viewYF = viewY + charHeight - ybackgroffs;
 
 					drawRowForeground(canvas, viewX, viewYF, rowTxt, rowFmt, 0, viewCols, cursorindex);

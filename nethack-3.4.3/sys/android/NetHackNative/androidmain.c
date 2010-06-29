@@ -236,6 +236,7 @@ static void android_putchar_internal(int c)
 
 		uint16_t unicode = c;
 
+#if 0
 		if(c >= 128)
 		{
 			/* Here, we map the relevant extended characters from MSDOS
@@ -256,6 +257,14 @@ static void android_putchar_internal(int c)
 				remapPtr++;
 			}
 		}
+#else
+/*		if(c >= 192)
+*/
+		if(c >= 128)
+		{
+			unicode = 0x7000 + (unsigned int)c;
+		}
+#endif
 
 		/* Store the Unicode in the buffer using UTF8 encoding. Note:
 		   we could potentially just store them with 2 byte per character
