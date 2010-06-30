@@ -259,7 +259,13 @@ public class NetHackTerminalView extends View
 		return sizeY;
 	}
 
-	boolean amigaColors = false;
+	enum ColorSet
+	{
+		AnsiTerminal,
+		IBM,
+		Amiga
+	};
+	ColorSet colorSet = ColorSet.AnsiTerminal;
 
 	void setPaintColorForegroundAmiga(Paint paint, int col, Paint bitmappaint, boolean cursor)
 	{
@@ -274,28 +280,67 @@ public class NetHackTerminalView extends View
 			paint.setUnderlineText(false);
 		}
 
-		int rgb[] = { 0x000, 0xfff, 0x830, 0x7ac, 0x181, 0xc06, 0x23e, 0xc00, 0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
-		int fgpens[] = { 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
-		int pen = fgpens[col];
+		int pen = colSetAmiga_fgpens[col];
 
 		if(cursor)
 		{
 			pen = (0xf & ~pen);
 		}
-		int argb = Color.argb(0xff, ((rgb[pen] & 0xf00) >> 8)*0x11, ((rgb[pen] & 0x0f0) >> 4)*0x11, (rgb[pen] & 0x00f)*0x11);
+		int argb = Color.argb(0xff, ((colSetAmiga_rgb[pen] & 0xf00) >> 8)*0x11, ((colSetAmiga_rgb[pen] & 0x0f0) >> 4)*0x11, (colSetAmiga_rgb[pen] & 0x00f)*0x11);
 		paint.setColor(argb);
-//		bitmappaint.setColorFilter(new PorterDuffColorFilter(argb, Mode.MULTIPLY));
 		bitmappaint.setColorFilter(new PorterDuffColorFilter(argb, Mode.SRC_ATOP));
 		
 	}
+
+	final int colSetAmiga_rgb[] = {	0x000, 0xfff, 0x830, 0x7ac, 0x181, 0xc06, 0x23e, 0xc00,
+									0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
+	final int colSetAmiga_fgpens[] =	{ 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
+
+	final int colSetIBM_rgb[] =	{	0x000, 0x00a, 0x0a0, 0x0aa, 0xa00, 0xa0a, 0xa50, 0xaaa,
+									0x555, 0x55f, 0x5f5, 0x5ff, 0xf55, 0xf5f, 0xff5, 0xfff };
+	final int colSetIBM_fgpens[] =		{ 0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15 };
+
+	
+	void setPaintColorForegroundIBM(Paint paint, int col, Paint bitmappaint, boolean cursor)
+	{
+		paint.setFakeBoldText(false);
+		if((col & 16) != 0)
+		{
+			paint.setUnderlineText(true);
+			col &= ~16;
+		}
+		else
+		{
+			paint.setUnderlineText(false);
+		}
+
+		int pen = colSetIBM_fgpens[col];
+
+		if(cursor)
+		{
+			pen = (0xf & ~pen);
+		}
+		int argb = Color.argb(0xff, ((colSetIBM_rgb[pen] & 0xf00) >> 8)*0x11, ((colSetIBM_rgb[pen] & 0x0f0) >> 4)*0x11, (colSetIBM_rgb[pen] & 0x00f)*0x11);
+		paint.setColor(argb);
+		bitmappaint.setColorFilter(new PorterDuffColorFilter(argb, Mode.SRC_ATOP));
+		
+	}
+
+	
 	void setPaintColorForeground(Paint paint, int col, Paint bitmappaint, boolean cursor)
 	{
-		if(amigaColors && !whiteBackgroundMode)
+		if(colorSet == ColorSet.Amiga && !whiteBackgroundMode)
 		{
 			setPaintColorForegroundAmiga(paint, col, bitmappaint, cursor);
 			return;
 		}
 
+		if(colorSet == ColorSet.IBM && !whiteBackgroundMode)
+		{
+			setPaintColorForegroundIBM(paint, col, bitmappaint, cursor);
+			return;
+		}
+		
 		if(cursor)
 		{
 			boolean bold = false;
@@ -366,95 +411,35 @@ public class NetHackTerminalView extends View
 		}
 		else
 		{
-			if(amigaColors)
+			switch(col)
 			{
-				switch(col)
-				{
-					case NetHackTerminalState.kColBlack:
-						argb = Color.argb(0xff, 0x00, 0x00, 0x00);
-						break;
-					case NetHackTerminalState.kColRed:
-						argb = Color.argb(0xff, 0xcc, 0x00, 0x00);
-						break;
-					case NetHackTerminalState.kColGreen:
-						argb = Color.argb(0xff, 0x11, 0x88, 0x11);
-						break;
-					case NetHackTerminalState.kColYellow:
-						argb = Color.argb(0xff, 0x88, 0x33, 0x00);
-						break;
-					case NetHackTerminalState.kColBlue:
-						argb = Color.argb(0xff, 0x22, 0x33, 0xee);
-						break;
-					case NetHackTerminalState.kColMagenta:
-						argb = Color.argb(0xff, 0xcc, 0x00, 0x66);
-						break;
-					case NetHackTerminalState.kColCyan:
-						argb = Color.argb(0xff, 0x77, 0xaa, 0xcc);
-						break;
-					case NetHackTerminalState.kColWhite:
-						argb = Color.argb(0xff, 0x88, 0x88, 0x88);
-						break;
-					case 8:
-						argb = Color.argb(0xff, 0xff, 0xff, 0xff);
-						break;
-					case 9:
-						argb = Color.argb(0xff, 0xff, 0x66, 0x00);
-						break;
-					case 10:
-						argb = Color.argb(0xff, 0x44, 0xff, 0x44);
-						break;
-					case 11:
-						argb = Color.argb(0xff, 0xff, 0xff, 0x00);
-						break;
-					case 12:
-						argb = Color.argb(0xff, 0x44, 0xaa, 0xff);
-						break;
-					case 13:
-						argb = Color.argb(0xff, 0xff, 0x88, 0xff);
-						break;
-					case 14:
-						argb = Color.argb(0xff, 0x88, 0xff, 0xff);
-						break;
-					case 15:
-						argb = Color.argb(0xff, 0xff, 0xff, 0xff);
-						break;
-					default:
-						argb = Color.argb(0x80, 0x80, 0x80, 0x80);
-						break;
-				}
-			}
-			else
-			{
-				switch(col)
-				{
-					case NetHackTerminalState.kColBlack:
-						argb = Color.argb(0xff, 0x00, 0x00, 0x00);
-						break;
-					case NetHackTerminalState.kColRed:
-						argb = Color.argb(0xff, 0xff, 0x00, 0x00);
-						break;
-					case NetHackTerminalState.kColGreen:
-						argb = Color.argb(0xff, 0x00, 0xff, 0x00);
-						break;
-					case NetHackTerminalState.kColYellow:
-						argb = Color.argb(0xff, 0xff, 0xff, 0x00);
-						break;
-					case NetHackTerminalState.kColBlue:
-						argb = Color.argb(0xff, 0x00, 0x00, 0xff);
-						break;
-					case NetHackTerminalState.kColMagenta:
-						argb = Color.argb(0xff, 0xff, 0x00, 0xff);
-						break;
-					case NetHackTerminalState.kColCyan:
-						argb = Color.argb(0xff, 0x00, 0xff, 0xff);
-						break;
-					case NetHackTerminalState.kColWhite:
-						argb = Color.argb(0xff, 0xff, 0xff, 0xff);
-						break;
-					default:
-						argb = Color.argb(0x80, 0x80, 0x80, 0x80);
-						break;
-				}
+				case NetHackTerminalState.kColBlack:
+					argb = Color.argb(0xff, 0x00, 0x00, 0x00);
+					break;
+				case NetHackTerminalState.kColRed:
+					argb = Color.argb(0xff, 0xff, 0x00, 0x00);
+					break;
+				case NetHackTerminalState.kColGreen:
+					argb = Color.argb(0xff, 0x00, 0xff, 0x00);
+					break;
+				case NetHackTerminalState.kColYellow:
+					argb = Color.argb(0xff, 0xff, 0xff, 0x00);
+					break;
+				case NetHackTerminalState.kColBlue:
+					argb = Color.argb(0xff, 0x00, 0x00, 0xff);
+					break;
+				case NetHackTerminalState.kColMagenta:
+					argb = Color.argb(0xff, 0xff, 0x00, 0xff);
+					break;
+				case NetHackTerminalState.kColCyan:
+					argb = Color.argb(0xff, 0x00, 0xff, 0xff);
+					break;
+				case NetHackTerminalState.kColWhite:
+					argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+					break;
+				default:
+					argb = Color.argb(0x80, 0x80, 0x80, 0x80);
+					break;
 			}
 		}
 
@@ -481,7 +466,7 @@ public class NetHackTerminalView extends View
 	
 	void setPaintColorBackground(Paint paint, int col, boolean cursor)
 	{
-		if(amigaColors && !whiteBackgroundMode)
+		if(colorSet == ColorSet.Amiga && !whiteBackgroundMode)
 		{
 			setPaintColorBackgroundAmiga(paint, col, cursor);
 			return;

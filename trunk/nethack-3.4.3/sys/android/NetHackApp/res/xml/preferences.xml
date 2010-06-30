@@ -34,6 +34,13 @@
 			android:entryValues="@array/CharacterSetValues"/>
 
 		<ListPreference
+			android:title="Character Color Set"
+			android:key="CharacterColorSet"
+			android:defaultValue="Amiga"
+			android:entries="@array/CharacterColorSetEntries"
+			android:entryValues="@array/CharacterColorSetValues"/>
+
+		<ListPreference
 			android:title="Font Size"
 			android:key="FontSize"
 			android:defaultValue="FontSize10"

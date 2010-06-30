@@ -169,6 +169,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	ColorMode optColorMode = ColorMode.Invalid;
 	UIMode optUIModeNew = UIMode.Invalid;
 	CharacterSet optCharacterSet = CharacterSet.Invalid;
+	NetHackTerminalView.ColorSet optCharacterColorSet = NetHackTerminalView.ColorSet.Amiga;
 	FontSize optFontSize = FontSize.FontSize10;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
@@ -473,6 +474,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.initStateFromView();
 
 		NetHackSetScreenDim(messageView.getSizeX(), messageRows, statuswidthonscreen);
+
+		mainView.colorSet = optCharacterColorSet;
 	}
 	
 	public void rebuildViews()
@@ -1156,7 +1159,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		boolean allowreformatbefore = optAllowTextReformat;
 
 		CharacterSet characterSetBefore = optCharacterSet;
-		
+		NetHackTerminalView.ColorSet colorSetBefore = optCharacterColorSet;
+
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -1222,7 +1226,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
 
-		if(textsizebefore != textsize || optAllowTextReformat != allowreformatbefore)
+		if(textsizebefore != textsize || optAllowTextReformat != allowreformatbefore || optCharacterColorSet != colorSetBefore)
 		{
 			rebuildViews();
 		}
@@ -1418,27 +1422,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		fontBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dungeonfont);
 		mainView.fontBitmap = fontBitmap;
-		mainView.amigaColors = true;
-		if(fontBitmap != null)
-		{
-/*
-			// Fix up the alpha, to make the background transparent. Could be done offline.
-			int sx = fontBitmap.getWidth();
-			int sy = fontBitmap.getHeight();
-			for(int y = 0; y < sy; y++)
-			{
-				for(int x = 0; x < sx; x++)
-				{
-					int col = fontBitmap.getPixel(x, y);
-					if(Color.red(col) == 0 && Color.green(col) == 0 && Color.blue(col) == 0)
-					{
-						//fontBitmap.setPixel(x, y, Color.argb(0, 0, 0, 0));
-					}
-				}
-			}
-*/
-		}
-		
+
 		keyboardShownInConfig = new boolean[ScreenConfig.values().length];
 		keyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = true;
 		keyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = false;
@@ -1629,6 +1613,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
+		optCharacterColorSet = NetHackTerminalView.ColorSet.valueOf(prefs.getString("CharacterColorSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 	}
 
