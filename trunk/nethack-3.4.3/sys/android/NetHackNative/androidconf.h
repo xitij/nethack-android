@@ -5,6 +5,8 @@
 
 #define ASCIIGRAPH		/* Enable IBMgraphics option */
 
+#define SELF_RECOVER	/* NetHack itself can recover games */
+
 // TODO
 #if 0
 #define HACKFONT		/* Use special hack.font */
