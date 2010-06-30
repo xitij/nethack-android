@@ -82,4 +82,14 @@
 		<item>IBM</item>
 		<item>Amiga</item>
 	</string-array>
+	<string-array name="CharacterColorSetEntries">
+		<item>16 color ANSI terminal</item>
+		<item>IBM</item>
+		<item>Amiga</item>
+	</string-array>
+	<string-array name="CharacterColorSetValues">
+		<item>AnsiTerminal</item>
+		<item>IBM</item>
+		<item>Amiga</item>
+	</string-array>
 </resources>
