@@ -9,9 +9,13 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.inputmethodservice.Keyboard;
@@ -119,6 +123,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	ModifierKey ctrlKey;
 	ModifierKey shiftKey;
 
+	enum Orientation
+	{
+		Invalid,
+		Sensor,
+		Portrait,
+		Landscape,
+		Unspecified
+	}
+	
 	enum KeyAction
 	{
 		None,
@@ -152,11 +165,23 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		FontSize14,
 		FontSize15
 	}
+
+	enum CharacterSet
+	{
+		Invalid,
+		ANSI128,
+		IBM,
+		Amiga
+	}
+	
 	boolean optAllowTextReformat = true;
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
 	UIMode optUIModeNew = UIMode.Invalid;
+	CharacterSet optCharacterSet = CharacterSet.Invalid;
+	NetHackTerminalView.ColorSet optCharacterColorSet = NetHackTerminalView.ColorSet.Amiga;
 	FontSize optFontSize = FontSize.FontSize10;
+	Orientation optOrientation = Orientation.Invalid;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
@@ -210,7 +235,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 //			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
 //			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
-			keyboardShownInConfig[screenConfig.ordinal()] = !keyboardShownInConfig[screenConfig.ordinal()]; 
+			boolean newval = !optKeyboardShownInConfig[screenConfig.ordinal()];
+			optKeyboardShownInConfig[screenConfig.ordinal()] = newval;
+
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+			SharedPreferences.Editor prefsEditor = prefs.edit();
+			if(screenConfig == ScreenConfig.Portrait)
+			{
+				prefsEditor.putBoolean("KeyboardShownInPortrait", newval);
+			}
+			else
+			{
+				prefsEditor.putBoolean("KeyboardShownInLandscape", newval);
+			}
+			prefsEditor.commit();
 			updateLayout();
 			return true;
 		}
@@ -460,6 +498,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.initStateFromView();
 
 		NetHackSetScreenDim(messageView.getSizeX(), messageRows, statuswidthonscreen);
+
+		mainView.colorSet = optCharacterColorSet;
 	}
 	
 	public void rebuildViews()
@@ -1142,6 +1182,13 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int textsizebefore = getOptFontSize();
 		boolean allowreformatbefore = optAllowTextReformat;
 
+		CharacterSet characterSetBefore = optCharacterSet;
+		NetHackTerminalView.ColorSet colorSetBefore = optCharacterColorSet;
+		Orientation orientationBefore = optOrientation;
+
+		boolean keyboardInPortraitBefore = optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()];
+		boolean keyboardInLandscapeBefore = optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()];
+ 
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -1168,6 +1215,33 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			dialog.show();
 		}
 
+// TEMP
+		Log.i("NetHackDbg", "Before: " + characterSetBefore.toString() + " After: " + optCharacterSet);
+		if(optCharacterSet != characterSetBefore)
+		{
+			int index = -1;
+			switch(optCharacterSet)
+			{
+				case ANSI128:
+					index = 0;
+					break;
+				case IBM:
+					index = 1;
+					break;
+				case Amiga:
+					index = 2;
+					break;
+					
+			}
+			if(index >= 0)
+			{
+				// TEMP
+				Log.i("NetHackDbg", "Switching to mode " + index);
+
+				NetHackSwitchCharSet(index);
+			}
+		}
+		
 		boolean blackonwhite = (optColorMode == ColorMode.BlackOnWhite);
 		mainView.setWhiteBackgroundMode(blackonwhite);
 		menuView.setWhiteBackgroundMode(blackonwhite);
@@ -1180,7 +1254,40 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
 
-		if(textsizebefore != textsize || optAllowTextReformat != allowreformatbefore)
+		if(orientationBefore != optOrientation)
+		{
+			switch(optOrientation)
+			{
+				case Sensor:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+					break;
+				case Portrait:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+					break;
+				case Landscape:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+					break;
+				case Unspecified:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+					break;
+			}
+		}
+
+		boolean shouldrebuild = false;
+		if(textsizebefore != textsize || optAllowTextReformat != allowreformatbefore || optCharacterColorSet != colorSetBefore)
+		{
+			shouldrebuild = true;
+		}
+		if(keyboardInPortraitBefore != optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()])
+		{
+			shouldrebuild = true;
+		}
+		if(keyboardInLandscapeBefore != optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()])
+		{
+			shouldrebuild = true;
+		}
+
+		if(shouldrebuild)
 		{
 			rebuildViews();
 		}
@@ -1196,7 +1303,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	ScreenConfig screenConfig;
 	boolean menuShown = false;
 
-	boolean []keyboardShownInConfig;
+	boolean []optKeyboardShownInConfig;
 
 	void updateLayout()
 	{
@@ -1237,7 +1344,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			screenLayout.addView(dbgTerminalTranscriptView);
 		}
-		if(keyboardShownInConfig[screenConfig.ordinal()])
+		if(optKeyboardShownInConfig[screenConfig.ordinal()])
 		{
 			screenLayout.addView(virtualKeyboard.virtualKeyboardView);
 		}
@@ -1312,7 +1419,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		return sz;
 	}
-	
+
+	Bitmap fontBitmap;
+
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -1344,7 +1453,13 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusTerminalState = new NetHackTerminalState();
 		menuTerminalState = new NetHackTerminalState();
 
+		optKeyboardShownInConfig = new boolean[ScreenConfig.values().length];
+		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = false;
+		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = false;
+
 		getPrefs();
+		optCharacterSet = CharacterSet.Invalid;
+		optOrientation = Orientation.Invalid;	// Make sure it gets detected in onStart().
 
 		boolean pureTTY;
 		if(!gameInitialized)
@@ -1371,9 +1486,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 //		mainView.sizePixelsY -= 120;	// TEMP
 		mainView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 
-		keyboardShownInConfig = new boolean[ScreenConfig.values().length];
-		keyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = true;
-		keyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = false;
+		fontBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dungeonfont);
+		mainView.fontBitmap = fontBitmap;
 
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
@@ -1560,7 +1674,13 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
+		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
+		optCharacterColorSet = NetHackTerminalView.ColorSet.valueOf(prefs.getString("CharacterColorSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
+		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Unspecified"));
+
+		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = prefs.getBoolean("KeyboardShownInPortrait", true);
+		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = prefs.getBoolean("KeyboardShownInLandscape", false);
 	}
 
 	public static String appDir;
@@ -1579,7 +1699,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native int NetHackSave();
 	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
 	public native void NetHackRefreshDisplay();
-
+	public native void NetHackSwitchCharSet(int charsetindex);
+	
 	public native int NetHackGetPlayerPosX();
 	public native int NetHackGetPlayerPosY();
 	public native int NetHackGetPlayerPosShouldRecenter();
