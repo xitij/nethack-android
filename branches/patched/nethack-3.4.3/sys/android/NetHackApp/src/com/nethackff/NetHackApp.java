@@ -819,6 +819,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 				copyAsset("version.txt");
 				copyAsset("NetHack.cnf", nethackdir + "/.nethackrc");
+				copyAsset("charset_amiga.cnf", nethackdir + "/charset_amiga.cnf");
+				copyAsset("charset_ibm.cnf", nethackdir + "/charset_ibm.cnf");
+				copyAsset("charset_128.cnf", nethackdir + "/charset_128.cnf");
 			}
 
 			uiModeActual = optUIModeNew;
