@@ -49,8 +49,8 @@
 		<item>AndroidTTY</item>
 	</string-array>
 	<string-array name="ColorModeEntries">
-		<item>White on Black</item>
-		<item>Black on White</item>
+		<item>Black</item>
+		<item>White</item>
 	</string-array>
 	<string-array name="ColorModeValues">
 		<item>WhiteOnBlack</item>
@@ -71,5 +71,37 @@
 		<item>FontSize13</item>
 		<item>FontSize14</item>
 		<item>FontSize15</item>
+	</string-array>
+	<string-array name="CharacterSetEntries">
+		<item>128 char ANSI</item>
+		<item>IBM</item>
+		<item>Amiga</item>
+	</string-array>
+	<string-array name="CharacterSetValues">
+		<item>ANSI128</item>
+		<item>IBM</item>
+		<item>Amiga</item>
+	</string-array>
+	<string-array name="CharacterColorSetEntries">
+		<item>16 color ANSI terminal</item>
+		<item>IBM</item>
+		<item>Amiga</item>
+	</string-array>
+	<string-array name="CharacterColorSetValues">
+		<item>AnsiTerminal</item>
+		<item>IBM</item>
+		<item>Amiga</item>
+	</string-array>
+	<string-array name="OrientationEntries">
+		<item>Sensor</item>
+		<item>Portrait</item>
+		<item>Landscape</item>
+		<item>Unspecified</item>
+	</string-array>
+	<string-array name="OrientationValues">
+		<item>Sensor</item>
+		<item>Portrait</item>
+		<item>Landscape</item>
+		<item>Unspecified</item>
 	</string-array>
 </resources>

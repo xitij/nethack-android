@@ -17,7 +17,6 @@
 #OPTIONS=align:chaotic
 # Other general options
 #OPTIONS=time,rest_on_space,noautopickup
-OPTIONS=IBMgraphics
 
 # menucolors patch
 OPTIONS=menucolors

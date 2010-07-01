@@ -47,10 +47,23 @@ static int s_GameStateStackCount = 0;
 
 enum
 {
-	kCmdNone = 0,
-	kCmdSave = 1,
-	kCmdRefresh = 2
+	kCmdNone,
+	kCmdSave,
+	kCmdRefresh,
+	kCmdSwitchTo128,
+	kCmdSwitchToAmiga,
+	kCmdSwitchToIBM
 };
+
+enum
+{
+	kCharSet128,
+	kCharSetIBM,
+	kCharSetAmiga
+};
+
+static int s_CurrentCharSet = kCharSet128;
+static int s_InitCharSet = kCharSet128;
 
 static int s_ReadyForSave = 0;
 static int s_Command = kCmdNone;
@@ -108,6 +121,30 @@ void android_debugerr(const char *fmt, ...)
 }
 
 #endif
+
+
+void error(const char *s, ...)
+{
+	char buff[1024];
+
+	va_list args;
+	va_start(args, s);
+
+/*
+	if(settty_needed)
+		settty((char *)0);
+*/
+	vsnprintf(buff, sizeof(buff), s, args);
+	android_putchar('\n');
+	android_puts(buff);
+	android_putchar('\n');
+
+	/* Sleep for a bit so we see something even if the user is typing.*/
+	sleep(1);
+	getchar();
+
+	exit(1);
+}
 
 AndroidGameState android_getgamestate()
 {
@@ -196,6 +233,29 @@ void android_popgamestate()
 	}
 }
 
+
+void android_setcharset(int charsetindex)
+{
+	switch(charsetindex)
+	{
+		case kCharSetAmiga:
+			read_config_file("charset_amiga.cnf");
+			s_CurrentCharSet = kCharSetAmiga;
+			break;
+		case kCharSetIBM:
+			read_config_file("charset_ibm.cnf");
+			s_CurrentCharSet = kCharSetIBM;
+			break;
+		case kCharSet128:
+			read_config_file("charset_128.cnf");
+			s_CurrentCharSet = kCharSet128;
+			break;
+		default:
+			break;
+	}
+}
+
+
 struct AndroidUnicodeRemap
 {
 	char		ascii;
@@ -216,12 +276,14 @@ static const struct AndroidUnicodeRemap s_IbmGraphicsRemap[] =
 	{	0xb4, 0x2524	},
 	{	0xc3, 0x251c	},
 /*	{	0xb0, 0x2591	}, 		Missing in Droid monospace font? */
-	{	0xb0, '#'		},
+/*	{	0xb0, '#'		},*/
+	{	0xb0, 0x7000 + 256	},	/* Use extra char from "Amiga" font. */
 	{	0xb1, 0x2592	},
 	{	0xf0, 0x2261	},
 	{	0xf1, 0x00b1	},
 /*	{	0xf4, 0x2320	},		Missing in Droid monospace font? */
-	{	0xf4, '{'		},
+/*	{	0xf4, '{'		}, */
+	{	0xf4, 0x7000 + 257	},	/* Use extra char from "Amiga" font. */
 	{	0xf7, 0x2248	},
 	{	0xfa, 0x00b7	},
 	{	0xfe, 0x25a0	},
@@ -238,22 +300,29 @@ static void android_putchar_internal(int c)
 
 		if(c >= 128)
 		{
-			/* Here, we map the relevant extended characters from MSDOS
-				to their Unicode equivalent. */
-
-			const struct AndroidUnicodeRemap *remapPtr = s_IbmGraphicsRemap;
-
-			unicode = 0xbf;	/* Inverted question mark to indicate unknown */
-
-			/* TODO: Would be nice with binary search here. */
-			while(remapPtr->ascii)
+			if(s_CurrentCharSet != kCharSetAmiga)
 			{
-				if(remapPtr->ascii == c)
+				/* Here, we map the relevant extended characters from MSDOS
+					to their Unicode equivalent. */
+
+				const struct AndroidUnicodeRemap *remapPtr = s_IbmGraphicsRemap;
+
+				unicode = 0xbf;	/* Inverted question mark to indicate unknown */
+
+				/* TODO: Would be nice with binary search here. */
+				while(remapPtr->ascii)
 				{
-					unicode = remapPtr->unicode;
-					break;
+					if(remapPtr->ascii == c)
+					{
+						unicode = remapPtr->unicode;
+						break;
+					}
+					remapPtr++;
 				}
-				remapPtr++;
+			}
+			else
+			{
+				unicode = 0x7000 + (unsigned int)c;
 			}
 		}
 
@@ -481,6 +550,7 @@ static void android_clear_winstatus_state()
 extern int g_android_prevent_output;
 */
 static int s_ShouldRefresh = 0;
+static int s_SwitchCharSetCmd = -1;
 
 int android_getch(void)
 {
@@ -533,6 +603,12 @@ int android_getch(void)
 			{
 				s_ShouldRefresh = 1;
 			}
+			else if(cmd == kCmdSwitchToAmiga ||
+					cmd == kCmdSwitchToIBM ||
+					cmd == kCmdSwitchTo128)
+			{
+				s_SwitchCharSetCmd = cmd;
+			}
 
 			if(s_WaitingForCommandPerformed)
 			{
@@ -549,10 +625,46 @@ int android_getch(void)
 			continue;
 		}
 
+		if(s_SwitchCharSetCmd >= 0)
+		{
+			if(android_getgamestate() == kAndroidGameStateMoveLoop)
+			{
+				s_SwitchCharSetCmd = -1;
+
+				pthread_mutex_unlock(&s_ReceiveMutex);
+
+				switch(s_SwitchCharSetCmd)
+				{
+					case kCmdSwitchToAmiga:
+						android_setcharset(kCharSetAmiga);
+						break;
+					case kCmdSwitchToIBM:
+						android_setcharset(kCharSetIBM);
+						break;
+					case kCmdSwitchTo128:
+						android_setcharset(kCharSet128);
+						break;
+					default:
+						break;
+				}
+
+				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				{
+					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+				}
+
+				continue;
+			}
+		}
+
 		if(s_ShouldRefresh)
 		{
 			if(android_getgamestate() == kAndroidGameStateMoveLoop)
 			{
+				s_ShouldRefresh = 0;
+
+				pthread_mutex_unlock(&s_ReceiveMutex);
+
 				if(!g_AndroidPureTTY)
 				{
 					android_clear_winstatus_state();
@@ -560,7 +672,7 @@ int android_getch(void)
 
 				bot();
 
-				s_ShouldRefresh = 0;
+				continue;
 			}
 		}
 
@@ -699,6 +811,10 @@ static void *sThreadFunc()
 		    || !strncmp(plname, "games", 4)) {
 		askname();
 	}
+
+	int charset = s_InitCharSet;
+	s_InitCharSet = -1;
+	android_setcharset(charset);
 
 	android_makelock();
 
@@ -971,6 +1087,40 @@ void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
 	sSendCmd(kCmdRefresh, 0);
 }
 
+
+void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
+		JNIEnv *env, jobject thiz, int charset)
+{
+	int cmd = -1;
+
+	if(s_InitCharSet >= 0)
+	{
+		s_InitCharSet = charset;
+		return;
+	}
+
+	switch(charset)
+	{
+		case kCharSet128:
+			cmd = kCmdSwitchTo128;
+			break;
+		case kCharSetIBM:
+			cmd = kCmdSwitchToIBM;
+			break;
+		case kCharSetAmiga:
+			cmd = kCmdSwitchToAmiga;
+			break;
+		default:
+			break;
+	}
+
+	if(cmd < 0)
+	{
+		return;
+	}
+
+	sSendCmd(cmd, 0);
+}
 
 
 int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
