@@ -128,7 +128,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		Invalid,
 		Sensor,
 		Portrait,
-		Landscape
+		Landscape,
+		Unspecified
 	}
 	
 	enum KeyAction
@@ -1250,6 +1251,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				case Landscape:
 					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 					break;
+				case Unspecified:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+					break;
 			}
 		}
 		
@@ -1642,7 +1646,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
 		optCharacterColorSet = NetHackTerminalView.ColorSet.valueOf(prefs.getString("CharacterColorSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
-		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Sensor"));
+		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Unspecified"));
 	}
 
 	public static String appDir;

@@ -5,7 +5,7 @@
 		<ListPreference
 			android:title="Orientation"
 			android:key="Orientation"
-			android:defaultValue="Sensor"
+			android:defaultValue="Unspecified"
 			android:entries="@array/OrientationEntries"
 			android:entryValues="@array/OrientationValues"/>
 
