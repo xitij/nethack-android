@@ -1459,6 +1459,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		getPrefs();
 		optCharacterSet = CharacterSet.Invalid;
+		optOrientation = Orientation.Invalid;	// Make sure it gets detected in onStart().
 
 		boolean pureTTY;
 		if(!gameInitialized)
