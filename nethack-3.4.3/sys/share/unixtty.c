@@ -436,6 +436,7 @@ init_linux_cons()
 
 
 #ifndef __begui__	/* the Be GUI will define its own error proc */
+#if !defined(ANDROID)	/* Android also needs a different implementation. */
 /* fatal error */
 /*VARARGS1*/
 void
@@ -450,3 +451,4 @@ error VA_DECL(const char *,s)
 	exit(EXIT_FAILURE);
 }
 #endif /* !__begui__ */
+#endif /* !defined(ANDROID) */
