@@ -122,6 +122,30 @@ void android_debugerr(const char *fmt, ...)
 
 #endif
 
+
+void error(const char *s, ...)
+{
+	char buff[1024];
+
+	va_list args;
+	va_start(args, s);
+
+/*
+	if(settty_needed)
+		settty((char *)0);
+*/
+	vsnprintf(buff, sizeof(buff), s, args);
+	android_putchar('\n');
+	android_puts(buff);
+	android_putchar('\n');
+
+	/* Sleep for a bit so we see something even if the user is typing.*/
+	sleep(1);
+	getchar();
+
+	exit(1);
+}
+
 AndroidGameState android_getgamestate()
 {
 	return s_GameState;
@@ -605,6 +629,10 @@ int android_getch(void)
 		{
 			if(android_getgamestate() == kAndroidGameStateMoveLoop)
 			{
+				s_SwitchCharSetCmd = -1;
+
+				pthread_mutex_unlock(&s_ReceiveMutex);
+
 				switch(s_SwitchCharSetCmd)
 				{
 					case kCmdSwitchToAmiga:
@@ -620,16 +648,12 @@ int android_getch(void)
 						break;
 				}
 
-		if(s_ReceiveCnt < RECEIVEBUFFSZ)
-		{
-			s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
-		}
-#if 0
-				doredraw();
+				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				{
+					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+				}
 
-#endif
-
-				s_SwitchCharSetCmd = -1;
+				continue;
 			}
 		}
 
@@ -637,6 +661,10 @@ int android_getch(void)
 		{
 			if(android_getgamestate() == kAndroidGameStateMoveLoop)
 			{
+				s_ShouldRefresh = 0;
+
+				pthread_mutex_unlock(&s_ReceiveMutex);
+
 				if(!g_AndroidPureTTY)
 				{
 					android_clear_winstatus_state();
@@ -644,7 +672,7 @@ int android_getch(void)
 
 				bot();
 
-				s_ShouldRefresh = 0;
+				continue;
 			}
 		}
 
