@@ -13,18 +13,18 @@
 			android:defaultValue="true"/>
 
 		<ListPreference
-			android:title="Color Mode"
-			android:key="ColorMode"
-			android:defaultValue="WhiteOnBlack"
-			android:entries="@array/ColorModeEntries"
-			android:entryValues="@array/ColorModeValues"/>
-
-		<ListPreference
 			android:title="UI Mode"
 			android:key="UIMode"
 			android:defaultValue="AndroidTTY"
 			android:entries="@array/UIModeEntries"
 			android:entryValues="@array/UIModeValues"/>
+
+		<ListPreference
+			android:title="Background Color"
+			android:key="ColorMode"
+			android:defaultValue="WhiteOnBlack"
+			android:entries="@array/ColorModeEntries"
+			android:entryValues="@array/ColorModeValues"/>
 
 		<ListPreference
 			android:title="Character Set"

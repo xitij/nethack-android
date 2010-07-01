@@ -280,8 +280,16 @@ public class NetHackTerminalView extends View
 			paint.setUnderlineText(false);
 		}
 
-		int pen = colSetAmiga_fgpens[col];
-
+		int pen;
+		if(whiteBackgroundMode)
+		{
+			pen = colSetAmiga_fgpens_whitebg[col];
+		}
+		else
+		{
+			pen = colSetAmiga_fgpens[col];
+		}
+		
 		if(cursor)
 		{
 			pen = (0xf & ~pen);
@@ -294,11 +302,14 @@ public class NetHackTerminalView extends View
 
 	final int colSetAmiga_rgb[] = {	0x000, 0xfff, 0x830, 0x7ac, 0x181, 0xc06, 0x23e, 0xc00,
 									0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
-	final int colSetAmiga_fgpens[] =	{ 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
+	final int colSetAmiga_fgpens[] =			{ 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
+	final int colSetAmiga_fgpens_whitebg[] =	{ 1, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 0 };
 
+	
 	final int colSetIBM_rgb[] =	{	0x000, 0x00a, 0x0a0, 0x0aa, 0xa00, 0xa0a, 0xa50, 0xaaa,
 									0x555, 0x55f, 0x5f5, 0x5ff, 0xf55, 0xf5f, 0xff5, 0xfff };
-	final int colSetIBM_fgpens[] =		{ 0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15 };
+	final int colSetIBM_fgpens[] =				{ 0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15 };
+	final int colSetIBM_fgpens_whitebg[] =		{ 15, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 0 };
 
 	
 	void setPaintColorForegroundIBM(Paint paint, int col, Paint bitmappaint, boolean cursor)
@@ -314,7 +325,15 @@ public class NetHackTerminalView extends View
 			paint.setUnderlineText(false);
 		}
 
-		int pen = colSetIBM_fgpens[col];
+		int pen;
+		if(whiteBackgroundMode)
+		{
+			pen = colSetIBM_fgpens_whitebg[col];
+		}
+		else
+		{
+			pen = colSetIBM_fgpens[col];
+		}
 
 		if(cursor)
 		{
@@ -329,13 +348,13 @@ public class NetHackTerminalView extends View
 	
 	void setPaintColorForeground(Paint paint, int col, Paint bitmappaint, boolean cursor)
 	{
-		if(colorSet == ColorSet.Amiga && !whiteBackgroundMode)
+		if(colorSet == ColorSet.Amiga)
 		{
 			setPaintColorForegroundAmiga(paint, col, bitmappaint, cursor);
 			return;
 		}
 
-		if(colorSet == ColorSet.IBM && !whiteBackgroundMode)
+		if(colorSet == ColorSet.IBM)
 		{
 			setPaintColorForegroundIBM(paint, col, bitmappaint, cursor);
 			return;
