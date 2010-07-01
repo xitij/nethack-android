@@ -92,4 +92,14 @@
 		<item>IBM</item>
 		<item>Amiga</item>
 	</string-array>
+	<string-array name="OrientationEntries">
+		<item>Sensor</item>
+		<item>Portrait</item>
+		<item>Landscape</item>
+	</string-array>
+	<string-array name="OrientationValues">
+		<item>Sensor</item>
+		<item>Portrait</item>
+		<item>Landscape</item>
+	</string-array>
 </resources>

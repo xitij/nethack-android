@@ -9,6 +9,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.SharedPreferences;
@@ -122,6 +123,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	ModifierKey ctrlKey;
 	ModifierKey shiftKey;
 
+	enum Orientation
+	{
+		Invalid,
+		Sensor,
+		Portrait,
+		Landscape
+	}
+	
 	enum KeyAction
 	{
 		None,
@@ -171,6 +180,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	CharacterSet optCharacterSet = CharacterSet.Invalid;
 	NetHackTerminalView.ColorSet optCharacterColorSet = NetHackTerminalView.ColorSet.Amiga;
 	FontSize optFontSize = FontSize.FontSize10;
+	Orientation optOrientation = Orientation.Invalid;
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
@@ -1160,6 +1170,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		CharacterSet characterSetBefore = optCharacterSet;
 		NetHackTerminalView.ColorSet colorSetBefore = optCharacterColorSet;
+		Orientation orientationBefore = optOrientation;
 
 		getPrefs();
 
@@ -1226,6 +1237,22 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
 
+		if(orientationBefore != optOrientation)
+		{
+			switch(optOrientation)
+			{
+				case Sensor:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+					break;
+				case Portrait:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+					break;
+				case Landscape:
+					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+					break;
+			}
+		}
+		
 		if(textsizebefore != textsize || optAllowTextReformat != allowreformatbefore || optCharacterColorSet != colorSetBefore)
 		{
 			rebuildViews();
@@ -1615,6 +1642,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
 		optCharacterColorSet = NetHackTerminalView.ColorSet.valueOf(prefs.getString("CharacterColorSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
+		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Sensor"));
 	}
 
 	public static String appDir;
