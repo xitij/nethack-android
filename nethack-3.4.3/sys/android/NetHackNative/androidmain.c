@@ -629,11 +629,12 @@ int android_getch(void)
 		{
 			if(android_getgamestate() == kAndroidGameStateMoveLoop)
 			{
+				int cmd = s_SwitchCharSetCmd;
 				s_SwitchCharSetCmd = -1;
 
 				pthread_mutex_unlock(&s_ReceiveMutex);
 
-				switch(s_SwitchCharSetCmd)
+				switch(cmd)
 				{
 					case kCmdSwitchToAmiga:
 						android_setcharset(kCharSetAmiga);
