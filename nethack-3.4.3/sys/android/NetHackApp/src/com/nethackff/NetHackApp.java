@@ -235,7 +235,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 //			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
 //			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
-			keyboardShownInConfig[screenConfig.ordinal()] = !keyboardShownInConfig[screenConfig.ordinal()]; 
+			boolean newval = !optKeyboardShownInConfig[screenConfig.ordinal()];
+			optKeyboardShownInConfig[screenConfig.ordinal()] = newval;
+
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+			SharedPreferences.Editor prefsEditor = prefs.edit();
+			if(screenConfig == ScreenConfig.Portrait)
+			{
+				prefsEditor.putBoolean("KeyboardShownInPortrait", newval);
+			}
+			else
+			{
+				prefsEditor.putBoolean("KeyboardShownInLandscape", newval);
+			}
+			prefsEditor.commit();
 			updateLayout();
 			return true;
 		}
@@ -1173,6 +1186,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		NetHackTerminalView.ColorSet colorSetBefore = optCharacterColorSet;
 		Orientation orientationBefore = optOrientation;
 
+		boolean keyboardInPortraitBefore = optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()];
+		boolean keyboardInLandscapeBefore = optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()];
+ 
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -1256,8 +1272,22 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					break;
 			}
 		}
-		
+
+		boolean shouldrebuild = false;
 		if(textsizebefore != textsize || optAllowTextReformat != allowreformatbefore || optCharacterColorSet != colorSetBefore)
+		{
+			shouldrebuild = true;
+		}
+		if(keyboardInPortraitBefore != optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()])
+		{
+			shouldrebuild = true;
+		}
+		if(keyboardInLandscapeBefore != optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()])
+		{
+			shouldrebuild = true;
+		}
+
+		if(shouldrebuild)
 		{
 			rebuildViews();
 		}
@@ -1273,7 +1303,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	ScreenConfig screenConfig;
 	boolean menuShown = false;
 
-	boolean []keyboardShownInConfig;
+	boolean []optKeyboardShownInConfig;
 
 	void updateLayout()
 	{
@@ -1314,7 +1344,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			screenLayout.addView(dbgTerminalTranscriptView);
 		}
-		if(keyboardShownInConfig[screenConfig.ordinal()])
+		if(optKeyboardShownInConfig[screenConfig.ordinal()])
 		{
 			screenLayout.addView(virtualKeyboard.virtualKeyboardView);
 		}
@@ -1423,6 +1453,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusTerminalState = new NetHackTerminalState();
 		menuTerminalState = new NetHackTerminalState();
 
+		optKeyboardShownInConfig = new boolean[ScreenConfig.values().length];
+		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = false;
+		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = false;
+
 		getPrefs();
 		optCharacterSet = CharacterSet.Invalid;
 
@@ -1453,10 +1487,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		fontBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dungeonfont);
 		mainView.fontBitmap = fontBitmap;
-
-		keyboardShownInConfig = new boolean[ScreenConfig.values().length];
-		keyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = true;
-		keyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = false;
 
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
@@ -1647,6 +1677,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optCharacterColorSet = NetHackTerminalView.ColorSet.valueOf(prefs.getString("CharacterColorSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Unspecified"));
+
+		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = prefs.getBoolean("KeyboardShownInPortrait", true);
+		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = prefs.getBoolean("KeyboardShownInLandscape", false);
 	}
 
 	public static String appDir;

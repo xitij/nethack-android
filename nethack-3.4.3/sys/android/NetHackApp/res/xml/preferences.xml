@@ -112,6 +112,16 @@
 				android:defaultValue="ShiftKey"
 				android:entries="@array/KeyActions"
 				android:entryValues="@array/KeyActionValues"/>
+
 		</PreferenceScreen>
+
+		<CheckBoxPreference android:key="KeyboardShownInPortrait"
+			android:title="Virtual Keyboard in Portrait"
+			android:defaultValue="true"/>
+
+		<CheckBoxPreference android:key="KeyboardShownInLandscape"
+			android:title="Virtual Keyboard in Landscape"
+			android:defaultValue="false"/>
+
 	</PreferenceCategory>
 </PreferenceScreen>
