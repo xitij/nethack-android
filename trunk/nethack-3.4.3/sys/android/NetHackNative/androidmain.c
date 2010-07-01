@@ -253,12 +253,13 @@ static const struct AndroidUnicodeRemap s_IbmGraphicsRemap[] =
 	{	0xc3, 0x251c	},
 /*	{	0xb0, 0x2591	}, 		Missing in Droid monospace font? */
 /*	{	0xb0, '#'		},*/
-	{	0xb0, 0x7000 + 218	},
+	{	0xb0, 0x7000 + 256	},	/* Use extra char from "Amiga" font. */
 	{	0xb1, 0x2592	},
 	{	0xf0, 0x2261	},
 	{	0xf1, 0x00b1	},
 /*	{	0xf4, 0x2320	},		Missing in Droid monospace font? */
-	{	0xf4, '{'		},
+/*	{	0xf4, '{'		}, */
+	{	0xf4, 0x7000 + 257	},	/* Use extra char from "Amiga" font. */
 	{	0xf7, 0x2248	},
 	{	0xfa, 0x00b7	},
 	{	0xfe, 0x25a0	},
