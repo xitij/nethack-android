@@ -1509,6 +1509,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
 
+		// Needed for gold symbol on special Rogue level:
+		statusView.fontBitmap = fontBitmap;
+
 		initDisplay();
 		
 		if(!gameInitialized)
