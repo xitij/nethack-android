@@ -287,6 +287,36 @@ static const struct AndroidUnicodeRemap s_IbmGraphicsRemap[] =
 	{	0xf7, 0x2248	},
 	{	0xfa, 0x00b7	},
 	{	0xfe, 0x25a0	},
+
+	{	0xba, 0x2551	},
+	{	0xcd, 0x2550	},
+	{	0xc9, 0x2554	},
+	{	0xbb, 0x2557	},
+	{	0xc8, 0x255a	},
+	{	0xbc, 0x255d	},
+	{	0xce, 0x256c	},
+	{	0xca, 0x2569	},
+	{	0xcb, 0x2566	},
+	{	0xb9, 0x2563	},
+	{	0xcc, 0x2560	},
+	{	0x01, 0x263b	},	/* Missing from font */
+	{	0x04, 0x2666	},
+	{	0x0c, 0x2640	},
+	{	0x0e, 0x266b	},
+	{	0x0f, 0x263c	},
+	{	0x18, 0x2191	},
+	{	0xad, 0xa1		},
+	{	0xb2, 0x2593	},
+	{	0xe7, 0x3c4		},
+
+/* TODO: Check up on these
+0x05 - missing from table? Showing up as : anyway, it seems.
+0x0e - seems to just show up as ?, as if not used properly
+0x0f - shows up as *
+0x18 - also doesn't seem to be used - still showing up as )
+trap symbol is working
+*/
+
 	{	0x00, 0x0000	}
 };
 
@@ -298,10 +328,12 @@ static void android_putchar_internal(int c)
 
 		uint16_t unicode = c;
 
-		if(c >= 128)
+		if(s_CurrentCharSet != kCharSetAmiga)
 		{
-			if(s_CurrentCharSet != kCharSetAmiga)
+			if(c >= 128 || c < 32)
 			{
+				int found = 0;
+
 				/* Here, we map the relevant extended characters from MSDOS
 					to their Unicode equivalent. */
 
@@ -315,12 +347,21 @@ static void android_putchar_internal(int c)
 					if(remapPtr->ascii == c)
 					{
 						unicode = remapPtr->unicode;
+						found = 1;
 						break;
 					}
 					remapPtr++;
 				}
+
+				if(c < 32 && !found)
+				{
+					unicode = c;	/* Preserve \n, etc. */
+				}
 			}
-			else
+		}
+		else
+		{
+			if(c >= 128)
 			{
 				unicode = 0x7000 + (unsigned int)c;
 			}
