@@ -1,3 +1,13 @@
+1.2.4 ??
+--------
+
+- Added option to use Amiga or IBMgraphics character sets.
+- Added option to use Amiga or DOS colors.
+- Added option to lock the orientation.
+- Added virtual keyboard toggle in preference menu.
+- Stability and error handling fixes.
+- Better save game reovery support.
+
 1.2.3 (June 25, 2010)
 ---------------------
 
