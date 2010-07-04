@@ -110,13 +110,15 @@ getlock()
 	const char *fq_lock;
 #endif
 
-#ifdef TTY_GRAPHICS
+#if defined(TTY_GRAPHICS) && !defined(ANDROID)
 	/* idea from rpick%ucqais@uccba.uc.edu
 	 * prevent automated rerolling of characters
 	 * test input (fd0) so that tee'ing output to get a screen dump still
 	 * works
 	 * also incidentally prevents development of any hack-o-matic programs
 	 */
+	/* This was disabled on Android, didn't have any luck with it. /FF */
+
 	/* added check for window-system type -dlc */
 	if (!strcmp(windowprocs.name, "tty"))
 	    if (!isatty(0))
@@ -192,10 +194,18 @@ getlock()
 		(void) close(fd);
 
 		if(iflags.window_inited) {
-		    c = yn("There is already a game in progress under your name.  Destroy old game?");
+#if defined(SELF_RECOVER) && defined(ANDROID)
+			c = yn("There are files from a game in progress under your name. Recover?");
+#else
+			c = yn("There is already a game in progress under your name.  Destroy old game?");
+#endif
 		} else {
+#if defined(SELF_RECOVER) && defined(ANDROID)
+			(void) printf("There are files from a game in progress under your name. Recover? [yn] ");
+#else
 		    (void) printf("\nThere is already a game in progress under your name.");
 		    (void) printf("  Destroy old game? [yn] ");
+#endif
 		    (void) fflush(stdout);
 		    c = getchar();
 		    (void) putchar(c);
@@ -203,12 +213,30 @@ getlock()
 		    while (getchar() != '\n') ; /* eat rest of line and newline */
 		}
 		if(c == 'y' || c == 'Y')
+		{
+#if !(defined(SELF_RECOVER) && defined(ANDROID))
 			if(eraseoldlocks())
 				goto gotlock;
 			else {
 				unlock_file_area(HLOCK_AREA, HLOCK);
 				error("Couldn't destroy old game.");
 			}
+#else /*SELF_RECOVER*/
+
+			if(recover_savefile()) {
+
+				/* Didn't see this in pcunix.c, but without it, the current
+				   level is not set to 0, and the creat(fq_lock, FCMASK)
+				   further down doesn't create the right file. */
+				set_levelfile_name(lock, 0);
+
+				goto gotlock;
+			} else {
+				unlock_file(HLOCK);
+				error("Couldn't recover old game.");
+			}
+#endif
+		}
 		else {
 			unlock_file_area(HLOCK_AREA, HLOCK);
 			error("%s", "");

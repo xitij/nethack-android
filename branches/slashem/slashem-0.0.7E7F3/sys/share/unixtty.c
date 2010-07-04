@@ -126,7 +126,9 @@ struct tchars inittyb2, curttyb2;
 
 #endif	/* V7 */
 
-#if defined(TTY_GRAPHICS) && ((!defined(SYSV) && !defined(HPUX)) || defined(UNIXPC) || defined(SVR4))
+/* The Android port does this too now. Not sure exactly what this
+   is all for. /FF */
+#if defined(TTY_GRAPHICS) && ((!defined(SYSV) && !defined(HPUX)) || defined(UNIXPC) || defined(SVR4)) && !defined(ANDROID)
 # ifndef LINT
 extern			/* it is defined in libtermlib (libtermcap) */
 # endif
@@ -439,6 +441,7 @@ init_linux_cons()
 
 
 #ifndef __begui__	/* the Be GUI will define its own error proc */
+#if !defined(ANDROID)	/* Android also needs a different implementation. */
 /* fatal error */
 /*VARARGS1*/
 void
@@ -453,3 +456,4 @@ error VA_DECL(const char *,s)
 	exit(EXIT_FAILURE);
 }
 #endif /* !__begui__ */
+#endif /* !defined(ANDROID) */

@@ -25,6 +25,11 @@
 
 #define UNIX		/* delete if no fork(), exec() available */
 
+/* #define ANDROID */	/* Google's Android OS for mobile devices - probably
+						   no need to touch this, as it's somehow already
+						   defined through the command line by Android's
+						   build system. /FF */
+
 /* #define MSDOS */	/* in case it's not auto-detected */
   
 /* #define OS2 */	/* in case it's not auto-detected */
@@ -86,6 +91,12 @@
 #ifdef WIN32
 #  define DEFAULT_WINDOW_SYS "tty"
 #endif
+#endif
+
+/* Android enhanced TTY /FF */
+#ifdef ANDROID
+# define ANDROID_GRAPHICS
+# define DEFAULT_WINDOW_SYS "androidtty"	/* "androidtty" or "tty" */
 #endif
 
 /* Atari supports GEM_GRAPHICS and/or TTY_GRAPHICS */

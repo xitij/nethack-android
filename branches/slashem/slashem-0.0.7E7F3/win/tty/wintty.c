@@ -282,6 +282,7 @@ char** argv;
 #if defined(UNIX) || defined(VMS)
     setbuf(stdout,obuf);
 #endif
+
     gettty();
 
     /* to port dependant tty setup */
@@ -814,6 +815,7 @@ tty_askname()
 		 wins[BASE_WINDOW]->cury - 1);
 	ct = 0;
 	while((c = tty_nhgetch()) != '\n') {
+
 		if(c == EOF) error("End of input\n");
 		if (c == '\033') { ct = 0; break; }  /* continue outer loop */
 #if defined(WIN32CON)
@@ -2421,9 +2423,12 @@ tty_select_menu(window, how, menu_list)
     *menu_list = (menu_item *) 0;
     cw->how = (short) how;
     morc = 0;
+
     tty_display_nhwindow(window, TRUE);
     cancelled = !!(cw->flags & WIN_CANCELLED);
     tty_dismiss_nhwindow(window);	/* does not destroy window data */
+
+
 
     if (cancelled) {
 	n = -1;
@@ -2431,6 +2436,8 @@ tty_select_menu(window, how, menu_list)
 	for (n = 0, curr = cw->mlist; curr; curr = curr->next)
 	    if (curr->selected) n++;
     }
+
+
 
     if (n > 0) {
 	*menu_list = (menu_item *) alloc(n * sizeof(menu_item));
@@ -2441,6 +2448,8 @@ tty_select_menu(window, how, menu_list)
 		mi++;
 	    }
     }
+
+
 
     return n;
 }
@@ -2785,6 +2794,13 @@ tty_nhgetch()
      */
     if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
 	    wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
+
+/* On Android, I got nothing but crashes trying to read from stdin - just
+   use our getch() function instead. /FF */
+#ifdef ANDROID
+	i = android_getch();
+#else
+
 #ifdef UNIX
     i = ((++nesting == 1) ? tgetch() :
 	 (read(fileno(stdin), (genericptr_t)&nestbuf,1) == 1 ? (int)nestbuf :
@@ -2793,6 +2809,9 @@ tty_nhgetch()
 #else
     i = tgetch();
 #endif
+
+#endif	/* ANDROID */
+
     if (!i) i = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
     if (ttyDisplay && ttyDisplay->toplin == 1)
 	ttyDisplay->toplin = 2;
@@ -2866,6 +2885,28 @@ copy_of(s)
     if (!s) s = "";
     return strcpy((char *) alloc((unsigned) (strlen(s) + 1)), s);
 }
+
+/* This section was added only so that the "Android TTY" code could
+   call some functions which were declared static here. A bit of a
+   hack, really. /FF */
+#ifdef ANDROID
+
+void android_free_window_info(struct WinDesc *wd, BOOLEAN_P b)
+{
+	free_window_info(wd, b);
+}
+
+void android_process_menu_window(winid wid, struct WinDesc *wd)
+{
+	process_menu_window(wid, wd);
+}
+
+void android_process_text_window(winid wid, struct WinDesc *wd)
+{
+	process_text_window(wid, wd);
+}
+
+#endif /* ANDROID */
 
 #endif /* TTY_GRAPHICS */
 

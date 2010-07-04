@@ -75,7 +75,8 @@ static struct Bool_Opt
 	{"checkspace", (boolean *)0, FALSE, SET_IN_FILE},
 #endif
 	{"cmdassist", &iflags.cmdassist, TRUE, SET_IN_GAME},
-# if defined(MICRO) || defined(WIN32)
+/* Default colors to enabled on Android. /FF */
+# if defined(MICRO) || defined(WIN32) || defined(ANDROID)
 	{"color",         &iflags.wc_color,TRUE, SET_IN_GAME},		/*WC*/
 # else	/* systems that support multiple terminals, many monochrome */
 	{"color",         &iflags.wc_color, FALSE, SET_IN_GAME},	/*WC*/
@@ -233,7 +234,13 @@ static struct Bool_Opt
 	{"timed_delay", (boolean *)0, FALSE, SET_IN_GAME},
 #endif
 	{"tombstone",&flags.tombstone, TRUE, SET_IN_GAME},
+/* May as well default this to TRUE on Android, as there is nowhere else
+   to display it than in a window. /FF */
+#ifdef ANDROID
+	{"toptenwin",&flags.toptenwin, TRUE, SET_IN_GAME},
+#else
 	{"toptenwin",&flags.toptenwin, FALSE, SET_IN_GAME},
+#endif
 	{"travel", &iflags.travelcmd, TRUE, SET_IN_GAME},
 #ifdef WIN32CON
 	{"use_inverse",   &iflags.wc_inverse, TRUE, SET_IN_GAME},		/*WC*/

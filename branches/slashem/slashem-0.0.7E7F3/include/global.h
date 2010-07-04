@@ -230,6 +230,11 @@ typedef xchar	boolean;		/* 0 or 1 */
 
 #endif
 
+/* Include Android configuration file. /FF */
+#ifdef ANDROID
+#include "androidconf.h"
+#endif
+
 /* Displayable name of this port; don't redefine if defined in *conf.h */
 #ifndef PORT_ID
 # ifdef AMIGA

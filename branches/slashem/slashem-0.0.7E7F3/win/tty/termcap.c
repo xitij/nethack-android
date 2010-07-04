@@ -233,6 +233,12 @@ int *wid, *hgt;
 #ifndef ANSI_DEFAULT
 		error("Can't get TERM.");
 #else
+
+/* Specify a size to use for Android. /FF */
+#ifdef ANDROID
+	CO = 80; LI = 24;
+#endif
+
 # ifdef TOS
 	{
 		CO = 80; LI = 25;
@@ -696,7 +702,11 @@ xputs(s)
 const char *s;
 {
 # ifndef TERMLIB
+#  ifdef ANDROID	/* Don't want to write directly to stdout on Android. /FF */
+	android_puts(s);
+#  else
 	(void) fputs(s, stdout);
+#  endif
 # else
 #  if defined(NHSTDC) || defined(ULTRIX_PROTO)
 	tputs(s, 1, (int (*)())xputc);
@@ -852,7 +862,8 @@ static const short tmspc10[] = {		/* from termcap */
 void
 tty_delay_output()
 {
-#if defined(MICRO)
+/* What we do for MICRO should probably work fine for ANDROID here. /FF */
+#if defined(MICRO) || defined(ANDROID)
 	register int i;
 #endif
 #ifdef TIMED_DELAY
@@ -862,7 +873,8 @@ tty_delay_output()
 		return;
 	}
 #endif
-#if defined(MICRO)
+/* What we do for MICRO should probably work fine for ANDROID here. /FF */
+#if defined(MICRO) || defined(ANDROID)
 	/* simulate the delay with "cursor here" */
 	for (i = 0; i < 3; i++) {
 		cmov(ttyDisplay->curx, ttyDisplay->cury);
