@@ -77,6 +77,10 @@ SYSOBJ = ioctl.o unixmain.o unixtty.o unixunix.o unixres.o
 #	For cross-compiling, eg. with gcc on Linux (see also CXX further down):
 # CC = arm-linux-gcc
 #
+
+# Cross-compiling for Android
+CC = arm-none-linux-gnueabi-gcc
+
 #
 # if you're debugging and want gcc to check as much as possible, use:
 # CC = gcc -W -Wimplicit -Wreturn-type -Wunused -Wformat -Wswitch -Wshadow -Wcast-qual -Wwrite-strings -DGCC_WARN

@@ -930,8 +930,13 @@ static void *sThreadFunc()
 			if(yn("Do you want to keep the save file?") == 'n')
 			    (void) delete_savefile();
 			else {
+#ifndef FILE_AREAS
 			    (void) chmod(fq_save,FCMASK); /* back to readable */
-			    compress(fq_save);
+			    compress_area(NULL, fq_save);
+#else
+			    (void) chmod_area(FILE_AREA_SAVE, SAVEF, FCMASK);
+			    compress_area(FILE_AREA_SAVE, SAVEF);
+#endif
 			}
 		}
 		flags.move = 0;

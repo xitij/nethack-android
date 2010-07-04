@@ -345,3 +345,10 @@ spotless:
 	-rm -f ../win/share/mon32-t.txt
 	-rm -f ../win/share/obj32-t.txt
 	-rm -f ../win/share/oth32-t.txt
+	-rm -f ../include/filename.h
+
+# This is normally done in src/Makefile, but for Android we don't run that.
+# To create ../include/filename.h, we now run this from the make in the
+# dat directory instead.
+../include/filename.h: $(MAKEDEFS)
+	../util/makedefs -f
