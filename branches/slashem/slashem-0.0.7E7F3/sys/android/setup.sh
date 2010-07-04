@@ -24,7 +24,7 @@ cd ../../
 
 ANDROID_NDK_DIR=$(echo ~)/android-ndk-1.6_r1
 
-ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/apps/
+ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/apps/SlashEMNative
 # Not needed in 1.6:
 # ln -s $(pwd)/NetHackNative $ANDROID_NDK_DIR/sources/
 

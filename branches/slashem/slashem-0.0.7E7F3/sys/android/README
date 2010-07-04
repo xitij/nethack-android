@@ -36,7 +36,7 @@ Once that's set up, the procedure for building the game is:
 6. Go to the 'dat' folder, and type 'make'. This builds the data files,
    using tools built for the host computer.
 7. Go to your NDK directory (as specified as ANDROID_NDK_DIR).
-8. Type 'make APP=NetHackNative' to build the native code.
+8. Type 'make APP=SlashEMNative' to build the native code.
 9. Go back to Eclipse, build and launch the application.
 
 Note: the approach above assumes that any data files generated on the host
@@ -58,4 +58,4 @@ for this project is fairly limited.
 
 Fredrik Farnstrom
 farnstrom@gmail.com
-October 12, 2009
+July 4, 2010

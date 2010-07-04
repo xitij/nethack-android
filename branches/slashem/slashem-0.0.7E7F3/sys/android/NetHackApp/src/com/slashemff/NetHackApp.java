@@ -818,7 +818,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				copyNetHackData();
 
 				copyAsset("version.txt");
-				copyAsset("NetHack.cnf", nethackdir + "/.nethackrc");
+				copyAsset("SLASHEM.cnf", nethackdir + "/.slashemrc");
 				copyAsset("charset_amiga.cnf", nethackdir + "/charset_amiga.cnf");
 				copyAsset("charset_ibm.cnf", nethackdir + "/charset_ibm.cnf");
 				copyAsset("charset_128.cnf", nethackdir + "/charset_128.cnf");
@@ -1534,7 +1534,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		try
 		{
-			copyFileRaw(getNetHackDir() + "/.nethackrc", outname);
+			copyFileRaw(getNetHackDir() + "/.slashemrc", outname);
 
 			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
 			alert.setTitle(getString(R.string.dialog_Success));
@@ -1554,7 +1554,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		try
 		{
-			copyFileRaw(inname, getNetHackDir() + "/.nethackrc"); 
+			copyFileRaw(inname, getNetHackDir() + "/.slashemrc"); 
 
 			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
 			alert.setTitle(getString(R.string.dialog_Success));
