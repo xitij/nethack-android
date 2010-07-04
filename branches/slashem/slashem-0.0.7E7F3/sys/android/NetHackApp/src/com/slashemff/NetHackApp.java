@@ -1,4 +1,4 @@
-package com.nethackff;
+package com.slashemff;
 
 import android.app.Activity;
 //import android.app.ActivityManager;
@@ -1713,6 +1713,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	static
 	{
-		System.loadLibrary("nethack");
+		System.loadLibrary("slashem");
 	}
 }

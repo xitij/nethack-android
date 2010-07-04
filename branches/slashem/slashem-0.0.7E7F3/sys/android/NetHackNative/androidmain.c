@@ -978,7 +978,7 @@ not_recovered:
 	return(0);
 }
 
-int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
+int Java_com_slashemff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 		int puretty, jstring nethackdir)
 {
 	char *p;
@@ -1073,7 +1073,7 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	return 1;
 }
 
-void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
+void Java_com_slashemff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 {
 	if(g_ThreadHandle)
 	{
@@ -1098,14 +1098,14 @@ void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackHasQuit(JNIEnv *env, jobject thiz)
+int Java_com_slashemff_NetHackApp_NetHackHasQuit(JNIEnv *env, jobject thiz)
 {
 	return s_Quit;
 }
 
 extern int dosave0();
 
-int Java_com_nethackff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
+int Java_com_slashemff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
 {
 	if(!s_ReadyForSave)
 	{
@@ -1118,7 +1118,7 @@ int Java_com_nethackff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
+void Java_com_slashemff_NetHackApp_NetHackRefreshDisplay(
 		JNIEnv *env, jobject thiz)
 {
 	/* Do we need to do anything to check if we are in a state where
@@ -1133,7 +1133,7 @@ void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
+void Java_com_slashemff_NetHackApp_NetHackSwitchCharSet(
 		JNIEnv *env, jobject thiz, int charset)
 {
 	int cmd = -1;
@@ -1168,7 +1168,7 @@ void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
+int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1183,7 +1183,7 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
+int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1198,7 +1198,7 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
+int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1216,7 +1216,7 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
+void Java_com_slashemff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
 	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
@@ -1263,7 +1263,7 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 	(*env)->ReleaseStringUTFChars(env, str, nativestr);
 }
 
-jstring Java_com_nethackff_NetHackApp_NetHackTerminalReceive(JNIEnv *env,
+jstring Java_com_slashemff_NetHackApp_NetHackTerminalReceive(JNIEnv *env,
 		jobject thiz)
 {
 	pthread_mutex_lock(&s_SendMutex);

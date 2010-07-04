@@ -1,4 +1,4 @@
-package com.nethackff;
+package com.slashemff;
 
 public class NetHackTerminalState
 {

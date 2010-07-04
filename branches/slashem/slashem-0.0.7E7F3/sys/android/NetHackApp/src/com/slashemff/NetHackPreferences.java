@@ -1,4 +1,4 @@
-package com.nethackff;
+package com.slashemff;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;

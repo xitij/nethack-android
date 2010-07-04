@@ -32,7 +32,7 @@ HACKCSRC = allmain.c alloc.c apply.c artifact.c attrib.c ball.c bones.c \
 # - ADDED: monstr.c vis_tab.c
 # - ADDED: unixunix unixtty
 # - ADDED: ioctl.c
-LOCAL_MODULE    := nethack
+LOCAL_MODULE    := slashem
 
 ANDROID_NATIVE_DIR := ../sys/android/NetHackNative
 LOCAL_SRC_FILES :=  $(ANDROID_NATIVE_DIR)/androidmain.c $(ANDROID_NATIVE_DIR)/winandroid.c monst.c objects.c $(HACKCSRC)
