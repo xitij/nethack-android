@@ -960,7 +960,7 @@ static void android_update_topl_word(const char *wordstart,
 /* Hopefully temporary */
 int g_android_prevent_output = 0;
 
-static void android_update_topl(struct WinDesc *cw, const char *str)
+static void android_update_topl(const char *str)
 {
 	int i;
 	const char *ptr;
@@ -1141,7 +1141,7 @@ void android_putstr_message(struct WinDesc *cw, const char *str)
 #if 0
 	android_puts(str);
 #endif
-	android_update_topl(cw, str);
+	android_update_topl(str);
 
 	android_puts("\033A0");
 
@@ -1500,11 +1500,11 @@ static void sToggleCursor(void)
 
 static void android_redotoplin(const char *str)
 {
-	/* Adapted from redotoplin() in 'win/tty/topl.c'. The only current
-	   difference is that we have to select which window to print in here. */
-
 	android_puts("\033A1");
 
+	/* This is what the regular TTY redotoplin() function does -
+	   not sure if we need to do any more of that stuff. */
+#if 0
 	int otoplin = ttyDisplay->toplin;
 	home();
 	if(*str & 0x80) {
@@ -1519,6 +1519,14 @@ static void android_redotoplin(const char *str)
 	ttyDisplay->toplin = 1;
 	if(ttyDisplay->cury && otoplin != 3)
 		more();
+#endif
+
+	android_puts("\033[H\033[J");
+
+	s_MsgCol = 0;
+	s_MsgRow = 0;
+
+	android_update_topl(str);
 
 	android_puts("\033A0");
 }
