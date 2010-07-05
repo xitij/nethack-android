@@ -19,6 +19,7 @@ E void FDECL(android_display_nhwindow, (winid, BOOLEAN_P));
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
 int android_select_menu(winid window, int how, menu_item **menu_list);
+int android_doprev_message();
 char android_yn_function(const char *query, const char *resp, CHAR_P def);
 /*E char FDECL(android_yn_function, (const char *, const char *, CHAR_P));*/
 void android_getlin(const char *query, char *bufp);
@@ -80,7 +81,7 @@ struct window_procs android_procs = {
     tty_nhgetch,
     tty_nh_poskey,
     tty_nhbell,
-    tty_doprev_message,
+    android_doprev_message,
     android_yn_function,
     android_getlin,
     android_get_ext_cmd,
@@ -905,42 +906,6 @@ static void android_putstr_status(struct WinDesc *cw, const char *str)
 }
 
 
-static void android_redotoplin(const char *str)
-{
-	int otoplin = ttyDisplay->toplin;
-
-#if 0
-	home();
-	if(*str & 0x80) {
-		/* kludge for the / command, the only time we ever want a */
-		/* graphics character on the top line */
-		g_putch((int)*str++);
-		ttyDisplay->curx++;
-	}
-	end_glyphout();	/* in case message printed during graphics output */
-#endif
-	clear_screen();
-	putsyms(str);
-	cl_end();
-	ttyDisplay->toplin = 1;
-	if(ttyDisplay->cury && otoplin != 3)
-		more();
-}
-
-
-static void android_addtopl(const char *s)
-{
-    register struct WinDesc *cw = wins[WIN_MESSAGE];
-
-#if 0
-    tty_curs(BASE_WINDOW,cw->curx+1,cw->cury);
-#endif
-    putsyms(s);
-    cl_end();
-    ttyDisplay->toplin = 1;
-}
-
-
 static void android_update_topl_word(const char *wordstart,
 		const char *wordend)
 {
@@ -1258,6 +1223,34 @@ void android_putstr_text(winid window, int attr,
 }
 
 
+static void android_remember_topl(const char *str)
+{
+	/* This was adapted from the remember_topl() function in win/tty/topl.c
+	   (which is static, and thus not usable from here without changing code
+	   outside sys/android/. */
+
+	register struct WinDesc *cw = wins[WIN_MESSAGE];
+	int idx = cw->maxrow;
+	unsigned len = strlen(toplines) + 1;
+
+    if (len > (unsigned)cw->datlen[idx])
+	{
+		if (cw->data[idx])
+		{
+			free(cw->data[idx]);
+		}
+		len += (8 - (len & 7));		/* pad up to next multiple of 8 */
+		cw->data[idx] = (char *)alloc(len);
+		cw->datlen[idx] = (short)len;
+    }
+	Strcpy(cw->data[idx], toplines);
+	cw->maxcol = cw->maxrow = (idx + 1) % cw->rows;
+
+	strncpy(toplines, str, TBUFSZ);
+	toplines[TBUFSZ - 1] = 0;
+}
+
+
 void android_putstr(winid window, int attr, const char *str)
 {
 	struct WinDesc *cw = wins[window];
@@ -1280,32 +1273,11 @@ android_puts("\033A0");
 
 	if(cw && cw->type == NHW_MESSAGE)
 	{
-#if 0
-		update_topl(str);
-#else
-
-#if 0
-		/* HACK */
-		int oldco = CO;
-		CO = s_ScreenNumColumns;
-
-		android_puts("\033A1");
-		update_topl(str);
-		android_puts("\033A0");
-
-		CO = oldco;
-#else
-
-#if 0
-		char buff[256];
-		snprintf(buff, sizeof(buff), ":%d:", s_MsgCol + 1);
-		android_putstr_message(cw, buff);
-#endif
+		/* Add to message history. */
+		android_remember_topl(str);
 
 		android_putstr_message(cw, str);
-#endif
 
-#endif
 		return;
 	}
 	else if(cw && cw->type == NHW_STATUS)
@@ -1520,6 +1492,135 @@ getlin_hook_proc hook;
 static void sToggleCursor(void)
 {
 	android_puts("\033AC");
+}
+
+#ifndef C	/* this matches src/cmd.c */
+#define C(c)	(0x1f & (c))
+#endif
+
+static void android_redotoplin(const char *str)
+{
+	/* Adapted from redotoplin() in 'win/tty/topl.c'. The only current
+	   difference is that we have to select which window to print in here. */
+
+	android_puts("\033A1");
+
+	int otoplin = ttyDisplay->toplin;
+	home();
+	if(*str & 0x80) {
+		/* kludge for the / command, the only time we ever want a */
+		/* graphics character on the top line */
+		g_putch((int)*str++);
+		ttyDisplay->curx++;
+	}
+	end_glyphout();	/* in case message printed during graphics output */
+	putsyms(str);
+	cl_end();
+	ttyDisplay->toplin = 1;
+	if(ttyDisplay->cury && otoplin != 3)
+		more();
+
+	android_puts("\033A0");
+}
+
+
+int android_doprev_message()
+{
+	/* This is an unfortunate copy of tty_doprev_message, with the only
+	   difference being that we call android_redotoplin() instead of
+	   redotoplin() in 'win/tty/topl.c', to print in the right window. */
+
+    register struct WinDesc *cw = wins[WIN_MESSAGE];
+
+    winid prevmsg_win;
+    int i;
+    if ((iflags.prevmsg_window != 's') && !ttyDisplay->inread) { /* not single */
+        if(iflags.prevmsg_window == 'f') { /* full */
+            prevmsg_win = create_nhwindow(NHW_MENU);
+            putstr(prevmsg_win, 0, "Message History");
+            putstr(prevmsg_win, 0, "");
+            cw->maxcol = cw->maxrow;
+            i = cw->maxcol;
+            do {
+                if(cw->data[i] && strcmp(cw->data[i], "") )
+                    putstr(prevmsg_win, 0, cw->data[i]);
+                i = (i + 1) % cw->rows;
+            } while (i != cw->maxcol);
+            putstr(prevmsg_win, 0, toplines);
+            display_nhwindow(prevmsg_win, TRUE);
+            destroy_nhwindow(prevmsg_win);
+        } else if (iflags.prevmsg_window == 'c') {		/* combination */
+            do {
+                morc = 0;
+                if (cw->maxcol == cw->maxrow) {
+                    ttyDisplay->dismiss_more = C('p');	/* <ctrl/P> allowed at --More-- */
+                    android_redotoplin(toplines);
+                    cw->maxcol--;
+                    if (cw->maxcol < 0) cw->maxcol = cw->rows-1;
+                    if (!cw->data[cw->maxcol])
+                        cw->maxcol = cw->maxrow;
+                } else if (cw->maxcol == (cw->maxrow - 1)){
+                    ttyDisplay->dismiss_more = C('p');	/* <ctrl/P> allowed at --More-- */
+                    android_redotoplin(cw->data[cw->maxcol]);
+                    cw->maxcol--;
+                    if (cw->maxcol < 0) cw->maxcol = cw->rows-1;
+                    if (!cw->data[cw->maxcol])
+                        cw->maxcol = cw->maxrow;
+                } else {
+                    prevmsg_win = create_nhwindow(NHW_MENU);
+                    putstr(prevmsg_win, 0, "Message History");
+                    putstr(prevmsg_win, 0, "");
+                    cw->maxcol = cw->maxrow;
+                    i = cw->maxcol;
+                    do {
+                        if(cw->data[i] && strcmp(cw->data[i], "") )
+                            putstr(prevmsg_win, 0, cw->data[i]);
+                        i = (i + 1) % cw->rows;
+                    } while (i != cw->maxcol);
+                    putstr(prevmsg_win, 0, toplines);
+                    display_nhwindow(prevmsg_win, TRUE);
+                    destroy_nhwindow(prevmsg_win);
+                }
+
+            } while (morc == C('p'));
+            ttyDisplay->dismiss_more = 0;
+        } else { /* reversed */
+            morc = 0;
+            prevmsg_win = create_nhwindow(NHW_MENU);
+            putstr(prevmsg_win, 0, "Message History");
+            putstr(prevmsg_win, 0, "");
+            putstr(prevmsg_win, 0, toplines);
+            cw->maxcol=cw->maxrow-1;
+            if(cw->maxcol < 0) cw->maxcol = cw->rows-1;
+            do {
+                putstr(prevmsg_win, 0, cw->data[cw->maxcol]);
+                cw->maxcol--;
+                if (cw->maxcol < 0) cw->maxcol = cw->rows-1;
+                if (!cw->data[cw->maxcol])
+                    cw->maxcol = cw->maxrow;
+            } while (cw->maxcol != cw->maxrow);
+
+            display_nhwindow(prevmsg_win, TRUE);
+            destroy_nhwindow(prevmsg_win);
+            cw->maxcol = cw->maxrow;
+            ttyDisplay->dismiss_more = 0;
+        }
+    } else if(iflags.prevmsg_window == 's') { /* single */
+        ttyDisplay->dismiss_more = C('p');  /* <ctrl/P> allowed at --More-- */
+        do {
+            morc = 0;
+            if (cw->maxcol == cw->maxrow)
+                android_redotoplin(toplines);
+            else if (cw->data[cw->maxcol])
+                android_redotoplin(cw->data[cw->maxcol]);
+            cw->maxcol--;
+            if (cw->maxcol < 0) cw->maxcol = cw->rows-1;
+            if (!cw->data[cw->maxcol])
+                cw->maxcol = cw->maxrow;
+        } while (morc == C('p'));
+        ttyDisplay->dismiss_more = 0;
+    }
+    return 0;
 }
 
 
