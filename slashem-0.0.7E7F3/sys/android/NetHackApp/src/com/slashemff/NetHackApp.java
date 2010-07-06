@@ -880,19 +880,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public void onDestroy()
 	{
-		if(NetHackHasQuit() == 0)
-		{
-			Log.i("NetHack", "Auto-saving");
-			if(NetHackSave() != 0)
-			{
-				Log.i("NetHack", "Auto-save succeeded");
-			}
-			else
-			{
-				Log.w("NetHack", "Auto-save failed");
-			}
-		}
-
 		stopCommThread();
 		super.onDestroy();
 		//TestShutdown();
@@ -1171,6 +1158,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	public void onPause()
 	{
+		if(NetHackHasQuit() == 0)
+		{
+			Log.i("NetHack", "Auto-saving");
+			if(NetHackSave() != 0)
+			{
+				Log.i("NetHack", "Auto-save succeeded");
+			}
+			else
+			{
+				Log.w("NetHack", "Auto-save failed");
+			}
+		}		
 		stopCommThread();
 
 		super.onPause();

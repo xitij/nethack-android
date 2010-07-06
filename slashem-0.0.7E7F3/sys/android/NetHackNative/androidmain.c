@@ -492,20 +492,34 @@ int TMP_main(int argc, char *argv[]);
 
 #define AUTOSAVE_FILENAME "android_autosave.txt"
 
+/* The last time we auto-saved (probably due to Activity pause), this
+   was the value of the "moves" variable. */
+static int s_MovesOnLastAutoSave = -1;
+
 void android_autosave_save()
 {
-	FILE *f = fopen(AUTOSAVE_FILENAME, "w");
-	if(f)
+	/* If the move counter hasn't increased since the last time we saved,
+	   we assume that there is nothing of importance that needs to be saved.
+	   This is done so that when switching between different activities
+	   (for example bringing up the preference menu), we don't slow down
+	   the UI to save the state each time. */
+	if(moves != s_MovesOnLastAutoSave)
 	{
-		fprintf(f, "%s\n", plname);
-		fclose(f);
-	}
+		FILE *f = fopen(AUTOSAVE_FILENAME, "w");
+		if(f)
+		{
+			fprintf(f, "%s\n", plname);
+			fclose(f);
+		}
 
 #ifdef INSURANCE
-	save_currentstate();
+		save_currentstate();
+
+		s_MovesOnLastAutoSave = moves;
 #else
 # error "Can't save without INSURANCE."
 #endif
+	}
 }
 
 
