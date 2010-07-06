@@ -304,6 +304,7 @@ public class NetHackTerminalView extends View
 									0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
 	final int colSetAmiga_fgpens[] =			{ 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
 	final int colSetAmiga_fgpens_whitebg[] =	{ 1, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 0 };
+	final int colSetAmiga_bgpens[] =			{ 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
 
 	
 	final int colSetIBM_rgb[] =	{	0x000, 0x00a, 0x0a0, 0x0aa, 0xa00, 0xa0a, 0xa50, 0xaaa,
@@ -468,17 +469,13 @@ public class NetHackTerminalView extends View
 
 	void setPaintColorBackgroundAmiga(Paint paint, int col, boolean cursor)
 	{
-		// TODO: Move out
-		int rgb[] = { 0x000, 0xfff, 0x830, 0x7ac, 0x181, 0xc06, 0x23e, 0xc00, 0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
-//		int bgpens[] = { 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		int bgpens[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		int pen = bgpens[col];
+		int pen = colSetAmiga_bgpens[col];
 
 		if(cursor)
 		{
 			pen = (0xf & ~pen);
 		}
-		int argb = Color.argb(0xff, ((rgb[pen] & 0xf00) >> 8)*0x11, ((rgb[pen] & 0x0f0) >> 4)*0x11, (rgb[pen] & 0x00f)*0x11);
+		int argb = Color.argb(0xff, ((colSetAmiga_rgb[pen] & 0xf00) >> 8)*0x11, ((colSetAmiga_rgb[pen] & 0x0f0) >> 4)*0x11, (colSetAmiga_rgb[pen] & 0x00f)*0x11);
 		paint.setColor(argb);
 		//paint.setColorFilter(new PorterDuffColorFilter(argb, Mode.MULTIPLY));
 	}
