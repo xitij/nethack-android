@@ -712,6 +712,8 @@ int android_getch(void)
 
 				bot();
 
+				curs_on_u();
+
 				continue;
 			}
 		}
