@@ -303,7 +303,7 @@ public class NetHackTerminalView extends View
 	final int colSetAmiga_rgb[] = {	0x000, 0xfff, 0x830, 0x7ac, 0x181, 0xc06, 0x23e, 0xc00,
 									0x888, 0xf60, 0x4f4, 0xff0, 0x4af, 0xf8f, 0x8ff, 0xf00 };
 	final int colSetAmiga_fgpens[] =			{ 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
-	final int colSetAmiga_fgpens_whitebg[] =	{ 1, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 0 };
+	final int colSetAmiga_fgpens_whitebg[] =	{ 1, 7, 4, 2, 6, 5, 3, 8, 0, 9, 10, 11, 12, 13, 14, 0 };
 	final int colSetAmiga_bgpens[] =			{ 0, 7, 4, 2, 6, 5, 3, 8, 1, 9, 10, 11, 12, 13, 14, 1 };
 
 	
