@@ -3,6 +3,8 @@ Changes since 1.2.4
 
 - Made Ctrl-P work in "Android TTY" mode.
 - Added prompt to destroy old game, if the recovery failed.
+- Fixed text background bug with Amiga colors.
+- Fixed cursor position when refreshing the screen (on orientation change, etc).
 
 1.2.4 (July 2, 2010)
 --------------------
