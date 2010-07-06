@@ -2,6 +2,7 @@ Changes since 1.2.4
 -------------------
 
 - Made Ctrl-P work in "Android TTY" mode.
+- Added prompt to destroy old game, if the recovery failed.
 
 1.1.1 (July 5, 2010)
 --------------------
