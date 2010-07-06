@@ -1023,17 +1023,17 @@ s += nextRowTxt[j - 1];
 		int y;
 
 		int rowView1 = 0;
-		int rowView2 = sizeY;
+		int rowView2 = Math.min(sizeY, terminal.numRows);
 		int colView1 = 0;
-		int colView2 = sizeX;
+		int colView2 = Math.min(sizeX, terminal.numColumns);
 
 		Rect cliprect = new Rect();
 		if(canvas.getClipBounds(cliprect))
 		{
 			colView1 = Math.max(computeViewColumnFromCoordX(cliprect.left), 0);
-			colView2 = Math.min(computeViewColumnFromCoordX(cliprect.right + charWidth - 1), sizeX);
+			colView2 = Math.min(computeViewColumnFromCoordX(cliprect.right + charWidth - 1), colView2);
 			rowView1 = Math.max(computeViewRowFromCoordY(cliprect.top), 0);
-			rowView2 = Math.min(computeViewRowFromCoordY(cliprect.bottom + charHeight - 1), sizeY);
+			rowView2 = Math.min(computeViewRowFromCoordY(cliprect.bottom + charHeight - 1), rowView2);
 		}
 
 		y = computeViewCoordY(rowView1);
