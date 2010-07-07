@@ -70,6 +70,10 @@ static int s_Command = kCmdNone;
 static int s_Quit = 0;
 int g_AndroidPureTTY = 0;
 
+#ifdef ANDROID_GRAPHICS_TILED
+int g_AndroidTiled = 0;
+#endif
+
 static void NDECL(wd_message);
 #ifdef WIZARD
 static boolean wiz_error_flag = FALSE;
@@ -364,6 +368,73 @@ static void android_putchar_internal(int c)
 				unicode = 0x7000 + (unsigned int)c;
 			}
 		}
+
+		/* Store the Unicode in the buffer using UTF8 encoding. Note:
+		   we could potentially just store them with 2 byte per character
+		   Unicode in the array. */
+
+		if(unicode >= 0x800)
+		{
+			if(s_SendCnt < SENDBUFFSZ - 2)
+			{
+				unsigned char c1 = 0xe0 + ((unicode & 0xf000) >> 12);
+				unsigned char c2 = 0x80 + ((unicode & 0x0f00) >> 6) + ((unicode & 0x00c0) >> 6);
+				unsigned char c3 = 0x80 + (unicode & 0x003f);
+
+				s_SendBuff[s_SendCnt++] = (char)c1;
+				s_SendBuff[s_SendCnt++] = (char)c2;
+				s_SendBuff[s_SendCnt++] = (char)c3;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+		}
+		else if(unicode >= 0x80)
+		{
+			if(s_SendCnt < SENDBUFFSZ - 1)
+			{
+				unsigned char c1 = 0xc0 + ((unicode & 0x0700) >> 6) + ((unicode & 0x00c0) >> 6);
+				unsigned char c2 = 0x80 + (unicode & 0x003f);
+
+				s_SendBuff[s_SendCnt++] = (char)c1;
+				s_SendBuff[s_SendCnt++] = (char)c2;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+
+		}
+		else
+		{
+			if(s_SendCnt < SENDBUFFSZ)
+			{
+				s_SendBuff[s_SendCnt++] = (char)unicode;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+		}
+
+		s_SendWaitingForNotFull = 1;
+
+		pthread_mutex_unlock(&s_SendMutex);
+
+		sem_wait(&s_SendNotFullSema);
+	}
+}
+
+
+/* TEMP */
+void android_putchar_internal2(int c)
+{
+	while(1)
+	{
+		pthread_mutex_lock(&s_SendMutex);
+
+		uint16_t unicode = c;
 
 		/* Store the Unicode in the buffer using UTF8 encoding. Note:
 		   we could potentially just store them with 2 byte per character
@@ -845,7 +916,16 @@ static void *sThreadFunc()
 	}
 	else
 	{
-		choose_windows(DEFAULT_WINDOW_SYS);
+#ifdef ANDROID_GRAPHICS_TILED
+		if(g_AndroidTiled)
+		{
+			choose_windows("androidtiled");
+		}
+		else
+#endif
+		{
+			choose_windows("androidtty");
+		}
 	}
 
 	if(!g_AndroidPureTTY)
@@ -989,8 +1069,14 @@ not_recovered:
 	return(0);
 }
 
+static const int kUiModeAndroidTTY = 0;
+static const int kUiModePureTTY = 1;
+#ifdef ANDROID_GRAPHICS_TILED
+static const int kUiModeAndroidTiled = 2;
+#endif
+
 int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
-		int puretty, jstring nethackdir)
+		int uimode, jstring nethackdir)
 {
 	char *p;
 	int x, y;
@@ -1012,7 +1098,10 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	strcpy(g_NetHackDir, nethackdirnative);
 	(*env)->ReleaseStringUTFChars(env, nethackdir, nethackdirnative);
 
-	g_AndroidPureTTY = puretty;
+	g_AndroidPureTTY = (uimode == kUiModePureTTY);
+#ifdef ANDROID_GRAPHICS_TILED
+	g_AndroidTiled = (uimode == kUiModeAndroidTiled);
+#endif
 	s_SendWaitingForNotFull = 0;
 	s_ReceiveWaitingForData = 0;
 	s_ReceiveWaitingForConsumption = 0;

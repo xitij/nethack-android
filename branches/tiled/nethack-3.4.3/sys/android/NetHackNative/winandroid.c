@@ -33,6 +33,10 @@ void android_free_window_info(struct WinDesc *wd, BOOLEAN_P b);
 void android_process_menu_window(winid wid, struct WinDesc *wd);
 void android_process_text_window(winid wid, struct WinDesc *wd);
 
+#ifdef ANDROID_GRAPHICS_TILED
+void FDECL(android_tiled_print_glyph, (winid,XCHAR_P,XCHAR_P,int));
+/*void android_tiled_print_glyph(winid window, xchar x, xchar y, int glyph);*/
+#endif
 
 /* Interface definition, for windows.c */
 struct window_procs android_procs = {
@@ -107,12 +111,208 @@ struct window_procs android_procs = {
 #endif
 };
 
+#ifdef ANDROID_GRAPHICS_TILED
+
+struct window_procs android_tiled_procs = {
+    "androidtiled",
+#ifdef MSDOS
+    WC_TILED_MAP|WC_ASCII_MAP|
+#endif
+#if defined(WIN32CON)
+    WC_MOUSE_SUPPORT|
+#endif
+    WC_COLOR|WC_HILITE_PET|WC_INVERSE|WC_EIGHT_BIT_IN,
+    0L,
+    tty_init_nhwindows,
+/*	android_player_selection,*/
+	tty_player_selection,
+    tty_askname,
+    tty_get_nh_event,
+    tty_exit_nhwindows,
+    tty_suspend_nhwindows,
+    tty_resume_nhwindows,
+	android_create_nhwindow,
+	android_clear_nhwindow,
+    android_display_nhwindow,
+	android_destroy_nhwindow,
+	android_curs,
+	android_putstr,
+    tty_display_file,
+    tty_start_menu,
+    tty_add_menu,
+    tty_end_menu,
+/*	tty_select_menu,*/
+	android_select_menu,
+    tty_message_menu,
+    tty_update_inventory,
+    tty_mark_synch,
+    tty_wait_synch,
+#ifdef CLIPPING
+    tty_cliparound,
+#endif
+#ifdef POSITIONBAR
+    tty_update_positionbar,
+#endif
+    android_tiled_print_glyph,
+    tty_raw_print,
+    tty_raw_print_bold,
+    tty_nhgetch,
+    tty_nh_poskey,
+    tty_nhbell,
+    android_doprev_message,
+    android_yn_function,
+    android_getlin,
+    android_get_ext_cmd,
+    tty_number_pad,
+    tty_delay_output,
+#ifdef CHANGE_COLOR	/* the Mac uses a palette device */
+    tty_change_color,
+#ifdef MAC
+    tty_change_background,
+    set_tty_font_name,
+#endif
+    tty_get_color_string,
+#endif
+
+    /* other defs that really should go away (they're tty specific) */
+    tty_start_screen,
+    tty_end_screen,
+    genl_outrip,
+#if defined(WIN32CON)
+    nttty_preference_update,
+#else
+    genl_preference_update,
+#endif
+};
+
+#endif
+
 static char winpanicstr[] = "Bad window id %d";
 
 void android_wininit_data(int *argcp, char **argv)	/* should we have these params? */
 {
 	win_tty_init();
 }
+
+#ifdef ANDROID_GRAPHICS_TILED
+
+void android_tiled_wininit_data(int *argcp, char **argv)	/* should we have these params? */
+{
+	win_tty_init();
+}
+
+void android_putchar_internal2(int c);
+
+static void android_put_utf8(int unicode)
+{
+#if 0
+	char buff[4];
+
+	if(unicode >= 0x800)
+	{
+		unsigned char c1 = 0xe0 + ((unicode & 0xf000) >> 12);
+		unsigned char c2 = 0x80 + ((unicode & 0x0f00) >> 6) + ((unicode & 0x00c0) >> 6);
+		unsigned char c3 = 0x80 + (unicode & 0x003f);
+
+		buff[0] = c1;
+		buff[1] = c2;
+		buff[2] = c3;
+		buff[3] = '\0';
+		android_puts(buff);
+	}
+	else if(unicode >= 0x80)
+	{
+		unsigned char c1 = 0xc0 + ((unicode & 0x0700) >> 6) + ((unicode & 0x00c0) >> 6);
+		unsigned char c2 = 0x80 + (unicode & 0x003f);
+
+		buff[0] = c1;
+		buff[1] = c2;
+		buff[2] = '\0';
+		android_puts(buff);
+	}
+	else
+	{
+		buff[0] = (char)unicode;
+		buff[1] = '\0';
+		android_puts(buff);
+	}
+#endif
+	android_putchar_internal2(unicode);
+}
+
+
+/* from tile.c */
+extern short glyph2tile[];
+extern int total_tiles_used;
+
+/*
+void FDECL(tty_print_glyph, (winid,XCHAR_P,XCHAR_P,int));
+void android_tiled_print_glyph(winid window, xchar x, xchar y, int glyph)
+*/
+void android_tiled_print_glyph(window, x, y, glyph)
+    winid window;
+    xchar x, y;
+    int glyph;
+{
+/*
+    int ch;
+    int	    color;
+    unsigned special;
+*/    
+	int tile = glyph2tile[glyph];
+
+
+#if 0
+	struct WinDesc *cw = wins[window];
+	if(cw && cw->type == NHW_MESSAGE)
+	{
+		/* HACK */
+		int oldco = CO;
+		CO = s_MessageNumColumns;
+
+		android_puts("\033A1");
+		tty_curs(window, x, y);
+		android_puts("\033A0");
+
+		CO = oldco;
+		return;
+	}
+	else if(cw && cw->type == NHW_STATUS)
+	{
+		android_puts("\033A2");
+
+		android_curs_status(window, x, y);
+
+		android_puts("\033A0");
+		return;
+	}
+	tty_curs(window, x, y);
+#endif
+	android_puts("\033A5");
+
+	--x;	/* column 0 is never used */
+/*
+    x += cw->offx;
+    y += cw->offy;
+*/
+	cmov(x, y);
+
+    /* map glyph to character and color */
+/*
+    mapglyph(glyph, &ch, &color, &special, x, y);
+	android_putchar(ch);
+*/
+
+// TODO: UTF8 here?
+//	android_putchar(tile);
+
+	android_put_utf8(tile + 0x100);
+//	android_put_utf8(tile);
+
+	android_puts("\033A0");
+}
+
+#endif	/* ANDROID_GRAPHICS_TILED */
 
 #if 0
 
@@ -611,6 +811,9 @@ winid android_create_nhwindow(int type)
 }
 
 extern int g_AndroidPureTTY;
+#ifdef ANDROID_GRAPHICS_TILED
+extern int g_AndroidTiled;
+#endif
 
 void android_clear_nhwindow(winid window)
 {
@@ -634,6 +837,16 @@ void android_clear_nhwindow(winid window)
 		android_puts("\033A0");
 		return;
 	}
+#ifdef ANDROID_GRAPHICS_TILED
+	else if(cw && cw->type == NHW_MAP && g_AndroidTiled)
+	{
+		android_puts("\033A5");
+		android_puts("\033[H\033[J");
+		android_puts("\033A0");
+		return;
+	}
+#endif
+
 	tty_clear_nhwindow(window);
 }
 

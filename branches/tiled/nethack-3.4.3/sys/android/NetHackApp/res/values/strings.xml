@@ -43,10 +43,12 @@
 	<string-array name="UIModeEntries">
 		<item>Pure TTY</item>
 		<item>Android TTY</item>
+		<item>Android Tiled</item>
 	</string-array>
 	<string-array name="UIModeValues">
 		<item>PureTTY</item>
 		<item>AndroidTTY</item>
+		<item>AndroidTiled</item>
 	</string-array>
 	<string-array name="ColorModeEntries">
 		<item>Black</item>
