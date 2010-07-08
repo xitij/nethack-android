@@ -16,6 +16,11 @@
 			android:entries="@array/UIModeEntries"
 			android:entryValues="@array/UIModeValues"/>
 
+		<ListPreference
+			android:title="Tile Set"
+			android:key="TileSet"/>
+
+
 		<CheckBoxPreference android:key="Fullscreen"
 			android:title="Fullscreen"
 			android:summary="If set, the notification bar will be hidden."

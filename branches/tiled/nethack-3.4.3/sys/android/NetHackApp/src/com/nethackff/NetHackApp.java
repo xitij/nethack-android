@@ -65,6 +65,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.LinkedList;
 
 public class NetHackApp extends Activity implements Runnable, OnGestureListener
 {
@@ -215,6 +217,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	KeyAction optKeyBindSearch = KeyAction.CtrlKey;
 	KeyAction optKeyBindShiftLeft = KeyAction.ShiftKey;
 	KeyAction optKeyBindShiftRight = KeyAction.ShiftKey;
+	String optTileSetName;	
 
 	public KeyAction getKeyActionFromKeyCode(int keyCode)
 	{
@@ -1261,7 +1264,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		boolean keyboardInPortraitBefore = optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()];
 		boolean keyboardInLandscapeBefore = optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()];
- 
+
+		String tilesetbefore = optTileSetName;
+		
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -1359,7 +1364,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			shouldrebuild = true;
 		}
-
+		if(uiModeActual == UIMode.AndroidTiled)
+		{
+			if(!tilesetbefore.equals(optTileSetName))
+			{
+				shouldrebuild = true;
+				usePreferredTileSet();
+			}
+		}
 		if(shouldrebuild)
 		{
 			rebuildViews();
@@ -1510,8 +1522,125 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 
 	Bitmap fontBitmap;
-	Bitmap tileBitmap;
-	
+
+	class TileSetInfo
+	{
+		public String packageName;
+		public String tileSetName;
+		public int tileSizeX;
+		public int tileSizeY;
+	};
+
+	public void useTileSet(TileSetInfo info)
+	{
+		int tilesizex = 0, tilesizey = 0;
+//			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
+
+		Uri path = Uri.parse("android.resource://" + info.packageName + "/drawable/tiles");
+
+		try
+		{
+			Bitmap bmp = Media.getBitmap(getContentResolver(), path);
+			if(bmp != null)
+			{
+				tiledView.setBitmap(bmp, info.tileSizeX, info.tileSizeY);
+			}
+		}
+		catch(FileNotFoundException e)
+		{
+		}
+		catch(IOException e)
+		{
+		}
+	}
+
+	public LinkedList<TileSetInfo> findTileSets()
+	{
+		LinkedList<TileSetInfo> tilesetlist = new LinkedList<TileSetInfo>();
+
+		List<ApplicationInfo> appsList = getBaseContext().getPackageManager().getInstalledApplications(0);
+		Iterator<ApplicationInfo> appsIter = appsList.iterator(); 
+		int tilesizex = 1, tilesizey = 1;
+		while(appsIter.hasNext())
+		{ 
+			ApplicationInfo curr = appsIter.next(); 
+			if(curr.packageName.startsWith("com.nethackff_tiles_"))
+			{
+				try
+				{
+//					Bitmap bmp = Media.getBitmap(getContentResolver(), path);
+//					if(bmp != null)
+					{
+						try
+						{
+							Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
+							//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
+							//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
+							int idname = res.getIdentifier("TileSetName", "string", curr.packageName);
+							int idtilesizex = res.getIdentifier("TileSetTileSizeX", "integer", curr.packageName);
+							int idtilesizey = res.getIdentifier("TileSetTileSizeY", "integer", curr.packageName);
+
+							TileSetInfo info = new TileSetInfo();
+							info.packageName = curr.packageName;
+							info.tileSetName = res.getString(idname);
+							info.tileSizeX = res.getInteger(idtilesizex);
+							info.tileSizeY = res.getInteger(idtilesizey);
+							tilesetlist.add(info);
+						}
+						catch(NotFoundException e)
+						{
+							Log.i("NetHack", "Bitmap: No string 1!");
+						}
+					}
+//					else
+//					{
+//						Log.i("NetHack", "Bitmap: null");
+//					}
+				}
+				catch(NameNotFoundException e)
+				{
+					Log.i("NetHack", "Bitmap: FileNotFoundException");
+				}
+/*
+				catch(FileNotFoundException e)
+				{
+					Log.i("NetHack", "Bitmap: FileNotFoundException");
+				}
+				catch(IOException e)
+				{
+					Log.i("NetHack", "Bitmap: IOException");
+				}
+*/		
+			}
+		}
+
+		return tilesetlist;
+	}
+
+	public void usePreferredTileSet()
+	{
+		LinkedList<TileSetInfo> tilesetlist = findTileSets();
+		if(tilesetlist.size() > 0)
+		{
+			ListIterator<TileSetInfo> iter = tilesetlist.listIterator();
+			boolean found = false;
+			while(iter.hasNext())
+			{
+				TileSetInfo info = iter.next();
+				if(info.packageName.equals(optTileSetName))
+				{
+					useTileSet(info);
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+			{
+				useTileSet(tilesetlist.get(0));
+			}
+		}
+	}
+		
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -1581,86 +1710,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(uiModeActual == UIMode.AndroidTiled)
 		{
-// TEMPRSC
-/*
-			final Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-final List<ResolveInfo> pkgAppsList = getBaseContext().getPackageManager().queryIntentActivities(mainIntent, 0);
-Iterator<ResolveInfo> actList = pkgAppsList.iterator(); 
-while(actList.hasNext()) { 
-   ResolveInfo curr = actList.next(); 
-   Log.d("Intents =====> ", curr.toString() + " " + curr.match + " " + curr.isDefault); 
-}
-*/
-
-tileBitmap = null;
-List<ApplicationInfo> appsList = getBaseContext().getPackageManager().getInstalledApplications(0);
-Iterator<ApplicationInfo> appsIter = appsList.iterator(); 
-int tilesizex = 1, tilesizey = 1;
-while(appsIter.hasNext())
-{ 
-	ApplicationInfo curr = appsIter.next(); 
-	if(curr.packageName.startsWith("com.nethackff_tiles_"))
-	{
-Uri path = Uri.parse("android.resource://" + curr.packageName + "/drawable/tiles");
-try
-{
-	Bitmap bmp = Media.getBitmap(getContentResolver(), path);
-	if(bmp != null)
-	{
-try
-{
-Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
-//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
-//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
-int idname = res.getIdentifier("TileSetName", "string", curr.packageName);
-int idtilesizex = res.getIdentifier("TileSetTileSizeX", "integer", curr.packageName);
-int idtilesizey = res.getIdentifier("TileSetTileSizeY", "integer", curr.packageName);
-Log.i("NetHack", "1");
-String name = res.getString(idname);
-Log.i("NetHack", "2");
-tilesizex = res.getInteger(idtilesizex);
-Log.i("NetHack", "3");
-tilesizey = res.getInteger(idtilesizey);
-Log.i("NetHack", "Bitmap: Found! '" + name + "' " + tilesizex + " x " + tilesizey);
-
-tileBitmap = bmp;
-
-break;
-}
-catch(NotFoundException e)
-{
-Log.i("NetHack", "Bitmap: No string 1!");
-}
-	}
-	else
-	{
-		Log.i("NetHack", "Bitmap: null");
-	}
-}
-catch(NameNotFoundException e)
-{
-	Log.i("NetHack", "Bitmap: FileNotFoundException");
-}
-catch(FileNotFoundException e)
-{
-	Log.i("NetHack", "Bitmap: FileNotFoundException");
-}
-catch(IOException e)
-{
-	Log.i("NetHack", "Bitmap: IOException");
-}
-
-		Log.d("NetHack", "Found tile package: '" + curr.packageName + "'"); 
-	}
-}
-
-{
-		}
 			tiledView = new NetHackTiledView(this);
-//			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
-			tiledView.setBitmap(tileBitmap, tilesizex, tilesizey);
-		
+
+			usePreferredTileSet();
+
 			tiledView.sizeY -= messageRows + statusRows;
 			//tiledView.offsetY = 1;
 			tiledView.computeSizePixels();
@@ -1816,7 +1869,28 @@ catch(IOException e)
 			}
 			case R.id.preferences:
 			{
-				startActivity(new Intent(this, NetHackPreferences.class));
+				Intent intent = new Intent(this, NetHackPreferences.class);
+				Bundle bundle = new Bundle();
+//				bundle.putString("sample", "this is the test commands");
+//				bundle.putString("sample1", "this is the test commands1");
+
+				LinkedList<TileSetInfo> tilesetlist = findTileSets();
+				String tilesetnames[] = new String[tilesetlist.size()];
+				String tilesetvalues[] = new String[tilesetlist.size()];
+
+				ListIterator<TileSetInfo> iter = tilesetlist.listIterator();
+				int index = 0;
+				while(iter.hasNext())
+				{
+					TileSetInfo info = iter.next();
+					tilesetnames[index] = info.tileSetName;
+					tilesetvalues[index] = info.packageName;
+					index++;
+				}
+				bundle.putStringArray("TileSetNames", tilesetnames);
+				bundle.putStringArray("TileSetValues", tilesetvalues);
+				intent.putExtras(bundle);
+				startActivity(intent);
 				return true;
 			}
 			case R.id.importconfig:
@@ -1860,6 +1934,7 @@ catch(IOException e)
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Unspecified"));
 
+		optTileSetName = prefs.getString("TileSet", "");
 		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = prefs.getBoolean("KeyboardShownInPortrait", true);
 		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = prefs.getBoolean("KeyboardShownInLandscape", false);
 	}
