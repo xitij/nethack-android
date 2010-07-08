@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="TileSetName">RLTiles (Itakura)</string>
+	<integer name="TileSetTileSizeX">32</integer>
+	<integer name="TileSetTileSizeY">32</integer>
+</resources>

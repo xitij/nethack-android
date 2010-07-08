@@ -10,8 +10,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -20,10 +25,12 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore.Images.Media;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -50,11 +57,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.Thread;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Iterator;
+import java.util.List;
 
 public class NetHackApp extends Activity implements Runnable, OnGestureListener
 {
@@ -1571,16 +1581,91 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(uiModeActual == UIMode.AndroidTiled)
 		{
-			tiledView = new NetHackTiledView(this);
-			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
-			tiledView.tileBitmap = tileBitmap;
+// TEMPRSC
+/*
+			final Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
+mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+final List<ResolveInfo> pkgAppsList = getBaseContext().getPackageManager().queryIntentActivities(mainIntent, 0);
+Iterator<ResolveInfo> actList = pkgAppsList.iterator(); 
+while(actList.hasNext()) { 
+   ResolveInfo curr = actList.next(); 
+   Log.d("Intents =====> ", curr.toString() + " " + curr.match + " " + curr.isDefault); 
+}
+*/
 
+tileBitmap = null;
+List<ApplicationInfo> appsList = getBaseContext().getPackageManager().getInstalledApplications(0);
+Iterator<ApplicationInfo> appsIter = appsList.iterator(); 
+int tilesizex = 1, tilesizey = 1;
+while(appsIter.hasNext())
+{ 
+	ApplicationInfo curr = appsIter.next(); 
+	if(curr.packageName.startsWith("com.nethackff_tiles_"))
+	{
+Uri path = Uri.parse("android.resource://" + curr.packageName + "/drawable/tiles");
+try
+{
+	Bitmap bmp = Media.getBitmap(getContentResolver(), path);
+	if(bmp != null)
+	{
+try
+{
+Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
+//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
+//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
+int idname = res.getIdentifier("TileSetName", "string", curr.packageName);
+int idtilesizex = res.getIdentifier("TileSetTileSizeX", "integer", curr.packageName);
+int idtilesizey = res.getIdentifier("TileSetTileSizeY", "integer", curr.packageName);
+Log.i("NetHack", "1");
+String name = res.getString(idname);
+Log.i("NetHack", "2");
+tilesizex = res.getInteger(idtilesizex);
+Log.i("NetHack", "3");
+tilesizey = res.getInteger(idtilesizey);
+Log.i("NetHack", "Bitmap: Found! '" + name + "' " + tilesizex + " x " + tilesizey);
+
+tileBitmap = bmp;
+
+break;
+}
+catch(NotFoundException e)
+{
+Log.i("NetHack", "Bitmap: No string 1!");
+}
+	}
+	else
+	{
+		Log.i("NetHack", "Bitmap: null");
+	}
+}
+catch(NameNotFoundException e)
+{
+	Log.i("NetHack", "Bitmap: FileNotFoundException");
+}
+catch(FileNotFoundException e)
+{
+	Log.i("NetHack", "Bitmap: FileNotFoundException");
+}
+catch(IOException e)
+{
+	Log.i("NetHack", "Bitmap: IOException");
+}
+
+		Log.d("NetHack", "Found tile package: '" + curr.packageName + "'"); 
+	}
+}
+
+{
+		}
+			tiledView = new NetHackTiledView(this);
+//			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
+			tiledView.setBitmap(tileBitmap, tilesizex, tilesizey);
+		
 			tiledView.sizeY -= messageRows + statusRows;
 			//tiledView.offsetY = 1;
 			tiledView.computeSizePixels();
 			tiledView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 		}
-		
 
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
