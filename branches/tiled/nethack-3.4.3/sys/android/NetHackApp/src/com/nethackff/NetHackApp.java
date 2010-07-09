@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -1554,6 +1555,42 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 	}
 
+	public LinkedList<TileSetInfo> getTileSetsInPackage(ApplicationInfo curr)
+	{
+		LinkedList<TileSetInfo> tilesetlist = new LinkedList<TileSetInfo>();
+
+		try
+		{
+			{
+				try
+				{
+					Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
+					//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
+					//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
+					int idname = res.getIdentifier("TileSetName", "string", curr.packageName);
+					int idtilesizex = res.getIdentifier("TileSetTileSizeX", "integer", curr.packageName);
+					int idtilesizey = res.getIdentifier("TileSetTileSizeY", "integer", curr.packageName);
+
+					TileSetInfo info = new TileSetInfo();
+					info.packageName = curr.packageName;
+					info.tileSetName = res.getString(idname);
+					info.tileSizeX = res.getInteger(idtilesizex);
+					info.tileSizeY = res.getInteger(idtilesizey);
+					tilesetlist.add(info);
+				}
+				catch(NotFoundException e)
+				{
+					Log.i("NetHack", "Bitmap: No string 1!");
+				}
+			}
+		}
+		catch(NameNotFoundException e)
+		{
+			Log.i("NetHack", "Bitmap: FileNotFoundException");
+		}
+		return tilesetlist;
+	}
+	
 	public LinkedList<TileSetInfo> findTileSets()
 	{
 		LinkedList<TileSetInfo> tilesetlist = new LinkedList<TileSetInfo>();
@@ -1566,52 +1603,17 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			ApplicationInfo curr = appsIter.next(); 
 			if(curr.packageName.startsWith("com.nethackff_tiles_"))
 			{
-				try
-				{
-//					Bitmap bmp = Media.getBitmap(getContentResolver(), path);
-//					if(bmp != null)
-					{
-						try
-						{
-							Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
-							//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
-							//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
-							int idname = res.getIdentifier("TileSetName", "string", curr.packageName);
-							int idtilesizex = res.getIdentifier("TileSetTileSizeX", "integer", curr.packageName);
-							int idtilesizey = res.getIdentifier("TileSetTileSizeY", "integer", curr.packageName);
-
-							TileSetInfo info = new TileSetInfo();
-							info.packageName = curr.packageName;
-							info.tileSetName = res.getString(idname);
-							info.tileSizeX = res.getInteger(idtilesizex);
-							info.tileSizeY = res.getInteger(idtilesizey);
-							tilesetlist.add(info);
-						}
-						catch(NotFoundException e)
-						{
-							Log.i("NetHack", "Bitmap: No string 1!");
-						}
-					}
-//					else
-//					{
-//						Log.i("NetHack", "Bitmap: null");
-//					}
-				}
-				catch(NameNotFoundException e)
-				{
-					Log.i("NetHack", "Bitmap: FileNotFoundException");
-				}
-/*
-				catch(FileNotFoundException e)
-				{
-					Log.i("NetHack", "Bitmap: FileNotFoundException");
-				}
-				catch(IOException e)
-				{
-					Log.i("NetHack", "Bitmap: IOException");
-				}
-*/		
+				tilesetlist.addAll(getTileSetsInPackage(curr));
 			}
+		}
+
+		try
+		{
+			// A bit lame, should be a better way to find the ApplicationInfo of ourselves.
+			tilesetlist.addAll(getTileSetsInPackage(this.getPackageManager().getApplicationInfo("com.nethackff", 0)));
+		}
+		catch(NameNotFoundException e)
+		{
 		}
 
 		return tilesetlist;
