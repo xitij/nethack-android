@@ -1526,8 +1526,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	class TileSetInfo
 	{
-		public String packageName;
+		public String packageName1;
 		public String tileSetName;
+		public String bitmapName;
 		public int tileSizeX;
 		public int tileSizeY;
 	};
@@ -1537,7 +1538,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int tilesizex = 0, tilesizey = 0;
 //			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
 
-		Uri path = Uri.parse("android.resource://" + info.packageName + "/drawable/tiles");
+		Uri path = Uri.parse("android.resource://" + info.packageName1 + "/drawable/" + info.bitmapName);
 
 		try
 		{
@@ -1567,26 +1568,30 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
 					//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
 					//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
-					int idname = res.getIdentifier("TileSetName", "string", curr.packageName);
-					int idtilesizex = res.getIdentifier("TileSetTileSizeX", "integer", curr.packageName);
-					int idtilesizey = res.getIdentifier("TileSetTileSizeY", "integer", curr.packageName);
+					int idname = res.getIdentifier("TileSetNames", "array", curr.packageName);
+					int idtilesizex = res.getIdentifier("TileSetTileSizesX", "array", curr.packageName);
+					int idtilesizey = res.getIdentifier("TileSetTileSizesY", "array", curr.packageName);
+					int idbitmap = res.getIdentifier("TileSetBitmaps", "array", curr.packageName);
 
-					TileSetInfo info = new TileSetInfo();
-					info.packageName = curr.packageName;
-					info.tileSetName = res.getString(idname);
-					info.tileSizeX = res.getInteger(idtilesizex);
-					info.tileSizeY = res.getInteger(idtilesizey);
-					tilesetlist.add(info);
+					String[] tilesetnames = res.getStringArray(idname);
+					for(int i = 0; i < tilesetnames.length; i++)
+					{
+						TileSetInfo info = new TileSetInfo();
+						info.packageName1 = curr.packageName;
+						info.tileSetName = tilesetnames[i];
+						info.bitmapName = res.getStringArray(idbitmap)[i];
+						info.tileSizeX = res.getIntArray(idtilesizex)[i];
+						info.tileSizeY = res.getIntArray(idtilesizey)[i];
+						tilesetlist.add(info);
+					}
 				}
 				catch(NotFoundException e)
 				{
-					Log.i("NetHack", "Bitmap: No string 1!");
 				}
 			}
 		}
 		catch(NameNotFoundException e)
 		{
-			Log.i("NetHack", "Bitmap: FileNotFoundException");
 		}
 		return tilesetlist;
 	}
@@ -1594,6 +1599,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public LinkedList<TileSetInfo> findTileSets()
 	{
 		LinkedList<TileSetInfo> tilesetlist = new LinkedList<TileSetInfo>();
+
+		try
+		{
+			// A bit lame, should be a better way to find the ApplicationInfo of ourselves.
+			tilesetlist.addAll(getTileSetsInPackage(this.getPackageManager().getApplicationInfo("com.nethackff", 0)));
+		}
+		catch(NameNotFoundException e)
+		{
+		}
 
 		List<ApplicationInfo> appsList = getBaseContext().getPackageManager().getInstalledApplications(0);
 		Iterator<ApplicationInfo> appsIter = appsList.iterator(); 
@@ -1605,15 +1619,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			{
 				tilesetlist.addAll(getTileSetsInPackage(curr));
 			}
-		}
-
-		try
-		{
-			// A bit lame, should be a better way to find the ApplicationInfo of ourselves.
-			tilesetlist.addAll(getTileSetsInPackage(this.getPackageManager().getApplicationInfo("com.nethackff", 0)));
-		}
-		catch(NameNotFoundException e)
-		{
 		}
 
 		return tilesetlist;
@@ -1629,7 +1634,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			while(iter.hasNext())
 			{
 				TileSetInfo info = iter.next();
-				if(info.packageName.equals(optTileSetName))
+				if(info.tileSetName.equals(optTileSetName))
 				{
 					useTileSet(info);
 					found = true;
@@ -1886,7 +1891,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				{
 					TileSetInfo info = iter.next();
 					tilesetnames[index] = info.tileSetName;
-					tilesetvalues[index] = info.packageName;
+					tilesetvalues[index] = info.tileSetName;
 					index++;
 				}
 				bundle.putStringArray("TileSetNames", tilesetnames);
