@@ -24,10 +24,8 @@ public class NetHackTiledView extends View
 	{
 		tileBitmap1 = bm;
 
-//		charHeight = tilesizex;
-//		charWidth = tilesizey;
-		charHeight = 16;
-		charWidth = 16;
+		charWidth = tilesizex;
+		charHeight = tilesizey;
 
 		tileSizeX = tilesizex;
 		tileSizeY = tilesizey;
@@ -308,10 +306,10 @@ public class NetHackTiledView extends View
 		onDrawFixed(canvas);
 	}
 	
-	protected void drawText(Canvas canvas, String currentstr, float currentx1, float y)
+	protected void drawTileRow(Canvas canvas, String currentstr, int currentx1, int y)
 	{
 		int len = currentstr.length();
-		float x1 = currentx1;
+		int x1 = currentx1;
 
 		if(tileBitmap1 != null)
 		{
@@ -321,18 +319,16 @@ public class NetHackTiledView extends View
 				char c = currentstr.charAt(i);
 				if(c >= 0x100)
 				{
-					float topy = y - charHeight + ybackgroffs;
+					int topy = y - charHeight + ybackgroffs;
 
 					int tileindex = c - 0x100;
-//					int tileindex = 40;
-//					int tileindex = c;
 					int bitmapcharwidth = tileSizeX;
 					int bitmapcharheight = tileSizeY;
 
 					int tilex = tileindex % tilesPerRow;
 					int tiley = tileindex/tilesPerRow;
 					
-					canvas.drawBitmap(tileBitmap1, new Rect(tilex*bitmapcharwidth, tiley*bitmapcharheight, (tilex + 1)*bitmapcharwidth - 1, (tiley + 1)*bitmapcharheight - 1), new RectF(x1, topy, x1 + charWidth, topy + charHeight), bitmapPaint);
+					canvas.drawBitmap(tileBitmap1, new Rect(tilex*bitmapcharwidth, tiley*bitmapcharheight, (tilex + 1)*bitmapcharwidth, (tiley + 1)*bitmapcharheight), new Rect(x1, topy, x1 + charWidth, topy + charHeight), bitmapPaint);
 				}
 				x1 += charWidth;
 			}
@@ -407,7 +403,7 @@ public class NetHackTiledView extends View
 			if(currentx1 >= 0)
 			{
 //				setPaintColorForeground(textPaint, currentcolor, bitmapPaint, currentcursor);
-				drawText(canvas, currentstr, (float)currentx1, (float)y);
+				drawTileRow(canvas, currentstr, currentx1, y);
 			}
 			currentx1 = x;
 			currentcolor = color;
@@ -415,8 +411,8 @@ public class NetHackTiledView extends View
 			currentstr = "" + c;
 		}
 //		setPaintColorForeground(textPaint, currentcolor, bitmapPaint, currentcursor);
-		drawText(canvas, currentstr,
-				(float)currentx1, (float)y);
+		drawTileRow(canvas, currentstr,
+				currentx1, y);
 	}
 
 
