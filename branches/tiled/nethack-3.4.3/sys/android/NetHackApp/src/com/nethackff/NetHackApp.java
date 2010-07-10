@@ -165,7 +165,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		AltKey,
 		CtrlKey,
 		ShiftKey,
-		EscKey
+		EscKey,
+		ZoomIn,
+		ZoomOut
 	}
 	
 	enum ColorMode
@@ -249,6 +251,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			case KeyEvent.KEYCODE_SHIFT_RIGHT:
 				keyAction = optKeyBindShiftRight; 	
 				break;
+			case KeyEvent.KEYCODE_VOLUME_UP:
+				keyAction = KeyAction.ZoomIn;
+				break;
+			case KeyEvent.KEYCODE_VOLUME_DOWN:
+				keyAction = KeyAction.ZoomOut;
+				break;
 			default:
 				break;
 		}
@@ -278,6 +286,34 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 			prefsEditor.commit();
 			updateLayout();
+			return true;
+		}
+
+		if(keyAction == KeyAction.ZoomIn || keyAction == KeyAction.ZoomOut)
+		{
+			if(tiledView != null)
+			{
+				if(keyAction == KeyAction.ZoomIn && tiledView.zoomPercentage <= 400)
+				{
+					tiledView.zoomPercentage *= 1.2f;
+				}
+				else if(keyAction == KeyAction.ZoomOut && tiledView.zoomPercentage >= 20)
+				{
+					tiledView.zoomPercentage *= (1.0/1.2f);
+				}
+				else
+				{
+					return true;	
+				}
+				float centerXRel = (tiledView.getScrollX() + tiledView.getWidth()*0.5f)/tiledView.charWidth;
+				float centerYRel = (tiledView.getScrollY() + tiledView.getHeight()*0.5f)/tiledView.charHeight;
+				tiledView.updateZoom();
+				tiledView.computeSizePixels();
+				int newScrollX = (int)Math.round(centerXRel*tiledView.charWidth - tiledView.getWidth()*0.5f);
+				int newScrollY = (int)Math.round(centerYRel*tiledView.charHeight - tiledView.getHeight()*0.5f);
+				scrollToLimited(tiledView, newScrollX, newScrollY);
+				tiledView.invalidate();
+			}
 			return true;
 		}
 
@@ -1091,34 +1127,27 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return gestureScanner.onTouchEvent(me);
 	}
 
-	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
+	public void scrollToLimited(View scrollView, int newscrollx, int newscrolly)
 	{
-		View scrollView = getMapView();
 		int termx, termy;
-		if(uiModeActual != UIMode.PureTTY && menuShown)
+		if(scrollView == menuView)
 		{
-			scrollView = menuView;
 			termx = menuView.charWidth*menuView.sizeX;
 //			termy = menuView.charHeight*menuView.sizeY;
 			termy = menuView.charHeight*menuView.getNumDisplayedLines();
 
 		}
+		else if(scrollView == tiledView)
+		{
+			termx = tiledView.charWidth*tiledView.sizeX;
+			termy = tiledView.charHeight*tiledView.sizeY;
+		}
 		else
 		{
-			if(uiModeActual == UIMode.AndroidTiled)
-			{
-				termx = tiledView.charWidth*tiledView.sizeX;
-				termy = tiledView.charHeight*tiledView.sizeY;
-			}
-			else
-			{
-				termx = mainView.charWidth*mainView.sizeX;
-				termy = mainView.charHeight*mainView.sizeY;
-			}
+			termx = mainView.charWidth*mainView.sizeX;
+			termy = mainView.charHeight*mainView.sizeY;
 		}
-	
-		int newscrollx = scrollView.getScrollX() + (int)distanceX;
-		int newscrolly = scrollView.getScrollY() + (int)distanceY;
+
 		if(newscrollx < 0)
 		{
 			newscrollx = 0;
@@ -1148,6 +1177,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 
 		scrollView.scrollTo(newscrollx, newscrolly);
+	}
+	
+	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
+	{
+		View scrollView = getMapView();
+	
+		if(uiModeActual != UIMode.PureTTY && menuShown)
+		{
+			scrollView = menuView;
+		}
+
+		int newscrollx = scrollView.getScrollX() + (int)distanceX;
+		int newscrolly = scrollView.getScrollY() + (int)distanceY;
+		scrollToLimited(scrollView, newscrollx, newscrolly);
 		return true;
 	}
 
@@ -1531,6 +1574,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		public String bitmapName;
 		public int tileSizeX;
 		public int tileSizeY;
+		public int defaultZoomPercentage;
 	};
 
 	public void useTileSet(TileSetInfo info)
@@ -1545,7 +1589,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			Bitmap bmp = Media.getBitmap(getContentResolver(), path);
 			if(bmp != null)
 			{
-				tiledView.setBitmap(bmp, info.tileSizeX, info.tileSizeY);
+				tiledView.setBitmap(bmp, info.tileSizeX, info.tileSizeY, info.defaultZoomPercentage);
 			}
 		}
 		catch(FileNotFoundException e)
@@ -1572,6 +1616,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					int idtilesizex = res.getIdentifier("TileSetTileSizesX", "array", curr.packageName);
 					int idtilesizey = res.getIdentifier("TileSetTileSizesY", "array", curr.packageName);
 					int idbitmap = res.getIdentifier("TileSetBitmaps", "array", curr.packageName);
+					int idzoom = res.getIdentifier("TileSetDefaultZoom", "array", curr.packageName);
 
 					String[] tilesetnames = res.getStringArray(idname);
 					for(int i = 0; i < tilesetnames.length; i++)
@@ -1582,6 +1627,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 						info.bitmapName = res.getStringArray(idbitmap)[i];
 						info.tileSizeX = res.getIntArray(idtilesizex)[i];
 						info.tileSizeY = res.getIntArray(idtilesizey)[i];
+						info.defaultZoomPercentage = res.getIntArray(idzoom)[i];
 						tilesetlist.add(info);
 					}
 				}

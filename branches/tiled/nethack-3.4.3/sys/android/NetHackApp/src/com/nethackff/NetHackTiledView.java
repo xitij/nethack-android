@@ -20,19 +20,24 @@ public class NetHackTiledView extends View
 
 	public Bitmap tileBitmap1;
 
-	void setBitmap(Bitmap bm, int tilesizex, int tilesizey)
+	void setBitmap(Bitmap bm, int tilesizex, int tilesizey, int defaultzoompercentage)
 	{
 		tileBitmap1 = bm;
-
-		charWidth = tilesizex;
-		charHeight = tilesizey;
 
 		tileSizeX = tilesizex;
 		tileSizeY = tilesizey;
 
 		tilesPerRow = bm.getWidth()/tilesizex;
+		
+		zoomPercentage = defaultzoompercentage;
 
-		Log.i("NetHack", "Tiles per row: " + tilesPerRow);
+		updateZoom();
+	}
+
+	void updateZoom()
+	{
+		charWidth = (tileSizeX*zoomPercentage)/100;
+		charHeight = (tileSizeY*zoomPercentage)/100;
 	}
 
 	int tilesPerRow = 1;
@@ -44,12 +49,13 @@ public class NetHackTiledView extends View
 	public int offsetY = 0;
 	public int sizeX;
 	public int sizeY;
-	public int displayedLinesOnReformat = 0;
 	public int sizePixelsX;
 	public int sizePixelsY;
 
 	public int extraSizeX = 0;
 	public int extraSizeY = 0;
+
+	public int zoomPercentage = 100;
 
 	Paint bitmapPaint;
 	
@@ -107,7 +113,7 @@ public class NetHackTiledView extends View
 	{
 		scrollToCenterAtPos(terminal.currentColumn, terminal.currentRow);
 	}
-	
+
 	public void computeSizePixels()
 	{
 		sizePixelsX = sizeX*charWidth + extraSizeX;
@@ -479,8 +485,5 @@ public class NetHackTiledView extends View
 			// from its previous position.
 			terminal.registerChange(terminal.currentColumn, terminal.currentRow);
 		}
-
-		displayedLinesOnReformat = 0;
-
 	}
 }
