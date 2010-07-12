@@ -305,13 +305,19 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				{
 					return true;	
 				}
-				float centerXRel = (tiledView.getScrollX() + tiledView.getWidth()*0.5f)/tiledView.charWidth;
-				float centerYRel = (tiledView.getScrollY() + tiledView.getHeight()*0.5f)/tiledView.charHeight;
+				float centerXRel = (tiledView.desiredCenterPosX)/tiledView.charWidth;
+				float centerYRel = (tiledView.desiredCenterPosY)/tiledView.charHeight;
+				float oldSquareWidth = tiledView.charWidth;
+				float oldSquareHeight = tiledView.charHeight;
 				tiledView.updateZoom();
 				tiledView.computeSizePixels();
 				int newScrollX = (int)Math.round(centerXRel*tiledView.charWidth - tiledView.getWidth()*0.5f);
 				int newScrollY = (int)Math.round(centerYRel*tiledView.charHeight - tiledView.getHeight()*0.5f);
-				scrollToLimited(tiledView, newScrollX, newScrollY);
+				int unclampedScrollX = newScrollX;
+				int unclampedScrollY = newScrollY;
+				scrollToLimited(tiledView, newScrollX, newScrollY, false);
+				tiledView.desiredCenterPosX *= ((float)tiledView.charWidth)/oldSquareWidth;
+				tiledView.desiredCenterPosY *= ((float)tiledView.charHeight)/oldSquareHeight;
 				tiledView.invalidate();
 			}
 			return true;
@@ -1127,7 +1133,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return gestureScanner.onTouchEvent(me);
 	}
 
-	public void scrollToLimited(View scrollView, int newscrollx, int newscrolly)
+	public void scrollToLimited(View scrollView, int newscrollx, int newscrolly, boolean setnewdesiredcentertoactual)
 	{
 		int termx, termy;
 		if(scrollView == menuView)
@@ -1177,6 +1183,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 
 		scrollView.scrollTo(newscrollx, newscrolly);
+
+		if(setnewdesiredcentertoactual)
+		{
+			if(scrollView == tiledView)
+			{
+				tiledView.desiredCenterPosX = newscrollx + scrollView.getWidth()*0.5f;
+				tiledView.desiredCenterPosY = newscrolly + scrollView.getHeight()*0.5f;
+			}
+		}
 	}
 	
 	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
@@ -1190,7 +1205,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		int newscrollx = scrollView.getScrollX() + (int)distanceX;
 		int newscrolly = scrollView.getScrollY() + (int)distanceY;
-		scrollToLimited(scrollView, newscrollx, newscrolly);
+		scrollToLimited(scrollView, newscrollx, newscrolly, true);
 		return true;
 	}
 
@@ -1235,6 +1250,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			posx -= tiledView.offsetX;
 			posy -= tiledView.offsetY;
 
+			posy--;
 			tiledView.scrollToCenterAtPos(posx, posy);
 		}
 		else
@@ -1768,7 +1784,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			usePreferredTileSet();
 
 			tiledView.sizeY -= messageRows + statusRows;
-			//tiledView.offsetY = 1;
+			tiledView.offsetY = 1;
 			tiledView.computeSizePixels();
 			tiledView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 		}

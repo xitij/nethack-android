@@ -43,8 +43,7 @@ public class NetHackTiledView extends View
 	int tilesPerRow = 1;
 	int tileSizeX;
 	int tileSizeY;
-	
-	public final int ybackgroffs = 2;
+
 	public int offsetX = 0;
 	public int offsetY = 0;
 	public int sizeX;
@@ -108,6 +107,8 @@ public class NetHackTiledView extends View
 		}
 
 		scrollTo(newscrollx, newscrolly);
+		desiredCenterPosX = cursorcenterx;
+		desiredCenterPosY = cursorcentery;
 	}
 	public void scrollToCursor()
 	{
@@ -310,8 +311,17 @@ public class NetHackTiledView extends View
 	protected void onDraw(Canvas canvas)
 	{
 		onDrawFixed(canvas);
+
+		//	Paint p = new Paint();
+		//	int argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+		//	p.setColor(argb);
+		//	canvas.drawLine(desiredCenterPosX - 5, desiredCenterPosY, desiredCenterPosX + 5, desiredCenterPosY, p);		
+		//	canvas.drawLine(desiredCenterPosX, desiredCenterPosY - 5, desiredCenterPosX, desiredCenterPosY + 5, p);		
 	}
-	
+
+	public float desiredCenterPosX = 0;
+	public float desiredCenterPosY = 0;
+
 	protected void drawTileRow(Canvas canvas, String currentstr, int currentx1, int y)
 	{
 		int len = currentstr.length();
@@ -325,7 +335,7 @@ public class NetHackTiledView extends View
 				char c = currentstr.charAt(i);
 				if(c >= 0x100)
 				{
-					int topy = y - charHeight + ybackgroffs;
+					int topy = y;
 
 					int tileindex = c - 0x100;
 					int bitmapcharwidth = tileSizeX;
@@ -369,7 +379,7 @@ public class NetHackTiledView extends View
 */
 	}
 	
-	protected void drawRowForeground(Canvas canvas,
+	protected void drawRowForeground1(Canvas canvas,
 			int x, final int y,
 			final char []txtBuffer, final char []fmtBuffer,
 			final int buffOffs, final int numChars, final int cursorIndex)
@@ -458,7 +468,7 @@ public class NetHackTiledView extends View
 		}
 
 		int ybackgroffs = 2;
-		y = charHeight + computeViewCoordY(rowView1) - ybackgroffs;
+		y = computeViewCoordY(rowView1);
 		for(int rowView = rowView1; rowView < rowView2; rowView++)
 		{
 			final int rowTerm = rowView + offsetY;
@@ -471,7 +481,7 @@ public class NetHackTiledView extends View
 
 			int x = computeViewCoordX(colView1);
 
-			drawRowForeground(canvas, x, y, terminal.textBuffer, terminal.fmtBuffer, buffOffs, colView2 - colView1, cursorIndex);
+			drawRowForeground1(canvas, x, y, terminal.textBuffer, terminal.fmtBuffer, buffOffs, colView2 - colView1, cursorIndex);
 
 			y += charHeight;
 		}
