@@ -305,19 +305,19 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				{
 					return true;	
 				}
-				float centerXRel = (tiledView.desiredCenterPosX)/tiledView.charWidth;
-				float centerYRel = (tiledView.desiredCenterPosY)/tiledView.charHeight;
-				float oldSquareWidth = tiledView.charWidth;
-				float oldSquareHeight = tiledView.charHeight;
+				float centerXRel = (tiledView.desiredCenterPosX)/tiledView.squareSizeX;
+				float centerYRel = (tiledView.desiredCenterPosY)/tiledView.squareSizeY;
+				float oldSquareWidth = tiledView.squareSizeX;
+				float oldSquareHeight = tiledView.squareSizeY;
 				tiledView.updateZoom();
 				tiledView.computeSizePixels();
-				int newScrollX = (int)Math.round(centerXRel*tiledView.charWidth - tiledView.getWidth()*0.5f);
-				int newScrollY = (int)Math.round(centerYRel*tiledView.charHeight - tiledView.getHeight()*0.5f);
+				int newScrollX = (int)Math.round(centerXRel*tiledView.squareSizeX - tiledView.getWidth()*0.5f);
+				int newScrollY = (int)Math.round(centerYRel*tiledView.squareSizeY - tiledView.getHeight()*0.5f);
 				int unclampedScrollX = newScrollX;
 				int unclampedScrollY = newScrollY;
 				scrollToLimited(tiledView, newScrollX, newScrollY, false);
-				tiledView.desiredCenterPosX *= ((float)tiledView.charWidth)/oldSquareWidth;
-				tiledView.desiredCenterPosY *= ((float)tiledView.charHeight)/oldSquareHeight;
+				tiledView.desiredCenterPosX *= ((float)tiledView.squareSizeX)/oldSquareWidth;
+				tiledView.desiredCenterPosY *= ((float)tiledView.squareSizeY)/oldSquareHeight;
 				tiledView.invalidate();
 			}
 			return true;
@@ -556,7 +556,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		// Compute how many characters would fit on screen in the status line. This gets passed
 		// on to the native code so it knows if it should shorten the status or not.
-		int statuswidthonscreen = sizeX/statusView.charWidth;
+		int statuswidthonscreen = sizeX/statusView.squareSizeX;
 
 		// Regardless of how much we can actually fit, we still keep the width of the actual
 		// view constant. This is done so that in case the text on the first line still doesn't fit
@@ -1138,20 +1138,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int termx, termy;
 		if(scrollView == menuView)
 		{
-			termx = menuView.charWidth*menuView.sizeX;
-//			termy = menuView.charHeight*menuView.sizeY;
-			termy = menuView.charHeight*menuView.getNumDisplayedLines();
+			termx = menuView.squareSizeX*menuView.sizeX;
+//			termy = menuView.squareSizeY*menuView.sizeY;
+			termy = menuView.squareSizeY*menuView.getNumDisplayedLines();
 
 		}
 		else if(scrollView == tiledView)
 		{
-			termx = tiledView.charWidth*tiledView.sizeX;
-			termy = tiledView.charHeight*tiledView.sizeY;
+			termx = tiledView.squareSizeX*tiledView.sizeX;
+			termy = tiledView.squareSizeY*tiledView.sizeY;
 		}
 		else
 		{
-			termx = mainView.charWidth*mainView.sizeX;
-			termy = mainView.charHeight*mainView.sizeY;
+			termx = mainView.squareSizeX*mainView.sizeX;
+			termy = mainView.squareSizeY*mainView.sizeY;
 		}
 
 		if(newscrollx < 0)
