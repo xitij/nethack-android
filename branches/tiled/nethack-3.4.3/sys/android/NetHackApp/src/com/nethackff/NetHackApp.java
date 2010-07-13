@@ -202,7 +202,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		IBM,
 		Amiga
 	}
-	
+
+	boolean optScrollSmoothly = true;
+	boolean optScrollWithPlayer = true;
 	boolean optAllowTextReformat = true;
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
@@ -305,7 +307,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				{
 					return true;	
 				}
-				autoScrollJustZoomed = true;
+				scrollWithPlayerJustZoomed = true;
 				float centerXRel = (tiledView.desiredCenterPosX)/tiledView.squareSizeX;
 				float centerYRel = (tiledView.desiredCenterPosY)/tiledView.squareSizeY;
 				float oldSquareWidth = tiledView.squareSizeX;
@@ -597,17 +599,22 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		NetHackRefreshDisplay();
 	}
 
-	// TEMP
 	public long autoScrollLastTime = -1;
 	public int autoScrollX = 0;
 	public int autoScrollY = 0;
-	public boolean autoScrollJustZoomed = false;
 
 	public void startAutoScroll(int deltax, int deltay)
 	{
 		autoScrollX = deltax;
 		autoScrollY = deltay;
 		autoScrollLastTime = System.currentTimeMillis();
+
+		if(!optScrollSmoothly)
+		{
+			performAutoScroll(1.0f);
+			stopAutoScroll();
+			return;	
+		}
 	}
 	public void stopAutoScroll()
 	{
@@ -616,21 +623,54 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		autoScrollLastTime = -1;
 	}
 
-	public int lastPlayerPosX = -1;
-	public int lastPlayerPosY = -1;
-	
-	private Handler handler = new Handler()
+	public void performAutoScroll(float p)
 	{
-		public void handleMessage(Message msg)
+		int deltax = (int)Math.floor(autoScrollX*p + 0.5f);
+		int deltay = (int)Math.floor(autoScrollY*p + 0.5f);
+		if(deltax != 0 || deltay != 0)
 		{
-			PlayerPos pp = new PlayerPos();
-			getPlayerPosInView(pp);
-			int playerposx = pp.posX;
-			int playerposy = pp.posY;
-			if((lastPlayerPosX != playerposx || lastPlayerPosY != playerposy || autoScrollJustZoomed) && playerposx >= 0 && playerposy >= 0)
-			{
-				autoScrollJustZoomed = false;
+			scrollToLimited(getMapView(), getMapView().getScrollX() + deltax, getMapView().getScrollY() + deltay, true);
+			autoScrollX -= deltax;
+			autoScrollY -= deltay;
+			long t = System.currentTimeMillis();
+			autoScrollLastTime = t;
+		}
+	}
 
+	public void updateAutoScroll()
+	{
+		if(!optScrollSmoothly)
+		{
+			return;	
+		}
+		if(autoScrollX != 0 || autoScrollY != 0)
+		{
+			long t = System.currentTimeMillis();
+			long dt = 0;
+			if(autoScrollLastTime >= 0)
+			{
+				dt = t - autoScrollLastTime;
+			}
+			else
+			{
+				dt = t;				
+			}
+
+			float p = 1.0f - (float)Math.exp(-(float)dt/150.0f);
+			performAutoScroll(p);
+		}
+	}
+
+	public void updateScrollWithPlayer()
+	{
+		PlayerPos pp = new PlayerPos();
+		getPlayerPosInView(pp);
+		int playerposx = pp.posX;
+		int playerposy = pp.posY;
+		if(optScrollWithPlayer)
+		{
+			if((scrollWithPlayerLastPosX != playerposx || scrollWithPlayerLastPosY != playerposy || scrollWithPlayerJustZoomed) && playerposx >= 0 && playerposy >= 0)
+			{
 				NetHackView view = getMapView();
 				int newplayerpixelposx = view.computeViewCoordX(playerposx) + view.squareSizeX/2;
 				int newplayerpixelposy = view.computeViewCoordY(playerposy) + view.squareSizeY/2;
@@ -639,8 +679,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 				float margin = 0.25f;
 				int mintiles = 2;
-				//				float marginx = 0.25f;
-//				float marginy = 0.25f;
+
 				float marginpixels = margin*Math.min(view.getWidth(), view.getHeight());
 				float marginx = (Math.max(marginpixels, mintiles*view.squareSizeX) + 0.5f*view.squareSizeX)/(float)view.getWidth();
 				float marginy = (Math.max(marginpixels, mintiles*view.squareSizeY) + 0.5f*view.squareSizeY)/(float)view.getHeight();
@@ -678,42 +717,32 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 				if(dx != 0 || dy != 0)
 				{
-				// TEMP
-//				dy = playerposy - lastPlayerPosY;
-//				startAutoScroll(dx*getMapView().squareSizeX, dy*getMapView().squareSizeY);
-				startAutoScroll(dx, dy);
+					startAutoScroll(dx, dy);
+				}
 
-				}
-				lastPlayerPosX = playerposx;
-				lastPlayerPosY = playerposy;
+				scrollWithPlayerLastPosX = playerposx;
+				scrollWithPlayerLastPosY = playerposy;
+				scrollWithPlayerJustZoomed = false;
 			}
-			if(autoScrollX != 0 || autoScrollY != 0)
-			{
-				long t = System.currentTimeMillis();
-				long dt = 0;
-				if(autoScrollLastTime >= 0)
-				{
-					dt = t - autoScrollLastTime;
-				}
-				else
-				{
-					dt = t;				
-				}
-//				if(dt > 20)
-				{
-					float p = 1.0f - (float)Math.exp(-(float)dt/150.0f);
-					int deltax = (int)Math.floor(autoScrollX*p + 0.5f);
-					int deltay = (int)Math.floor(autoScrollY*p + 0.5f);
-					if(deltax != 0 || deltay != 0)
-					{
-						scrollToLimited(getMapView(), getMapView().getScrollX() + deltax, getMapView().getScrollY() + deltay, true);
-//getMapView().scrollTo(getMapView().getScrollX() + deltax, getMapView().getScrollY() + deltay); 	
-						autoScrollX -= deltax;
-						autoScrollY -= deltay;
-						autoScrollLastTime = t;
-					}
-				}
-			}
+		}
+		else
+		{
+			scrollWithPlayerLastPosX = playerposx;
+			scrollWithPlayerLastPosY = playerposy;
+			scrollWithPlayerJustZoomed = false;
+		}
+	}
+
+	public int scrollWithPlayerLastPosX = -1;
+	public int scrollWithPlayerLastPosY = -1;
+	public boolean scrollWithPlayerJustZoomed = false;
+
+	private Handler handler = new Handler()
+	{
+		public void handleMessage(Message msg)
+		{
+			updateScrollWithPlayer();
+			updateAutoScroll();
 				
 			if(NetHackHasQuit() != 0)
 			{
@@ -2150,6 +2179,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optTileSetName = prefs.getString("TileSet", "");
 		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = prefs.getBoolean("KeyboardShownInPortrait", true);
 		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = prefs.getBoolean("KeyboardShownInLandscape", false);
+
+		optScrollSmoothly = prefs.getBoolean("ScrollSmoothly", true);
+		optScrollWithPlayer = prefs.getBoolean("ScrollToFollowPlayer", true);
 	}
 
 	public static String appDir;

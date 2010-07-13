@@ -59,6 +59,16 @@
 			android:summary="If set, text and menu views may use word wrapping to fit on screen."
 			android:defaultValue="true"/>
 
+		<CheckBoxPreference android:key="ScrollToFollowPlayer"
+			android:title="Scroll to Follow Player"
+			android:summary="If set, the map may scroll to keep the player on screen."
+			android:defaultValue="true"/>
+
+		<CheckBoxPreference android:key="ScrollSmoothly"
+			android:title="Scroll Smoothly"
+			android:summary="When moving the map to a new position, scrolling will happen smoothly."
+			android:defaultValue="true"/>
+
 	</PreferenceCategory>
 	<PreferenceCategory android:title="Input">
 		<CheckBoxPreference android:key="MoveWithTrackball"
