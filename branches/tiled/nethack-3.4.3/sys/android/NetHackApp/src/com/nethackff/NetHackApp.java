@@ -77,7 +77,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	NetHackTerminalView menuView;
 	NetHackTiledView tiledView;
 
-	View getMapView()
+	NetHackView getMapView()
 	{
 		if(uiModeActual == UIMode.AndroidTiled)
 		{
@@ -305,6 +305,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				{
 					return true;	
 				}
+				autoScrollJustZoomed = true;
 				float centerXRel = (tiledView.desiredCenterPosX)/tiledView.squareSizeX;
 				float centerYRel = (tiledView.desiredCenterPosY)/tiledView.squareSizeY;
 				float oldSquareWidth = tiledView.squareSizeX;
@@ -596,10 +597,124 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		NetHackRefreshDisplay();
 	}
 
+	// TEMP
+	public long autoScrollLastTime = -1;
+	public int autoScrollX = 0;
+	public int autoScrollY = 0;
+	public boolean autoScrollJustZoomed = false;
+
+	public void startAutoScroll(int deltax, int deltay)
+	{
+		autoScrollX = deltax;
+		autoScrollY = deltay;
+		autoScrollLastTime = System.currentTimeMillis();
+	}
+	public void stopAutoScroll()
+	{
+		autoScrollX = 0;
+		autoScrollY = 0;
+		autoScrollLastTime = -1;
+	}
+
+	public int lastPlayerPosX = -1;
+	public int lastPlayerPosY = -1;
+	
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
 		{
+			PlayerPos pp = new PlayerPos();
+			getPlayerPosInView(pp);
+			int playerposx = pp.posX;
+			int playerposy = pp.posY;
+			if((lastPlayerPosX != playerposx || lastPlayerPosY != playerposy || autoScrollJustZoomed) && playerposx >= 0 && playerposy >= 0)
+			{
+				autoScrollJustZoomed = false;
+
+				NetHackView view = getMapView();
+				int newplayerpixelposx = view.computeViewCoordX(playerposx) + view.squareSizeX/2;
+				int newplayerpixelposy = view.computeViewCoordY(playerposy) + view.squareSizeY/2;
+				float relposx = ((float)(newplayerpixelposx - view.getScrollX()))/view.getWidth();
+				float relposy = ((float)(newplayerpixelposy - view.getScrollY()))/view.getHeight();
+
+				float margin = 0.25f;
+				int mintiles = 2;
+				//				float marginx = 0.25f;
+//				float marginy = 0.25f;
+				float marginpixels = margin*Math.min(view.getWidth(), view.getHeight());
+				float marginx = (Math.max(marginpixels, mintiles*view.squareSizeX) + 0.5f*view.squareSizeX)/(float)view.getWidth();
+				float marginy = (Math.max(marginpixels, mintiles*view.squareSizeY) + 0.5f*view.squareSizeY)/(float)view.getHeight();
+
+				marginx = Math.min(marginx, 0.5f);
+				marginy = Math.min(marginy, 0.5f);
+
+				int dx = 0, dy = 0;
+				if(relposx < marginx || relposx > 1.0f - marginx)
+				{
+					float scrollrelx;
+					if(relposx < 0.5)
+					{	
+						scrollrelx = relposx - marginx;
+					}
+					else
+					{
+						scrollrelx = relposx - (1.0f - marginx);
+					}
+					dx = (int)Math.floor(scrollrelx*view.getWidth() + 0.5f);
+				}
+				float scrollrely = 0.0f;
+				if(relposy < marginy || relposy > 1.0f - marginy)
+				{
+					if(relposy < 0.5)
+					{	
+						scrollrely = relposy - marginy;
+					}
+					else
+					{
+						scrollrely = relposy - (1.0f - marginy);
+					}
+					dy = (int)Math.floor(scrollrely*view.getHeight() + 0.5f);
+				}
+
+				if(dx != 0 || dy != 0)
+				{
+				// TEMP
+//				dy = playerposy - lastPlayerPosY;
+//				startAutoScroll(dx*getMapView().squareSizeX, dy*getMapView().squareSizeY);
+				startAutoScroll(dx, dy);
+
+				}
+				lastPlayerPosX = playerposx;
+				lastPlayerPosY = playerposy;
+			}
+			if(autoScrollX != 0 || autoScrollY != 0)
+			{
+				long t = System.currentTimeMillis();
+				long dt = 0;
+				if(autoScrollLastTime >= 0)
+				{
+					dt = t - autoScrollLastTime;
+				}
+				else
+				{
+					dt = t;				
+				}
+//				if(dt > 20)
+				{
+					float p = 1.0f - (float)Math.exp(-(float)dt/150.0f);
+					int deltax = (int)Math.floor(autoScrollX*p + 0.5f);
+					int deltay = (int)Math.floor(autoScrollY*p + 0.5f);
+					if(deltax != 0 || deltay != 0)
+					{
+						scrollToLimited(getMapView(), getMapView().getScrollX() + deltax, getMapView().getScrollY() + deltay, true);
+//getMapView().scrollTo(getMapView().getScrollX() + deltax, getMapView().getScrollY() + deltay); 	
+						autoScrollX -= deltax;
+						autoScrollY -= deltay;
+						autoScrollLastTime = t;
+					}
+				}
+			}
+				
 			if(NetHackHasQuit() != 0)
 			{
 				gameInitialized = false;
@@ -1206,6 +1321,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int newscrollx = scrollView.getScrollX() + (int)distanceX;
 		int newscrolly = scrollView.getScrollY() + (int)distanceY;
 		scrollToLimited(scrollView, newscrollx, newscrolly, true);
+
+		stopAutoScroll();
+
 		return true;
 	}
 
@@ -1229,7 +1347,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
-	public void centerOnPlayer()
+	class PlayerPos
+	{
+		int posX, posY;
+	};
+
+	public void getPlayerPosInView(PlayerPos p)
 	{
 		// Probably would be better to get these two with one function call, but
 		// seems a bit messy to return two values at once through JNI.
@@ -1251,13 +1374,34 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			posy -= tiledView.offsetY;
 
 			posy--;
-			tiledView.scrollToCenterAtPos(posx, posy);
 		}
 		else
 		{
 			posx -= mainView.offsetX;
 			posy -= mainView.offsetY;
+		}
+		p.posX = posx;
+		p.posY = posy;
+	}
 
+	public void centerOnPlayer()
+	{
+		PlayerPos pp = new PlayerPos();
+		getPlayerPosInView(pp);
+		int posx = pp.posX;
+		int posy = pp.posY;
+		
+		if(uiModeActual == UIMode.AndroidTiled)
+		{
+			int cursorcenterx = posx*tiledView.squareSizeX + tiledView.squareSizeX/2;
+			int cursorcentery = posy*tiledView.squareSizeY + tiledView.squareSizeY/2;
+			int newscrollx = cursorcenterx - tiledView.getWidth()/2;
+			int newscrolly = cursorcentery - tiledView.getHeight()/2;
+	
+			startAutoScroll(newscrollx - tiledView.getScrollX(),newscrolly - tiledView.getScrollY());
+		}
+		else
+		{
 			mainView.scrollToCenterAtPos(posx, posy);
 		}
 	}
