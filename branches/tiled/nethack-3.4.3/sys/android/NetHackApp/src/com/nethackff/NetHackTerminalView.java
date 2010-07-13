@@ -25,10 +25,34 @@ public class NetHackTerminalView extends NetHackView
 	public final int ybackgroffs = 2;
 	public int displayedLinesOnReformat = 0;
 
+	public int zoomDelta = 0;
 	Paint bitmapPaint;
 	Paint textPaint;
 	
 	private int textSize = 10;
+
+	public void zoomIn()
+	{
+		if(zoomDelta < 10)
+		{
+			zoomDelta += 2;
+			zoomChanged();
+		}
+	}
+	
+	public void zoomOut()
+	{
+		if(zoomDelta >= 4 - textSize)	// TEMP
+		{
+			zoomDelta -= 2;
+			zoomChanged();
+		}
+	}
+
+	public void updateZoom()
+	{
+		updateTextSize();
+	}
 
 	public int getNumDisplayedLines()	// Override
 	{
@@ -50,7 +74,7 @@ public class NetHackTerminalView extends NetHackView
 
 	public void updateTextSize()
 	{
-		textPaint.setTextSize(textSize);
+		textPaint.setTextSize(Math.max(textSize + zoomDelta, 4));
 		squareSizeY = (int)Math.ceil(textPaint.getFontSpacing());
 		squareSizeX = (int)textPaint.measureText("X", 0, 1);
 
@@ -426,6 +450,22 @@ public class NetHackTerminalView extends NetHackView
 			}
 		}
 		onDrawFixed(canvas);
+
+		// TEMP
+/*
+		Paint p = new Paint();
+		int argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+		p.setColor(argb);
+		canvas.drawLine(desiredCenterPosX - 5, desiredCenterPosY, desiredCenterPosX + 5, desiredCenterPosY, p);
+		canvas.drawLine(desiredCenterPosX, desiredCenterPosY - 5, desiredCenterPosX, desiredCenterPosY + 5, p);
+
+		int sx = sizePixelsX;
+		int sy = sizePixelsY;
+		canvas.drawLine(1, 1, 1, sy - 2, p);
+		canvas.drawLine(sx - 2, 1, sx - 2, sy - 2, p);
+		canvas.drawLine(1, 1, sx - 2, 1, p);
+		canvas.drawLine(1, sy - 2, sx - 2, sy - 2, p);
+*/
 	}
 	
 	

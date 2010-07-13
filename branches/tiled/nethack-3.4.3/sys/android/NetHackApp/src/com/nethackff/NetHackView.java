@@ -176,7 +176,78 @@ public class NetHackView extends View
 	{
 		return sizeY;			
 	}
+
+	public void zoomIn()
+	{
+	}
 	
+	public void zoomOut()
+	{
+	}
+
+	public void updateZoom()
+	{
+	}
+
+	public void zoomChanged()
+	{
+		float centerXRel = desiredCenterPosX/squareSizeX;
+		float centerYRel = desiredCenterPosY/squareSizeY;
+		float oldSquareWidth = squareSizeX;
+		float oldSquareHeight = squareSizeY;
+		updateZoom();
+		computeSizePixels();
+		int newScrollX = (int)Math.round(centerXRel*squareSizeX - getWidth()*0.5f);
+		int newScrollY = (int)Math.round(centerYRel*squareSizeY - getHeight()*0.5f);
+		int unclampedScrollX = newScrollX;
+		int unclampedScrollY = newScrollY;
+		scrollToLimited1(newScrollX, newScrollY, false);
+		desiredCenterPosX *= ((float)squareSizeX)/oldSquareWidth;
+		desiredCenterPosY *= ((float)squareSizeY)/oldSquareHeight;
+		invalidate();		
+	}
+
+	public void scrollToLimited1(int newscrollx, int newscrolly, boolean setnewdesiredcentertoactual)
+	{
+		int termx, termy;
+		termx = squareSizeX*sizeX;
+		termy = squareSizeY*sizeY;
+		if(newscrollx < 0)
+		{
+			newscrollx = 0;
+		}
+		if(newscrolly < 0)
+		{
+			newscrolly = 0;
+		}
+
+		int maxx = termx - getWidth();
+		int maxy = termy - getHeight();
+		if(maxx < 0)
+		{
+			maxx = 0;
+		}
+		if(maxy < 0)
+		{
+			maxy = 0;
+		}
+		if(newscrollx >= maxx)
+		{
+			newscrollx = maxx - 1;
+		}
+		if(newscrolly >= maxy)
+		{
+			newscrolly = maxy - 1;
+		}
+
+		scrollTo(newscrollx, newscrolly);
+
+		if(setnewdesiredcentertoactual)
+		{
+			desiredCenterPosX = newscrollx + getWidth()*0.5f;
+			desiredCenterPosY = newscrolly + getHeight()*0.5f;
+		}
+	}
 
 	int squareSizeY = 0;
 	int squareSizeX = 0;

@@ -299,37 +299,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(keyAction == KeyAction.ZoomIn || keyAction == KeyAction.ZoomOut)
 		{
-			if(tiledView != null)
+			NetHackView view = getMapView();
+			if(keyAction == KeyAction.ZoomIn)
 			{
-				if(keyAction == KeyAction.ZoomIn && tiledView.zoomPercentage <= 400)
-				{
-					tiledView.zoomPercentage *= 1.2f;
-				}
-				else if(keyAction == KeyAction.ZoomOut && tiledView.zoomPercentage >= 20)
-				{
-					tiledView.zoomPercentage *= (1.0/1.2f);
-				}
-				else
-				{
-					return true;	
-				}
+				view.zoomIn();
 				scrollWithPlayerRefresh = true;
-				float centerXRel = (tiledView.desiredCenterPosX)/tiledView.squareSizeX;
-				float centerYRel = (tiledView.desiredCenterPosY)/tiledView.squareSizeY;
-				float oldSquareWidth = tiledView.squareSizeX;
-				float oldSquareHeight = tiledView.squareSizeY;
-				tiledView.updateZoom();
-				tiledView.computeSizePixels();
-				int newScrollX = (int)Math.round(centerXRel*tiledView.squareSizeX - tiledView.getWidth()*0.5f);
-				int newScrollY = (int)Math.round(centerYRel*tiledView.squareSizeY - tiledView.getHeight()*0.5f);
-				int unclampedScrollX = newScrollX;
-				int unclampedScrollY = newScrollY;
-				scrollToLimited(tiledView, newScrollX, newScrollY, false);
-				tiledView.desiredCenterPosX *= ((float)tiledView.squareSizeX)/oldSquareWidth;
-				tiledView.desiredCenterPosY *= ((float)tiledView.squareSizeY)/oldSquareHeight;
-				tiledView.invalidate();
 			}
-			return true;
+			else if(keyAction == KeyAction.ZoomOut)
+			{
+				view.zoomOut();
+				scrollWithPlayerRefresh = true;
+			}
+			else
+			{
+				return true;	
+			}
 		}
 
 		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)

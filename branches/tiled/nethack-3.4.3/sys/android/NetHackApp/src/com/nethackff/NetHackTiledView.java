@@ -34,7 +34,7 @@ public class NetHackTiledView extends NetHackView
 		updateZoom();
 	}
 
-	void updateZoom()
+	public void updateZoom()
 	{
 		squareSizeX = (tileSizeX*zoomPercentage)/100;
 		squareSizeY = (tileSizeY*zoomPercentage)/100;
@@ -237,5 +237,23 @@ public class NetHackTiledView extends NetHackView
 		canvas.drawLine(1, 1, sx - 2, 1, p);
 		canvas.drawLine(1, sy - 2, sx - 2, sy - 2, p);
 */
+	}
+
+	public void zoomIn()
+	{
+		if(zoomPercentage <= 400)
+		{
+			zoomPercentage *= 1.2f;
+			zoomChanged();
+		}
+	}
+	
+	public void zoomOut()
+	{
+		if(zoomPercentage >= 20)
+		{
+			zoomPercentage *= (1.0/1.2f);
+			zoomChanged();
+		}
 	}
 }
