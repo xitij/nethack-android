@@ -1284,7 +1284,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return gestureScanner.onTouchEvent(me);
 	}
 
-	public void scrollToLimited(View scrollView, int newscrollx, int newscrolly, boolean setnewdesiredcentertoactual)
+	public void scrollToLimited(NetHackView scrollView, int newscrollx, int newscrolly, boolean setnewdesiredcentertoactual)
 	{
 		int termx, termy;
 		if(scrollView == menuView)
@@ -1337,17 +1337,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(setnewdesiredcentertoactual)
 		{
-			if(scrollView == tiledView)
-			{
-				tiledView.desiredCenterPosX = newscrollx + scrollView.getWidth()*0.5f;
-				tiledView.desiredCenterPosY = newscrolly + scrollView.getHeight()*0.5f;
-			}
+			scrollView.desiredCenterPosX = newscrollx + scrollView.getWidth()*0.5f;
+			scrollView.desiredCenterPosY = newscrolly + scrollView.getHeight()*0.5f;
 		}
 	}
 	
 	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
 	{
-		View scrollView = getMapView();
+		NetHackView scrollView = getMapView();
 	
 		if(uiModeActual != UIMode.PureTTY && menuShown)
 		{
@@ -1426,20 +1423,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		getPlayerPosInView(pp);
 		int posx = pp.posX;
 		int posy = pp.posY;
-		
-		if(uiModeActual == UIMode.AndroidTiled)
-		{
-			int cursorcenterx = posx*tiledView.squareSizeX + tiledView.squareSizeX/2;
-			int cursorcentery = posy*tiledView.squareSizeY + tiledView.squareSizeY/2;
-			int newscrollx = cursorcenterx - tiledView.getWidth()/2;
-			int newscrolly = cursorcentery - tiledView.getHeight()/2;
-	
-			startAutoScroll(newscrollx - tiledView.getScrollX(),newscrolly - tiledView.getScrollY());
-		}
-		else
-		{
-			mainView.scrollToCenterAtPos(posx, posy);
-		}
+
+		NetHackView view = getMapView();
+		int cursorcenterx = posx*view.squareSizeX + view.squareSizeX/2;
+		int cursorcentery = posy*view.squareSizeY + view.squareSizeY/2;
+		int newscrollx = cursorcenterx - view.getWidth()/2;
+		int newscrolly = cursorcentery - view.getHeight()/2;
+
+		startAutoScroll(newscrollx - view.getScrollX(), newscrolly - view.getScrollY());
 	}
 	
 	public synchronized void startCommThread()
