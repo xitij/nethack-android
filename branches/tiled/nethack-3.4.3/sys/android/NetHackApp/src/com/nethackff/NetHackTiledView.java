@@ -103,7 +103,6 @@ public class NetHackTiledView extends NetHackView
 		sizeY = terminal.numRows;
 
 		computeSizePixels();
-
 		updateBackground();
 	}
 	public void setWhiteBackgroundMode(boolean b)
@@ -160,6 +159,8 @@ public class NetHackTiledView extends NetHackView
 	protected void onDraw(Canvas canvas)
 	{
 		int y;
+
+		pendingRedraw = false;
 
 		int rowView1 = 0;
 		int rowView2 = Math.min(sizeY, terminal.numRows);
@@ -220,5 +221,21 @@ public class NetHackTiledView extends NetHackView
 			// from its previous position.
 			terminal.registerChange(terminal.currentColumn, terminal.currentRow);
 		}
+
+		// TEMP
+/*
+		Paint p = new Paint();
+		int argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+		p.setColor(argb);
+		canvas.drawLine(desiredCenterPosX - 5, desiredCenterPosY, desiredCenterPosX + 5, desiredCenterPosY, p);
+		canvas.drawLine(desiredCenterPosX, desiredCenterPosY - 5, desiredCenterPosX, desiredCenterPosY + 5, p);
+
+		int sx = sizePixelsX;
+		int sy = sizePixelsY;
+		canvas.drawLine(1, 1, 1, sy - 2, p);
+		canvas.drawLine(sx - 2, 1, sx - 2, sy - 2, p);
+		canvas.drawLine(1, 1, sx - 2, 1, p);
+		canvas.drawLine(1, sy - 2, sx - 2, sy - 2, p);
+*/
 	}
 }

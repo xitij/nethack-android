@@ -5,6 +5,8 @@ import android.view.View;
 
 public class NetHackView extends View
 {
+	public boolean pendingRedraw = false;
+
 	NetHackView(Context context)
 	{
 		super(context);

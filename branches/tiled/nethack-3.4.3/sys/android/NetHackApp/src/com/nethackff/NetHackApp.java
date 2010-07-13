@@ -288,6 +288,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 			prefsEditor.commit();
 			updateLayout();
+
+			// Take this as an opportunity to scroll to the player, as we may have exposed
+			// or obscured a part of the map view.
+			getMapView().pendingRedraw = true;
+			scrollWithPlayerRefresh = true;
+
 			return true;
 		}
 
@@ -307,7 +313,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				{
 					return true;	
 				}
-				scrollWithPlayerJustZoomed = true;
+				scrollWithPlayerRefresh = true;
 				float centerXRel = (tiledView.desiredCenterPosX)/tiledView.squareSizeX;
 				float centerYRel = (tiledView.desiredCenterPosY)/tiledView.squareSizeY;
 				float oldSquareWidth = tiledView.squareSizeX;
@@ -669,11 +675,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int playerposy = pp.posY;
 		if(optScrollWithPlayer)
 		{
-			if((scrollWithPlayerLastPosX != playerposx || scrollWithPlayerLastPosY != playerposy || scrollWithPlayerJustZoomed) && playerposx >= 0 && playerposy >= 0)
+			NetHackView view = getMapView();
+			if(!view.pendingRedraw && (scrollWithPlayerLastPosX != playerposx || scrollWithPlayerLastPosY != playerposy || scrollWithPlayerRefresh) && playerposx >= 0 && playerposy >= 0)
 			{
-				NetHackView view = getMapView();
 				int newplayerpixelposx = view.computeViewCoordX(playerposx) + view.squareSizeX/2;
 				int newplayerpixelposy = view.computeViewCoordY(playerposy) + view.squareSizeY/2;
+
 				float relposx = ((float)(newplayerpixelposx - view.getScrollX()))/view.getWidth();
 				float relposy = ((float)(newplayerpixelposy - view.getScrollY()))/view.getHeight();
 
@@ -722,20 +729,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 				scrollWithPlayerLastPosX = playerposx;
 				scrollWithPlayerLastPosY = playerposy;
-				scrollWithPlayerJustZoomed = false;
+				scrollWithPlayerRefresh = false;
 			}
 		}
 		else
 		{
 			scrollWithPlayerLastPosX = playerposx;
 			scrollWithPlayerLastPosY = playerposy;
-			scrollWithPlayerJustZoomed = false;
+			scrollWithPlayerRefresh = false;
 		}
 	}
 
 	public int scrollWithPlayerLastPosX = -1;
 	public int scrollWithPlayerLastPosY = -1;
-	public boolean scrollWithPlayerJustZoomed = false;
+	public boolean scrollWithPlayerRefresh = false;
 
 	private Handler handler = new Handler()
 	{
@@ -1959,7 +1966,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			tiledView.sizeY -= messageRows + statusRows;
 			tiledView.offsetY = 1;
 			tiledView.computeSizePixels();
-			tiledView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 		}
 
 		Configuration config = getResources().getConfiguration();		

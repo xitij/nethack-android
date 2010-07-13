@@ -414,6 +414,7 @@ public class NetHackTerminalView extends NetHackView
 
 	protected void onDraw(Canvas canvas)
 	{
+		pendingRedraw = false;
 		if(reformatText)
 		{
 			// TEMP - should probably check how much is used:
