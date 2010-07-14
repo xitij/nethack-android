@@ -52,7 +52,9 @@ enum
 	kCmdRefresh,
 	kCmdSwitchTo128,
 	kCmdSwitchToAmiga,
-	kCmdSwitchToIBM
+	kCmdSwitchToIBM,
+	kCmdTilesEnable,
+	kCmdTilesDisable
 };
 
 enum
@@ -71,8 +73,18 @@ static int s_Quit = 0;
 int g_AndroidPureTTY = 0;
 
 #ifdef ANDROID_GRAPHICS_TILED
+
+/* Whether the user has requested tiled mode or not. Even if we are on the
+   Rogue level and thus not actually in tiled mode, this would still be true. */
 int g_AndroidTiled = 0;
-#endif
+
+/* If we think the user (Android UI) is currently drawing a tiled view, this
+   is true. The native code is the master here, sending control signals to
+   drive the Android UI views to the expected state, and this variable is used
+   to decide when to send those signals. */
+int g_AndroidTilesEnabledForUser = 0;
+
+#endif	/* ANDROID_GRAPHICS_TILED */
 
 static void NDECL(wd_message);
 #ifdef WIZARD
@@ -733,6 +745,20 @@ int android_getch(void)
 			{
 				s_SwitchCharSetCmd = cmd;
 			}
+			else if(cmd == kCmdTilesEnable || cmd == kCmdTilesDisable)
+			{
+#ifdef ANDROID_GRAPHICS_TILED
+				g_AndroidTiled = (cmd == kCmdTilesEnable);
+#endif
+
+				/* Not sure about this, we really could use a better way to
+				   force a redraw. */
+				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				{
+					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+				}
+
+			}
 
 			if(s_WaitingForCommandPerformed)
 			{
@@ -1101,6 +1127,7 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	g_AndroidPureTTY = (uimode == kUiModePureTTY);
 #ifdef ANDROID_GRAPHICS_TILED
 	g_AndroidTiled = (uimode == kUiModeAndroidTiled);
+	g_AndroidTilesEnabledForUser = g_AndroidTiled;
 #endif
 	s_SendWaitingForNotFull = 0;
 	s_ReceiveWaitingForData = 0;
@@ -1267,6 +1294,20 @@ void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
 	sSendCmd(cmd, 0);
 }
 
+
+void Java_com_nethackff_NetHackApp_NetHackSetTilesEnabled(
+		JNIEnv *env, jobject thiz, int tilesenabled)
+{
+	int sync = 1;	/* Maybe less risk for timing-related display bugs this way? */
+	if(tilesenabled)
+	{
+		sSendCmd(kCmdTilesEnable, sync);
+	}
+	else
+	{
+		sSendCmd(kCmdTilesDisable, sync);
+	}
+}
 
 int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
 		jobject thiz)

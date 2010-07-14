@@ -185,7 +185,10 @@ struct window_procs android_tiled_procs = {
 #endif
 };
 
-#endif
+extern int g_AndroidTiled;
+extern int g_AndroidTilesEnabledForUser;
+
+#endif	/* ANDROID_GRAPHICS_TILED */
 
 static char winpanicstr[] = "Bad window id %d";
 
@@ -254,6 +257,41 @@ void android_tiled_print_glyph(window, x, y, glyph)
     xchar x, y;
     int glyph;
 {
+	/* This is a bit arbitrary, but basically whenever we are about to
+	   print a glyph, we check to see if we are in the desired tiling mode. */
+
+	/* We want tiles on if the user has requested so, and we are not on
+	   the rogue level. */	
+	int shouldtilesbeenabled = g_AndroidTiled && !Is_rogue_level(&u.uz);
+
+	/* Check to see if our desired state is any different than what the user
+	   should already have been set to. */
+	if(shouldtilesbeenabled != g_AndroidTilesEnabledForUser)
+	{
+		if(shouldtilesbeenabled)
+		{
+			/* Escape sequence to enter tiled view. */
+			android_puts("\033Ar");
+		}
+		else
+		{
+			/* Escape sequence to leave tiled view, for a character view. */
+			android_puts("\033AR");
+		}
+
+		/* Remember what we told the user. */
+		g_AndroidTilesEnabledForUser = shouldtilesbeenabled;
+	}
+
+	/* Now, if the user is not currently set to be in tiled view mode,
+	   we just call into the TTY code to print the correct colored
+	   character. */
+	if(!g_AndroidTilesEnabledForUser)
+	{
+		tty_print_glyph(window, x, y, glyph);
+		return;
+	}
+
 /*
     int ch;
     int	    color;
@@ -811,9 +849,6 @@ winid android_create_nhwindow(int type)
 }
 
 extern int g_AndroidPureTTY;
-#ifdef ANDROID_GRAPHICS_TILED
-extern int g_AndroidTiled;
-#endif
 
 void android_clear_nhwindow(winid window)
 {
@@ -838,7 +873,7 @@ void android_clear_nhwindow(winid window)
 		return;
 	}
 #ifdef ANDROID_GRAPHICS_TILED
-	else if(cw && cw->type == NHW_MAP && g_AndroidTiled)
+	else if(cw && cw->type == NHW_MAP && g_AndroidTiled && g_AndroidTilesEnabledForUser)
 	{
 		android_puts("\033A5");
 		android_puts("\033[H\033[J");

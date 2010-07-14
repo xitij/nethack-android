@@ -79,7 +79,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	NetHackView getMapView()
 	{
-		if(uiModeActual == UIMode.AndroidTiled)
+		if(isTiledViewMode())
 		{
 			return tiledView;
 		}
@@ -88,7 +88,20 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return mainView;
 		}
 	}
-	
+
+	/**
+	 * True if the native code has told us to use a tiled map view. Note that it's
+	 * possible for this to be false even if the human user has requested tiles,
+	 * because we could be on the TTY Rogue level, or the desired mode may not have
+	 * propagated throught the native code yet. 
+	 */
+	static boolean tilesEnabled = true;
+
+	boolean isTiledViewMode()
+	{
+		return (uiModeActual == UIMode.AndroidTiled) && tilesEnabled;
+	}
+
 	NetHackKeyboard virtualKeyboard;
 	
 	/* For debugging only. */
@@ -879,6 +892,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 								//currentView.invalidate();
 							}
 						}
+						else if(c == 'R')	// On Rogue level, or otherwise switching to TTY view.
+						{
+							tilesEnabled = false;
+							mainView.terminal.clearScreen();
+							rebuildViews();
+						}
+						else if(c == 'r')	// Not on Rogue level
+						{
+							tilesEnabled = true;
+							if(tiledView != null)
+							{
+								tiledView.terminal.clearScreen();
+							}
+							rebuildViews();				
+						}
 						escSeq = escSeqAndroid = false;	
 					}
 				}
@@ -1385,7 +1413,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		posx--;
 		posy++;
 
-		if(uiModeActual == UIMode.AndroidTiled)
+		if(isTiledViewMode())
 		{
 			posx -= tiledView.offsetX;
 			posy -= tiledView.offsetY;
@@ -1637,7 +1665,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			{
 				screenLayout.addView(messageView);
 			}
-			if(uiModeActual == UIMode.AndroidTiled)
+			if(isTiledViewMode())
 			{
 				screenLayout.addView(tiledView);
 			}
@@ -2182,6 +2210,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
 	public native void NetHackRefreshDisplay();
 	public native void NetHackSwitchCharSet(int charsetindex);
+	public native void NetHackSetTilesEnabled(int tilesenabled);
 	
 	public native int NetHackGetPlayerPosX();
 	public native int NetHackGetPlayerPosY();
