@@ -95,11 +95,15 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	 * because we could be on the TTY Rogue level, or the desired mode may not have
 	 * propagated throught the native code yet. 
 	 */
-	static boolean tilesEnabled = true;
+	static boolean tilesEnabled = false;
 
 	boolean isTiledViewMode()
 	{
 		return (uiModeActual == UIMode.AndroidTiled) && tilesEnabled;
+	}
+	boolean isPureTTYMode()
+	{
+		return uiModeActual == UIMode.PureTTY;	
 	}
 
 	NetHackKeyboard virtualKeyboard;
@@ -767,7 +771,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			if(NetHackGetPlayerPosShouldRecenter() != 0)
 			{
 				// This doesn't seem to work very well in pure TTY mode. 
-				if(uiModeActual != UIMode.PureTTY)
+				if(!isPureTTYMode())
 				{
 					centerOnPlayer();
 				}
@@ -1077,15 +1081,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 
 			uiModeActual = optUIModeNew;
-			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
 			int uimode = 1;
 			if(uiModeActual == UIMode.AndroidTTY)
 			{
 				uimode = 0;
+				tilesEnabled = false;
 			}
 			if(uiModeActual == UIMode.AndroidTiled)
 			{
 				uimode = 2;
+				tilesEnabled = true;	// Native code knows to expect this.
 			}
 			if(NetHackInit(uimode, nethackdir) == 0)
 			{
@@ -1358,7 +1363,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		NetHackView scrollView = getMapView();
 	
-		if(uiModeActual != UIMode.PureTTY && menuShown)
+		if(!isPureTTYMode() && menuShown)
 		{
 			scrollView = menuView;
 		}
@@ -1530,14 +1535,31 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(optUIModeNew != uiModeBefore)
 		{
-			Dialog dialog = new Dialog(this);
-			dialog.setContentView(R.layout.uimodechanged);
-			dialog.setTitle(getString(R.string.uimodechanged_title));
-			dialog.show();
+			// Switching in or out of pure TTY mode still requires a full
+			// re-initialization of the application.
+			if(optUIModeNew == UIMode.PureTTY || uiModeActual == UIMode.PureTTY)
+			{
+				Dialog dialog = new Dialog(this);
+				dialog.setContentView(R.layout.uimodechanged);
+				dialog.setTitle(getString(R.string.uimodechanged_title));
+				dialog.show();
+			}
+			else
+			{
+				// Switching between tiled and TTY Android mode we should be able
+				// to do without restarting.
+				if(optUIModeNew == UIMode.AndroidTTY)
+				{
+					NetHackSetTilesEnabled(0);
+				}
+				else
+				{
+					NetHackSetTilesEnabled(1);		
+				}
+				uiModeActual = optUIModeNew;
+			}				
 		}
 
-// TEMP
-		Log.i("NetHackDbg", "Before: " + characterSetBefore.toString() + " After: " + optCharacterSet);
 		if(optCharacterSet != characterSetBefore)
 		{
 			int index = -1;
@@ -1609,7 +1631,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		if(uiModeActual == UIMode.AndroidTiled)
 		{
-			if(!tilesetbefore.equals(optTileSetName))
+			if(!tilesetbefore.equals(optTileSetName) || tiledView.tileBitmap1 == null)
 			{
 				shouldrebuild = true;
 				usePreferredTileSet();
@@ -1658,7 +1680,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		screenLayout.removeAllViews();
 		if(!menuShown)
 		{
-			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
+			boolean pureTTY = isPureTTYMode();
 
 			//layout.addView(dbgTerminalTranscript);
 			if(!pureTTY)
@@ -1932,18 +1954,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optCharacterSet = CharacterSet.Invalid;
 		optOrientation = Orientation.Invalid;	// Make sure it gets detected in onStart().
 
-		boolean pureTTY;
 		if(!gameInitialized)
 		{
 			uiModeActual = optUIModeNew;
 		}
-		pureTTY = (uiModeActual == UIMode.PureTTY);
 
 		int textsize = getOptFontSize();
 		mainView = new NetHackTerminalView(this, mainTerminalState);
 		mainView.setTextSize(textsize);
 		//		mainView.offsetY = messageRows;
-		if(!pureTTY)
+		if(!isPureTTYMode())
 		{
 			mainView.sizeY -= messageRows + statusRows;
 			mainView.offsetY = 1;
@@ -1960,16 +1980,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		fontBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dungeonfont);
 		mainView.fontBitmap = fontBitmap;
 
-		if(uiModeActual == UIMode.AndroidTiled)
+		tiledView = new NetHackTiledView(this);
+		// TODO: Try to avoid the call to usePreferredTileSet() in AndroidTTY mode -
+		// it may waste some resources.
+		if(uiModeActual == UIMode.AndroidTiled || uiModeActual == UIMode.AndroidTTY)
 		{
-			tiledView = new NetHackTiledView(this);
-
 			usePreferredTileSet();
-
-			tiledView.sizeY -= messageRows + statusRows;
-			tiledView.offsetY = 1;
-			tiledView.computeSizePixels();
 		}
+		tiledView.sizeY -= messageRows + statusRows;
+		tiledView.offsetY = 1;
+		tiledView.computeSizePixels();
 
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)

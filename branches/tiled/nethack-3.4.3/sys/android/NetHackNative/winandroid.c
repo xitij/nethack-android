@@ -38,9 +38,8 @@ void FDECL(android_tiled_print_glyph, (winid,XCHAR_P,XCHAR_P,int));
 /*void android_tiled_print_glyph(winid window, xchar x, xchar y, int glyph);*/
 #endif
 
-/* Interface definition, for windows.c */
 struct window_procs android_procs = {
-    "androidtty",
+    "android",
 #ifdef MSDOS
     WC_TILED_MAP|WC_ASCII_MAP|
 #endif
@@ -79,7 +78,11 @@ struct window_procs android_procs = {
 #ifdef POSITIONBAR
     tty_update_positionbar,
 #endif
+#ifdef ANDROID_GRAPHICS_TILED
+    android_tiled_print_glyph,
+#else
     tty_print_glyph,
+#endif
     tty_raw_print,
     tty_raw_print_bold,
     tty_nhgetch,
@@ -112,78 +115,6 @@ struct window_procs android_procs = {
 };
 
 #ifdef ANDROID_GRAPHICS_TILED
-
-struct window_procs android_tiled_procs = {
-    "androidtiled",
-#ifdef MSDOS
-    WC_TILED_MAP|WC_ASCII_MAP|
-#endif
-#if defined(WIN32CON)
-    WC_MOUSE_SUPPORT|
-#endif
-    WC_COLOR|WC_HILITE_PET|WC_INVERSE|WC_EIGHT_BIT_IN,
-    0L,
-    tty_init_nhwindows,
-/*	android_player_selection,*/
-	tty_player_selection,
-    tty_askname,
-    tty_get_nh_event,
-    tty_exit_nhwindows,
-    tty_suspend_nhwindows,
-    tty_resume_nhwindows,
-	android_create_nhwindow,
-	android_clear_nhwindow,
-    android_display_nhwindow,
-	android_destroy_nhwindow,
-	android_curs,
-	android_putstr,
-    tty_display_file,
-    tty_start_menu,
-    tty_add_menu,
-    tty_end_menu,
-/*	tty_select_menu,*/
-	android_select_menu,
-    tty_message_menu,
-    tty_update_inventory,
-    tty_mark_synch,
-    tty_wait_synch,
-#ifdef CLIPPING
-    tty_cliparound,
-#endif
-#ifdef POSITIONBAR
-    tty_update_positionbar,
-#endif
-    android_tiled_print_glyph,
-    tty_raw_print,
-    tty_raw_print_bold,
-    tty_nhgetch,
-    tty_nh_poskey,
-    tty_nhbell,
-    android_doprev_message,
-    android_yn_function,
-    android_getlin,
-    android_get_ext_cmd,
-    tty_number_pad,
-    tty_delay_output,
-#ifdef CHANGE_COLOR	/* the Mac uses a palette device */
-    tty_change_color,
-#ifdef MAC
-    tty_change_background,
-    set_tty_font_name,
-#endif
-    tty_get_color_string,
-#endif
-
-    /* other defs that really should go away (they're tty specific) */
-    tty_start_screen,
-    tty_end_screen,
-    genl_outrip,
-#if defined(WIN32CON)
-    nttty_preference_update,
-#else
-    genl_preference_update,
-#endif
-};
 
 extern int g_AndroidTiled;
 extern int g_AndroidTilesEnabledForUser;
@@ -198,11 +129,6 @@ void android_wininit_data(int *argcp, char **argv)	/* should we have these param
 }
 
 #ifdef ANDROID_GRAPHICS_TILED
-
-void android_tiled_wininit_data(int *argcp, char **argv)	/* should we have these params? */
-{
-	win_tty_init();
-}
 
 void android_putchar_internal2(int c);
 

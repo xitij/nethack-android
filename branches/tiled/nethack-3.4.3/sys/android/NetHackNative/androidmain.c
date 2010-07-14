@@ -942,16 +942,7 @@ static void *sThreadFunc()
 	}
 	else
 	{
-#ifdef ANDROID_GRAPHICS_TILED
-		if(g_AndroidTiled)
-		{
-			choose_windows("androidtiled");
-		}
-		else
-#endif
-		{
-			choose_windows("androidtty");
-		}
+		choose_windows("android");
 	}
 
 	if(!g_AndroidPureTTY)
