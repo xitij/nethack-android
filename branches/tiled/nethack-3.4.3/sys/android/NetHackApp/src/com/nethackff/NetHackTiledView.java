@@ -166,9 +166,9 @@ public class NetHackTiledView extends NetHackView
 			int y1 = y;
 			int x2 = x1 + squareSizeX - 1;
 			int y2 = y1 + squareSizeY - 1;
-			int offsx = squareSizeX/3;
-			int offsy = squareSizeY/3;
-
+			int offsx = squareSizeX/4;
+			int offsy = squareSizeY/4;
+			
 			canvas.drawLine(x1, y1, x1 + offsx, y1, cursorPaint);
 			canvas.drawLine(x1, y1, x1, y1 + offsy, cursorPaint);
 
