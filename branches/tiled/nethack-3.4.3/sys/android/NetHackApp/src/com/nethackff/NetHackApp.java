@@ -239,6 +239,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	KeyAction optKeyBindSearch = KeyAction.CtrlKey;
 	KeyAction optKeyBindShiftLeft = KeyAction.ShiftKey;
 	KeyAction optKeyBindShiftRight = KeyAction.ShiftKey;
+	KeyAction optKeyBindVolumeUp = KeyAction.ZoomIn;
+	KeyAction optKeyBindVolumeDown = KeyAction.ZoomOut;
+
 	String optTileSetName;	
 
 	public KeyAction getKeyActionFromKeyCode(int keyCode)
@@ -271,10 +274,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				keyAction = optKeyBindShiftRight; 	
 				break;
 			case KeyEvent.KEYCODE_VOLUME_UP:
-				keyAction = KeyAction.ZoomIn;
+				keyAction = optKeyBindVolumeUp;
 				break;
 			case KeyEvent.KEYCODE_VOLUME_DOWN:
-				keyAction = KeyAction.ZoomOut;
+				keyAction = optKeyBindVolumeDown;
 				break;
 			default:
 				break;
@@ -2192,6 +2195,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optKeyBindAltRight = getKeyActionEnumFromString(prefs.getString("RightAltKeyFunc", "AltKey"));
 		optKeyBindShiftLeft = getKeyActionEnumFromString(prefs.getString("LeftShiftKeyFunc", "ShiftKey"));
 		optKeyBindShiftRight = getKeyActionEnumFromString(prefs.getString("RightShiftKeyFunc", "ShiftKey"));
+		optKeyBindVolumeUp = getKeyActionEnumFromString(prefs.getString("VolumeUpButtonFunc", "ZoomIn"));
+		optKeyBindVolumeDown = getKeyActionEnumFromString(prefs.getString("VolumeDownButtonFunc", "ZoomOut"));
+
 		altKey.sticky = prefs.getBoolean("StickyAlt", false);
 		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);

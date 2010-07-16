@@ -127,6 +127,20 @@
 				android:defaultValue="ShiftKey"
 				android:entries="@array/KeyActions"
 				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Volume Up Button"
+				android:summary="Select functionality for Volume Up button."
+				android:key="VolumeUpButtonFunc"
+				android:defaultValue="ZoomIn"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Volume Down Button"
+				android:summary="Select functionality for Volume Down button."
+				android:key="VolumeDownButtonFunc"
+				android:defaultValue="ZoomOut"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
 
 		</PreferenceScreen>
 

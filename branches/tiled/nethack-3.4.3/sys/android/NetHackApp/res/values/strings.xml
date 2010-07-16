@@ -31,6 +31,8 @@
 		<item>Ctrl Key</item>
 		<item>Shift Key</item>
 		<item>Esc Key</item>
+		<item>Zoom In</item>
+		<item>Zoom Out</item>
 	</string-array>
 	<string-array name="KeyActionValues">
 		<item>None</item>
@@ -39,6 +41,8 @@
 		<item>CtrlKey</item>
 		<item>ShiftKey</item>
 		<item>EscKey</item>
+		<item>ZoomIn</item>
+		<item>ZoomOut</item>
 	</string-array>
 	<string-array name="UIModeEntries">
 		<item>Pure TTY</item>
