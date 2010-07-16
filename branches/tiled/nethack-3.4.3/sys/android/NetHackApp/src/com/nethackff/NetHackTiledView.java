@@ -18,6 +18,8 @@ public class NetHackTiledView extends NetHackView
 	private boolean drawCursor = true;
 	private boolean whiteBackgroundMode = false;
 
+	public Paint cursorPaint;
+	
 	public Bitmap tileBitmap1;
 
 	void setBitmap(Bitmap bm, int tilesizex, int tilesizey, int defaultzoompercentage)
@@ -88,6 +90,9 @@ public class NetHackTiledView extends NetHackView
 	{
 		super(context);
 
+		cursorPaint = new Paint();
+		cursorPaint.setColor(Color.argb(0xff, 0xc0, 0xc0, 0xc0));
+
 /* TEMP */
 		int width = 80;
 		int height = 24;		// 26
@@ -123,15 +128,16 @@ public class NetHackTiledView extends NetHackView
 	}
 
 	protected void drawRow(Canvas canvas,
-			int x, final int y,
+			int x, int y,
 			final char []txtBuffer,
-			final int buffOffs, final int numChars, final int cursorIndex)
+			final int buffOffs, final int numChars, /*final*/ int cursorIndex)
 	{
 		if(tileBitmap1 == null)
 		{
 			return;	
 		}
 
+		int x0 = x;
 		for(int index = 0; index < numChars; x += squareSizeX, index++)
 		{
 			int buffIndex = buffOffs + index;
@@ -152,6 +158,28 @@ public class NetHackTiledView extends NetHackView
 					canvas.drawBitmap(tileBitmap1, new Rect(tilex*bitmapcharwidth, tiley*bitmapsquareSizeY, (tilex + 1)*bitmapcharwidth, (tiley + 1)*bitmapsquareSizeY), new Rect(x, topy, x + squareSizeX, topy + squareSizeY), bitmapPaint);
 				}
 			}
+		}
+
+		if(cursorIndex >= 0)
+		{
+			int x1 = x0 + squareSizeX*cursorIndex;
+			int y1 = y;
+			int x2 = x1 + squareSizeX - 1;
+			int y2 = y1 + squareSizeY - 1;
+			int offsx = squareSizeX/3;
+			int offsy = squareSizeY/3;
+
+			canvas.drawLine(x1, y1, x1 + offsx, y1, cursorPaint);
+			canvas.drawLine(x1, y1, x1, y1 + offsy, cursorPaint);
+
+			canvas.drawLine(x2, y1, x2 - offsx, y1, cursorPaint);
+			canvas.drawLine(x2, y1, x2, y1 + offsy, cursorPaint);
+
+			canvas.drawLine(x1, y2, x1 + offsx, y2, cursorPaint);
+			canvas.drawLine(x1, y2, x1, y2 - offsy, cursorPaint);
+
+			canvas.drawLine(x2, y2, x2 - offsx, y2, cursorPaint);
+			canvas.drawLine(x2, y2, x2, y2 - offsy, cursorPaint);
 		}
 	}
 
@@ -176,24 +204,6 @@ public class NetHackTiledView extends NetHackView
 			rowView2 = Math.min(computeViewRowFromCoordY(cliprect.bottom + squareSizeY - 1), rowView2);
 		}
 
-// TODO: Simplify this crap!
-		y = computeViewCoordY(rowView1);
-		for(int rowView = rowView1; rowView < rowView2; rowView++)
-		{
-			final int rowTerm = rowView + offsetY;
-			final int buffOffs = rowTerm*terminal.numColumns + colView1 + offsetX; 
-			int cursorIndex = -1;
-			if(rowTerm == terminal.currentRow)
-			{
-				cursorIndex = terminal.currentColumn - colView1 - offsetX;
-			}
-
-			final int x = computeViewCoordX(colView1);
-			
-			y += squareSizeY;
-		}
-
-		int ybackgroffs = 2;
 		y = computeViewCoordY(rowView1);
 		for(int rowView = rowView1; rowView < rowView2; rowView++)
 		{

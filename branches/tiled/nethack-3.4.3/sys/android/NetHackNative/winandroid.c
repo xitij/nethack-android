@@ -174,6 +174,7 @@ static void android_put_utf8(int unicode)
 extern short glyph2tile[];
 extern int total_tiles_used;
 
+
 /*
 void FDECL(tty_print_glyph, (winid,XCHAR_P,XCHAR_P,int));
 void android_tiled_print_glyph(winid window, xchar x, xchar y, int glyph)
@@ -218,40 +219,8 @@ void android_tiled_print_glyph(window, x, y, glyph)
 		return;
 	}
 
-/*
-    int ch;
-    int	    color;
-    unsigned special;
-*/    
 	int tile = glyph2tile[glyph];
 
-
-#if 0
-	struct WinDesc *cw = wins[window];
-	if(cw && cw->type == NHW_MESSAGE)
-	{
-		/* HACK */
-		int oldco = CO;
-		CO = s_MessageNumColumns;
-
-		android_puts("\033A1");
-		tty_curs(window, x, y);
-		android_puts("\033A0");
-
-		CO = oldco;
-		return;
-	}
-	else if(cw && cw->type == NHW_STATUS)
-	{
-		android_puts("\033A2");
-
-		android_curs_status(window, x, y);
-
-		android_puts("\033A0");
-		return;
-	}
-	tty_curs(window, x, y);
-#endif
 	android_puts("\033A5");
 
 	--x;	/* column 0 is never used */
@@ -1007,6 +976,18 @@ void android_curs(winid window, int x, int y)
 
 		android_puts("\033A0");
 		return;
+	}
+	else if(cw && cw->type == NHW_MAP)
+	{
+		if(g_AndroidTilesEnabledForUser)
+		{
+			android_puts("\033A5");
+			--x;	/* column 0 is never used */
+			cmov(x, y);
+			android_puts("\033A0");
+
+			return;
+		}
 	}
 	tty_curs(window, x, y);
 }
