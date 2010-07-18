@@ -43,9 +43,7 @@ extern struct window_procs mswin_procs;
 /* Added Android. /FF */
 #ifdef ANDROID_GRAPHICS
 extern struct window_procs android_procs;
-extern struct window_procs android_tiled_procs;
 extern void NDECL(android_wininit_data);
-extern void NDECL(android_tiled_wininit_data);
 #endif
 
 STATIC_DCL void FDECL(def_raw_print, (const char *s));
@@ -91,9 +89,6 @@ struct win_choices {
 /* Added Android. /FF */
 #ifdef ANDROID_GRAPHICS
 	{ &android_procs, android_wininit_data },
-#endif
-#ifdef ANDROID_GRAPHICS_TILED
-	{ &android_tiled_procs, android_tiled_wininit_data },
 #endif
     { 0, 0 }		/* must be last */
 };
