@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="TileSetName">Standard 16x16</string>
-	<integer name="TileSetTileSizeX">16</integer>
-	<integer name="TileSetTileSizeY">16</integer>
-</resources>
