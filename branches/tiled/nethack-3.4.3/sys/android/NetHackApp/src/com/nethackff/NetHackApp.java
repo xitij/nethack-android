@@ -184,7 +184,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		ShiftKey,
 		EscKey,
 		ZoomIn,
-		ZoomOut
+		ZoomOut,
+		ForwardToSystem		// Forward for O/S to handle.
 	}
 	
 	enum ColorMode
@@ -233,7 +234,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
-	KeyAction optKeyBindBack = KeyAction.None;
+	KeyAction optKeyBindBack = KeyAction.ForwardToSystem;
 	KeyAction optKeyBindCamera = KeyAction.VirtualKeyboard;
 	KeyAction optKeyBindMenu = KeyAction.None;
 	KeyAction optKeyBindSearch = KeyAction.CtrlKey;
@@ -250,22 +251,22 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		switch(keyCode)
 		{
 			case KeyEvent.KEYCODE_ALT_LEFT:
-				keyAction = optKeyBindAltLeft; 	
+				keyAction = optKeyBindAltLeft;
 				break;
 			case KeyEvent.KEYCODE_ALT_RIGHT:
-				keyAction = optKeyBindAltRight; 	
-				break;
-			case KeyEvent.KEYCODE_CAMERA:
-				keyAction = optKeyBindCamera; 	
+				keyAction = optKeyBindAltRight;
 				break;
 			case KeyEvent.KEYCODE_BACK:
-				keyAction = optKeyBindBack; 	
+				keyAction = optKeyBindBack;
+				break;
+			case KeyEvent.KEYCODE_CAMERA:
+				keyAction = optKeyBindCamera;
 				break;
 			case KeyEvent.KEYCODE_MENU:
 				keyAction = optKeyBindMenu;
 				break;
 			case KeyEvent.KEYCODE_SEARCH:
-				keyAction = optKeyBindSearch; 	
+				keyAction = optKeyBindSearch;
 				break;
 			case KeyEvent.KEYCODE_SHIFT_LEFT:
 				keyAction = optKeyBindShiftLeft; 	
@@ -336,7 +337,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
+		if(keyAction == KeyAction.ForwardToSystem)
+		{
+			return super.onKeyDown(keyCode, event);
+		}
+
+		if(keyCode == KeyEvent.KEYCODE_MENU)
 		{
 			return super.onKeyDown(keyCode, event);
 		}
@@ -2189,6 +2195,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	private void getPrefs()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+		optKeyBindBack = getKeyActionEnumFromString(prefs.getString("BackButtonFunc", "ForwardToSystem"));
 		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "VirtualKeyboard"));
 		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "CtrlKey"));
 		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "AltKey"));
