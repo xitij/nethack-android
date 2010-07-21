@@ -13,7 +13,7 @@ import android.graphics.Typeface;
 import android.util.Log;
 import android.view.View;
 
-public class NetHackTerminalView extends View
+public class NetHackTerminalView extends NetHackView
 {
 	private boolean drawCursor = true;
 	private boolean whiteBackgroundMode = false;
@@ -23,23 +23,38 @@ public class NetHackTerminalView extends View
 	public Bitmap fontBitmap;
 	
 	public final int ybackgroffs = 2;
-	public int offsetX = 0;
-	public int offsetY = 0;
-	public int sizeX;
-	public int sizeY;
 	public int displayedLinesOnReformat = 0;
-	public int sizePixelsX;
-	public int sizePixelsY;
 
-	public int extraSizeX = 0;
-	public int extraSizeY = 0;
-
+	public int zoomDelta = 0;
 	Paint bitmapPaint;
 	Paint textPaint;
 	
 	private int textSize = 10;
 
-	public int getNumDisplayedLines()
+	public void zoomIn()
+	{
+		if(zoomDelta < 10)
+		{
+			zoomDelta += 2;
+			zoomChanged();
+		}
+	}
+	
+	public void zoomOut()
+	{
+		if(zoomDelta >= 4 - textSize)	// TEMP
+		{
+			zoomDelta -= 2;
+			zoomChanged();
+		}
+	}
+
+	public void updateZoom()
+	{
+		updateTextSize();
+	}
+
+	public int getNumDisplayedLines()	// Override
 	{
 		if(reformatText)
 		{
@@ -59,9 +74,9 @@ public class NetHackTerminalView extends View
 
 	public void updateTextSize()
 	{
-		textPaint.setTextSize(textSize);
-		charHeight = (int)Math.ceil(textPaint.getFontSpacing());
-		charWidth = (int)textPaint.measureText("X", 0, 1);
+		textPaint.setTextSize(Math.max(textSize + zoomDelta, 4));
+		squareSizeY = (int)Math.ceil(textPaint.getFontSpacing());
+		squareSizeX = (int)textPaint.measureText("X", 0, 1);
 
 		computeSizePixels();
 	}
@@ -80,48 +95,6 @@ public class NetHackTerminalView extends View
 		return drawCursor;
 	}
 
-	public void scrollToCenterAtPos(int centercolumn, int centerrow)
-	{
-		int cursorcenterx = centercolumn*charWidth + charWidth/2;
-		int cursorcentery = centerrow*charHeight + charHeight/2;
-		int newscrollx = cursorcenterx - getWidth()/2;
-		int newscrolly = cursorcentery - getHeight()/2;
-
-		int termx = charWidth*sizeX;
-		int termy = charHeight*getNumDisplayedLines();
-
-		int maxx = termx - getWidth();
-		int maxy = termy - getHeight();		// Note: could be negative, so we do the max clamping first.
-		if(newscrollx >= maxx)
-		{
-			newscrollx = maxx - 1;
-		}
-		if(newscrolly >= maxy)
-		{
-			newscrolly = maxy - 1;
-		}
-		if(newscrollx < 0)
-		{
-			newscrollx = 0;
-		}
-		if(newscrolly < 0)
-		{
-			newscrolly = 0;
-		}
-
-		scrollTo(newscrollx, newscrolly);
-	}
-	public void scrollToCursor()
-	{
-		scrollToCenterAtPos(terminal.currentColumn, terminal.currentRow);
-	}
-	
-	public void computeSizePixels()
-	{
-		sizePixelsX = sizeX*charWidth + extraSizeX;
-		sizePixelsY = sizeY*charHeight + extraSizeY;
-	}
-	
 	public void write(String s)
 	{
 		terminal.write(s);
@@ -136,61 +109,14 @@ public class NetHackTerminalView extends View
 			}
 
 			Rect cliprect = new Rect();
-			cliprect.bottom = computeCoordY(terminal.changeRow2) + charHeight;
+			cliprect.bottom = computeCoordY(terminal.changeRow2) + squareSizeY;
 			cliprect.top = computeCoordY(terminal.changeRow1);
-			cliprect.right = computeCoordX(terminal.changeColumn2) + charWidth;
+			cliprect.right = computeCoordX(terminal.changeColumn2) + squareSizeX;
 			cliprect.left = computeCoordX(terminal.changeColumn1);
 			invalidate(cliprect);
 		}
 	}
 	
-	protected void onMeasure(int widthmeasurespec, int heightmeasurespec)
-	{
-		int minheight = getSuggestedMinimumHeight();
-		int minwidth = getSuggestedMinimumWidth();
-
-		int width, height;
-		width = sizePixelsX;
-		height = sizePixelsY;
-
-		// This was done temporarily before, but hopefully there is no need for it now.
-		//	if(reformatText)
-		//	{
-		//		height = height > 1000 ? height : 1000;	
-		//	}
-
-		if (width < minwidth)
-		{
-			width = minwidth;
-		}
-		if (height < minheight)
-		{
-			height = minheight;
-		}
-
-		int modex = MeasureSpec.getMode(widthmeasurespec);
-		int modey = MeasureSpec.getMode(heightmeasurespec);
-		if(modex == MeasureSpec.AT_MOST)
-		{
-			width = Math.min(MeasureSpec.getSize(widthmeasurespec), width);
-		}
-		else if(modex == MeasureSpec.EXACTLY)
-		{
-			width = MeasureSpec.getSize(widthmeasurespec);
-		}
-		if(modey == MeasureSpec.AT_MOST)
-		{
-			height = Math.min(MeasureSpec.getSize(heightmeasurespec), height);
-		}
-		else if(modey == MeasureSpec.EXACTLY)
-		{
-			height = MeasureSpec.getSize(heightmeasurespec);
-		}
-		setMeasuredDimension(width, height);
-	}
-
-	NetHackTerminalState terminal;
-
 	public NetHackTerminalView(Context context, NetHackTerminalState term)
 	{
 		super(context);
@@ -229,34 +155,6 @@ public class NetHackTerminalView extends View
 		{
 			setBackgroundColor(0xff000000);
 		}
-	}
-	public void setSizeX(int numColumns)
-	{
-		sizeX = numColumns;
-	}
-	public void setSizeXFromPixels(int pixelSizeX)
-	{
-		sizeX = pixelSizeX/charWidth;
-	}
-	public void setSizeY(int numRows)
-	{
-		sizeY = numRows;
-	}
-	public void setSizeYFromPixels(int pixelSizeY)
-	{
-		sizeY = pixelSizeY/charHeight;
-	}
-	public void initStateFromView()
-	{
-		terminal.init(sizeX, sizeY);
-	}
-	public int getSizeX()
-	{
-		return sizeX;
-	}
-	public int getSizeY()
-	{
-		return sizeY;
 	}
 
 	enum ColorSet
@@ -538,51 +436,9 @@ public class NetHackTerminalView extends View
 		}
 	}
 
-	int charHeight = 0;
-	int charWidth = 0;
-
-	int computeCoordX(int column)
-	{
-		return charWidth*(column - offsetX);
-	}
-
-	int computeCoordY(int row)
-	{
-		return charHeight*(row - offsetY);
-	}
-
-	int computeColumnFromCoordX(int coordx)
-	{
-		return coordx/charWidth + offsetX;
-	}
-
-	int computeRowFromCoordY(int coordy)
-	{
-		return coordy/charHeight + offsetY;
-	}
-
-	int computeViewCoordX(int column)
-	{
-		return charWidth*column;
-	}
-
-	int computeViewCoordY(int row)
-	{
-		return charHeight*row;
-	}
-
-	int computeViewColumnFromCoordX(int coordx)
-	{
-		return coordx/charWidth;
-	}
-
-	int computeViewRowFromCoordY(int coordy)
-	{
-		return coordy/charHeight;
-	}
-
 	protected void onDraw(Canvas canvas)
 	{
+		pendingRedraw = false;
 		if(reformatText)
 		{
 			// TEMP - should probably check how much is used:
@@ -594,6 +450,22 @@ public class NetHackTerminalView extends View
 			}
 		}
 		onDrawFixed(canvas);
+
+		// TEMP
+/*
+		Paint p = new Paint();
+		int argb = Color.argb(0xff, 0xff, 0xff, 0xff);
+		p.setColor(argb);
+		canvas.drawLine(desiredCenterPosX - 5, desiredCenterPosY, desiredCenterPosX + 5, desiredCenterPosY, p);
+		canvas.drawLine(desiredCenterPosX, desiredCenterPosY - 5, desiredCenterPosX, desiredCenterPosY + 5, p);
+
+		int sx = sizePixelsX;
+		int sy = sizePixelsY;
+		canvas.drawLine(1, 1, 1, sy - 2, p);
+		canvas.drawLine(sx - 2, 1, sx - 2, sy - 2, p);
+		canvas.drawLine(1, 1, sx - 2, 1, p);
+		canvas.drawLine(1, sy - 2, sx - 2, sy - 2, p);
+*/
 	}
 	
 	
@@ -605,7 +477,7 @@ public class NetHackTerminalView extends View
 		int currentcolor = -1;
 		boolean currentcursor = false;
 
-		for(int index = 0; index < numChars; x += charWidth, index++)
+		for(int index = 0; index < numChars; x += squareSizeX, index++)
 		{
 			char fmt;
 			int buffIndex = buffOffs + index;
@@ -631,14 +503,14 @@ public class NetHackTerminalView extends View
 			if(currentx1 >= 0)
 			{
 				setPaintColorBackground(textPaint, currentcolor, currentcursor);
-				canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
+				canvas.drawRect(currentx1, y, x, y + squareSizeY, textPaint);
 			}
 			currentx1 = x;
 			currentcolor = color;
 			currentcursor = cursor;
 		}
 		setPaintColorBackground(textPaint, currentcolor, currentcursor);
-		canvas.drawRect(currentx1, y, x, y + charHeight, textPaint);
+		canvas.drawRect(currentx1, y, x, y + squareSizeY, textPaint);
 	}	
 
 	protected void drawText(Canvas canvas, String currentstr, float currentx1, float y, Paint textPaint)
@@ -663,7 +535,7 @@ public class NetHackTerminalView extends View
 		{
 			positions[k++] = x1;
 			positions[k++] = y;
-			x1 += charWidth;
+			x1 += squareSizeX;
 			char c = currentstr.charAt(i);
 
 			if(c >= 0x7000 && fontBitmap != null)
@@ -684,16 +556,16 @@ public class NetHackTerminalView extends View
 				char c = currentstr.charAt(i);
 				if(c >= 0x7000)
 				{
-					float topy = y - charHeight + ybackgroffs;
+					float topy = y - squareSizeY + ybackgroffs;
 
 					int charindex = c - 0x7000 - 32;
-					int bitmapcharwidth = 8;
-					int bitmapcharheight = 8;
-					//canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapcharwidth, 0, (charindex + 1)*bitmapcharwidth - 1, bitmapcharheight - 1), new RectF(x1, topy, x1 + charWidth - 1, topy + charHeight - 1), paint); 			
-					//canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapcharwidth, 0, (charindex + 1)*bitmapcharwidth - 1, bitmapcharheight - 1), new RectF(x1, topy, x1 + charWidth, topy + charHeight), paint); 			
-					canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapcharwidth, 0, (charindex + 1)*bitmapcharwidth, bitmapcharheight), new RectF(x1, topy, x1 + charWidth, topy + charHeight), bitmapPaint);
+					int bitmapsquareSizeX = 8;
+					int bitmapsquareSizeY = 8;
+					//canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapsquareSizeX, 0, (charindex + 1)*bitmapsquareSizeX - 1, bitmapsquareSizeY - 1), new RectF(x1, topy, x1 + squareSizeX - 1, topy + squareSizeY - 1), paint); 			
+					//canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapsquareSizeX, 0, (charindex + 1)*bitmapsquareSizeX - 1, bitmapsquareSizeY - 1), new RectF(x1, topy, x1 + squareSizeX, topy + squareSizeY), paint); 			
+					canvas.drawBitmap(fontBitmap, new Rect(charindex*bitmapsquareSizeX, 0, (charindex + 1)*bitmapsquareSizeX, bitmapsquareSizeY), new RectF(x1, topy, x1 + squareSizeX, topy + squareSizeY), bitmapPaint);
 				}
-				x1 += charWidth;
+				x1 += squareSizeX;
 			}
 		}
 
@@ -708,7 +580,7 @@ public class NetHackTerminalView extends View
 		int currentcolor = -1;
 		boolean currentcursor = false;
 		String currentstr = "";
-		for(int index = 0; index < numChars; x += charWidth, index++)
+		for(int index = 0; index < numChars; x += squareSizeX, index++)
 		{
 			char c;
 			char fmt;
@@ -957,7 +829,7 @@ s += nextRowTxt[j - 1];
 				}
 				else
 				{
-					int viewYF = viewY + charHeight - ybackgroffs;
+					int viewYF = viewY + squareSizeY - ybackgroffs;
 
 					drawRowForeground(canvas, viewX, viewYF, rowTxt, rowFmt, 0, viewCols, cursorindex);
 				}
@@ -981,7 +853,7 @@ s += nextRowTxt[j - 1];
 				{
 					col++;
 				}
-				viewY += charHeight;
+				viewY += squareSizeY;
 			}
 			if(last)
 			{
@@ -1003,10 +875,10 @@ s += nextRowTxt[j - 1];
 	// This can be enabled to test some text alignment stuff:
 	/*
 	String s = "123456789012345678901234567890123456789012345678901234567890";
-	drawRowForeground(canvas, 0, charHeight, s.toCharArray(), terminal.fmtBuffer, 0, 60, -1);
-	for(int x = 0; x < sizePixelsX; x += charWidth)
+	drawRowForeground(canvas, 0, squareSizeY, s.toCharArray(), terminal.fmtBuffer, 0, 60, -1);
+	for(int x = 0; x < sizePixelsX; x += squareSizeX)
 	{
-		for(int y = 0; y < sizePixelsY; y += charHeight)
+		for(int y = 0; y < sizePixelsY; y += squareSizeY)
 		{
 			canvas.drawPoint(x - 0, y, textPaint); 
 			canvas.drawPoint(x - 1, y, textPaint); 
@@ -1031,9 +903,9 @@ s += nextRowTxt[j - 1];
 		if(canvas.getClipBounds(cliprect))
 		{
 			colView1 = Math.max(computeViewColumnFromCoordX(cliprect.left), 0);
-			colView2 = Math.min(computeViewColumnFromCoordX(cliprect.right + charWidth - 1), colView2);
+			colView2 = Math.min(computeViewColumnFromCoordX(cliprect.right + squareSizeX - 1), colView2);
 			rowView1 = Math.max(computeViewRowFromCoordY(cliprect.top), 0);
-			rowView2 = Math.min(computeViewRowFromCoordY(cliprect.bottom + charHeight - 1), rowView2);
+			rowView2 = Math.min(computeViewRowFromCoordY(cliprect.bottom + squareSizeY - 1), rowView2);
 		}
 
 		y = computeViewCoordY(rowView1);
@@ -1051,11 +923,11 @@ s += nextRowTxt[j - 1];
 
 			drawRowBackground(canvas, x, y, terminal.fmtBuffer, buffOffs, colView2 - colView1, cursorIndex);
 			
-			y += charHeight;
+			y += squareSizeY;
 		}
 
 		int ybackgroffs = 2;
-		y = charHeight + computeViewCoordY(rowView1) - ybackgroffs;
+		y = squareSizeY + computeViewCoordY(rowView1) - ybackgroffs;
 		for(int rowView = rowView1; rowView < rowView2; rowView++)
 		{
 			final int rowTerm = rowView + offsetY;
@@ -1070,7 +942,7 @@ s += nextRowTxt[j - 1];
 
 			drawRowForeground(canvas, x, y, terminal.textBuffer, terminal.fmtBuffer, buffOffs, colView2 - colView1, cursorIndex);
 
-			y += charHeight;
+			y += squareSizeY;
 		}
 
 		terminal.clearChange();
