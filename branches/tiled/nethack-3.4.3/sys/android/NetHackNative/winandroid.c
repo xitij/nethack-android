@@ -1,11 +1,11 @@
 /* winandroid.c */
 
 #include "hack.h"
-
+#include "dlb.h"		/* dlb_fopen() */
+#include "tcap.h"		/* nh_CD */
 #include "wintty.h"
 
 #include "func_tab.h"	/* extcmdlist */
-
 #include <jni.h>
 
 void android_player_selection();
@@ -18,6 +18,8 @@ E void FDECL(android_display_nhwindow, (winid, BOOLEAN_P));
 */
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
+/*void android_display_file(const char *fname, boolean complain);*/
+void FDECL(android_display_file, (const char *, BOOLEAN_P complain));
 int android_select_menu(winid window, int how, menu_item **menu_list);
 int android_doprev_message();
 char android_yn_function(const char *query, const char *resp, CHAR_P def);
@@ -62,7 +64,8 @@ struct window_procs android_procs = {
 	android_destroy_nhwindow,
 	android_curs,
 	android_putstr,
-    tty_display_file,
+/*	tty_display_file,*/
+	android_display_file,
     tty_start_menu,
     tty_add_menu,
     tty_end_menu,
@@ -1462,6 +1465,68 @@ android_debuglog("GOT MENU");
 	}
 #endif
 	tty_putstr(window, attr, str);
+}
+
+
+void android_display_file(const char *fname, BOOLEAN_P complain)
+{
+	/* Adapted from tty_display_file(). We can't easily use that directly,
+	   as it calls the other tty_...() functions directly. */
+
+	dlb *f;
+	char buf[BUFSZ];
+	char *cr;
+
+	tty_clear_nhwindow(WIN_MESSAGE);
+	f = dlb_fopen(fname, "r");
+	if(!f)
+	{
+		if(complain)
+		{
+			home();
+			mark_synch();
+			raw_print("");
+			perror(fname);
+			wait_synch();
+			pline("Cannot open \"%s\".", fname);
+	    }
+		else if(u.ux)
+		{
+			docrt();
+		}
+	}
+	else
+	{
+		winid datawin = create_nhwindow(NHW_TEXT);
+		boolean empty = TRUE;
+
+		if(complain
+#ifndef NO_TERMS
+			&& nh_CD
+#endif
+		)
+		{
+			/* attempt to scroll text below map window if there's room */
+			wins[datawin]->offy = wins[WIN_STATUS]->offy+3;
+			if((int) wins[datawin]->offy + 12 > (int) ttyDisplay->rows)
+				wins[datawin]->offy = 0;
+		}
+		while(dlb_fgets(buf, BUFSZ, f))
+		{
+			if((cr = index(buf, '\n')) != 0)
+				*cr = 0;
+			if(index(buf, '\t') != 0)
+				tabexpand(buf);
+			empty = FALSE;
+			putstr(datawin, 0, buf);
+			if(wins[datawin]->flags & WIN_CANCELLED)
+			    break;
+	    }
+	    if(!empty)
+			display_nhwindow(datawin, FALSE);
+		destroy_nhwindow(datawin);
+	    dlb_fclose(f);
+    }
 }
 
 
