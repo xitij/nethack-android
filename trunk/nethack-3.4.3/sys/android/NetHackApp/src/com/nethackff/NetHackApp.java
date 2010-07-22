@@ -534,7 +534,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			screenConfig = ScreenConfig.Landscape;
 		}
 
-		rebuildViews();
+		rebuildViews(true);	// Not sure if there is a good reason to use this immediate mode here.
 	}
 
 	final int menuViewWidth = 80;
@@ -592,7 +592,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		mainView.colorSet = optCharacterColorSet;
 	}
 	
-	public void rebuildViews()
+	public void rebuildViews(boolean immediate)
 	{
 		screenLayout.removeAllViews();
 
@@ -612,7 +612,24 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		screenLayout.setOrientation(LinearLayout.VERTICAL);
 		setContentView(screenLayout);
 
-		NetHackRefreshDisplay();
+		// I had some problems where I would switch in and out of tiled mode
+		// from the preference menu, and the application would freeze up. It seems
+		// to be somehow related to the communication buffers in the native code,
+		// possibly some sort of threading deadlock. I'm not sure if this is a true
+		// fix or just a workaround, but deferring the call to NetHackRefreshDisplay()
+		// seems to help. One theory I had was that when called from onStart(), the
+		// communication thread isn't running yet and can't consume from the buffers
+		// that the native thread may be waiting for, but I had some indication of that
+		// not being the cause.
+		if(!immediate)
+		{
+			refreshDisplay = true;
+		}
+		else
+		{
+			NetHackRefreshDisplay();
+		}
+
 	}
 
 	public long autoScrollLastTime = -1;
@@ -909,7 +926,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 						{
 							tilesEnabled = false;
 							mainView.terminal.clearScreen();
-							rebuildViews();
+							rebuildViews(false);
 						}
 						else if(c == 'r')	// Not on Rogue level
 						{
@@ -918,7 +935,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 							{
 								tiledView.terminal.clearScreen();
 							}
-							rebuildViews();				
+							rebuildViews(false);				
 						}
 						escSeq = escSeqAndroid = false;	
 					}
@@ -1486,7 +1503,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		startCommThread();
 	}
-	
+
 	public void onPause()
 	{
 		if(NetHackHasQuit() == 0)
@@ -1648,7 +1665,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		if(shouldrebuild)
 		{
-			rebuildViews();
+			rebuildViews(false);
 		}
 	}	
 
