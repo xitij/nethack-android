@@ -1616,7 +1616,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		menuView.setWhiteBackgroundMode(blackonwhite);
 		messageView.setWhiteBackgroundMode(blackonwhite);
 		statusView.setWhiteBackgroundMode(blackonwhite);
-
 		int textsize = getOptFontSize();
 		mainView.setTextSize(textsize);
 		messageView.setTextSize(textsize);
@@ -1657,7 +1656,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		if(uiModeActual == UIMode.AndroidTiled)
 		{
-			if(!tilesetbefore.equals(optTileSetName) || tiledView.tileBitmap1 == null)
+			if(!tilesetbefore.equals(optTileSetName) || tiledView.tileBitmap == null)
 			{
 				shouldrebuild = true;
 				usePreferredTileSet();
@@ -1666,6 +1665,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		if(shouldrebuild)
 		{
 			rebuildViews(false);
+		}
+		if(tiledView != null)
+		{
+			tiledView.setWhiteBackgroundMode(blackonwhite);
 		}
 	}	
 
