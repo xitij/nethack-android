@@ -19,12 +19,13 @@ public class NetHackTiledView extends NetHackView
 	private boolean whiteBackgroundMode = false;
 
 	public Paint cursorPaint;
-	
-	public Bitmap tileBitmap1;
+	public Paint backgroundPaint;
+
+	public Bitmap tileBitmap;
 
 	void setBitmap(Bitmap bm, int tilesizex, int tilesizey, int defaultzoompercentage)
 	{
-		tileBitmap1 = bm;
+		tileBitmap = bm;
 
 		tileSizeX = tilesizex;
 		tileSizeY = tilesizey;
@@ -93,6 +94,9 @@ public class NetHackTiledView extends NetHackView
 		cursorPaint = new Paint();
 		cursorPaint.setColor(Color.argb(0xff, 0xc0, 0xc0, 0xc0));
 
+		backgroundPaint = new Paint();
+		backgroundPaint.setColor(Color.argb(0xff, 0x00, 0x00, 0x00));
+
 /* TEMP */
 		int width = 80;
 		int height = 24;		// 26
@@ -120,10 +124,12 @@ public class NetHackTiledView extends NetHackView
 		if(whiteBackgroundMode)
 		{
 			setBackgroundColor(0xffffffff);
+			backgroundPaint.setColor(Color.argb(0xff, 0xff, 0xff, 0xff));
 		}
 		else
 		{
 			setBackgroundColor(0xff000000);
+			backgroundPaint.setColor(Color.argb(0xff, 0x00, 0x00, 0x00));
 		}
 	}
 
@@ -132,7 +138,7 @@ public class NetHackTiledView extends NetHackView
 			final char []txtBuffer,
 			final int buffOffs, final int numChars, /*final*/ int cursorIndex)
 	{
-		if(tileBitmap1 == null)
+		if(tileBitmap == null)
 		{
 			return;	
 		}
@@ -146,16 +152,29 @@ public class NetHackTiledView extends NetHackView
 				char c = txtBuffer[buffIndex];
 				if(c >= 0x100)
 				{
-					int topy = y;
-	
 					int tileindex = c - 0x100;
 					int bitmapcharwidth = tileSizeX;
 					int bitmapsquareSizeY = tileSizeY;
-	
+
 					int tilex = tileindex % tilesPerRow;
 					int tiley = tileindex/tilesPerRow;
 					
-					canvas.drawBitmap(tileBitmap1, new Rect(tilex*bitmapcharwidth, tiley*bitmapsquareSizeY, (tilex + 1)*bitmapcharwidth, (tiley + 1)*bitmapsquareSizeY), new Rect(x, topy, x + squareSizeX, topy + squareSizeY), bitmapPaint);
+					canvas.drawBitmap(tileBitmap, new Rect(tilex*bitmapcharwidth, tiley*bitmapsquareSizeY, (tilex + 1)*bitmapcharwidth, (tiley + 1)*bitmapsquareSizeY), new Rect(x, y, x + squareSizeX, y + squareSizeY), bitmapPaint);
+				}
+				else
+				{
+					if(whiteBackgroundMode)
+					{
+						// Not sure if we should also do this if the background is black -
+						// it doesn't seem to be necessary, but I'm a little unclear on what
+						// would ensure that the background is black in that case.
+						Rect destRect = new Rect(x, y, x + squareSizeX, y + squareSizeY);
+						canvas.drawRect(destRect, backgroundPaint);
+
+						// TODO: Also, we should probably consider just filling the redrawn area
+						// with a single rectangle, rather than doing it for each tile. Would probably
+						// be faster, and possibly help (or hurt?) some artifacts I was seeing.
+					}
 				}
 			}
 		}
