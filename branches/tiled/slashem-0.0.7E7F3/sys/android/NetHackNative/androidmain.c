@@ -1291,7 +1291,7 @@ void Java_com_slashemff_NetHackApp_NetHackSwitchCharSet(
 }
 
 
-void Java_com_slashemkff_NetHackApp_NetHackSetTilesEnabled(
+void Java_com_slashemff_NetHackApp_NetHackSetTilesEnabled(
 		JNIEnv *env, jobject thiz, int tilesenabled)
 {
 	int sync = 1;	/* Maybe less risk for timing-related display bugs this way? */
