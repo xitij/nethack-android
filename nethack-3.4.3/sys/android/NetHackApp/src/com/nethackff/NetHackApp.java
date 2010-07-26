@@ -775,6 +775,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		public void handleMessage(Message msg)
 		{
+			if(deferredCenterOnPlayer)
+			{
+				centerOnPlayer();
+			}
 			updateScrollWithPlayer();
 			updateAutoScroll();
 				
@@ -927,6 +931,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 							tilesEnabled = false;
 							mainView.terminal.clearScreen();
 							rebuildViews(false);
+
+							scrollWithPlayerRefresh = true;
 						}
 						else if(c == 'r')	// Not on Rogue level
 						{
@@ -936,6 +942,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 								tiledView.terminal.clearScreen();
 							}
 							rebuildViews(false);				
+
+							scrollWithPlayerRefresh = true;
 						}
 						escSeq = escSeqAndroid = false;	
 					}
@@ -1460,6 +1468,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		p.posY = posy;
 	}
 
+	boolean deferredCenterOnPlayer = false;
+	
 	public void centerOnPlayer()
 	{
 		PlayerPos pp = new PlayerPos();
@@ -1468,6 +1478,17 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int posy = pp.posY;
 
 		NetHackView view = getMapView();
+		if(view.getWidth() == 0 || view.getHeight() == 0)
+		{
+			// This is a bit of a hack - it looks like we sometimes (like when starting the game)
+			// get here before the view has been measured or something, and end up getting back
+			// 0 as the dimensions. This would make us scroll to the wrong position. To avoid this,
+			// we just set this flag, which will make us try again on the next update. There
+			// is probably some better solution, but this seems to work OK.
+			deferredCenterOnPlayer = true;
+			return;
+		}
+		deferredCenterOnPlayer = false;
 		int cursorcenterx = posx*view.squareSizeX + view.squareSizeX/2;
 		int cursorcentery = posy*view.squareSizeY + view.squareSizeY/2;
 		int newscrollx = cursorcenterx - view.getWidth()/2;
