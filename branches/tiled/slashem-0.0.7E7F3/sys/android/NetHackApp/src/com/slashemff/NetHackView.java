@@ -1,4 +1,4 @@
-package com.nethackff;
+package com.slashemff;
 
 import android.content.Context;
 import android.view.View;
