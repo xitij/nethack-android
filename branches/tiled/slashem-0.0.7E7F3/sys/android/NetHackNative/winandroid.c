@@ -1,11 +1,11 @@
 /* winandroid.c */
 
 #include "hack.h"
-
+#include "dlb.h"		/* dlb_fopen() */
+#include "tcap.h"		/* nh_CD */
 #include "wintty.h"
 
 #include "func_tab.h"	/* extcmdlist */
-
 #include <jni.h>
 
 void android_player_selection();
@@ -18,6 +18,8 @@ E void FDECL(android_display_nhwindow, (winid, BOOLEAN_P));
 */
 void android_curs(winid window, int x, int y);
 void android_putstr(winid window, int attr, const char *str);
+/*void android_display_file(const char *fname, boolean complain);*/
+void FDECL(android_display_file, (const char *, BOOLEAN_P complain));
 int android_select_menu(winid window, int how, menu_item **menu_list);
 int android_doprev_message();
 char android_yn_function(const char *query, const char *resp, CHAR_P def);
@@ -33,10 +35,13 @@ void android_free_window_info(struct WinDesc *wd, BOOLEAN_P b);
 void android_process_menu_window(winid wid, struct WinDesc *wd);
 void android_process_text_window(winid wid, struct WinDesc *wd);
 
+#ifdef ANDROID_GRAPHICS_TILED
+void FDECL(android_tiled_print_glyph, (winid,XCHAR_P,XCHAR_P,int));
+/*void android_tiled_print_glyph(winid window, xchar x, xchar y, int glyph);*/
+#endif
 
-/* Interface definition, for windows.c */
 struct window_procs android_procs = {
-    "androidtty",
+    "android",
 #ifdef MSDOS
     WC_TILED_MAP|WC_ASCII_MAP|
 #endif
@@ -59,7 +64,8 @@ struct window_procs android_procs = {
 	android_destroy_nhwindow,
 	android_curs,
 	android_putstr,
-    tty_display_file,
+/*	tty_display_file,*/
+	android_display_file,
     tty_start_menu,
     tty_add_menu,
     tty_end_menu,
@@ -75,7 +81,11 @@ struct window_procs android_procs = {
 #ifdef POSITIONBAR
     tty_update_positionbar,
 #endif
+#ifdef ANDROID_GRAPHICS_TILED
+    android_tiled_print_glyph,
+#else
     tty_print_glyph,
+#endif
     tty_raw_print,
     tty_raw_print_bold,
     tty_nhgetch,
@@ -107,12 +117,138 @@ struct window_procs android_procs = {
 #endif
 };
 
+#ifdef ANDROID_GRAPHICS_TILED
+
+extern int g_AndroidTiled;
+extern int g_AndroidTilesEnabledForUser;
+
+#endif	/* ANDROID_GRAPHICS_TILED */
+
 static char winpanicstr[] = "Bad window id %d";
 
 void android_wininit_data(int *argcp, char **argv)	/* should we have these params? */
 {
 	win_tty_init();
 }
+
+#ifdef ANDROID_GRAPHICS_TILED
+
+void android_putchar_internal2(int c);
+
+static void android_put_utf8(int unicode)
+{
+#if 0
+	char buff[4];
+
+	if(unicode >= 0x800)
+	{
+		unsigned char c1 = 0xe0 + ((unicode & 0xf000) >> 12);
+		unsigned char c2 = 0x80 + ((unicode & 0x0f00) >> 6) + ((unicode & 0x00c0) >> 6);
+		unsigned char c3 = 0x80 + (unicode & 0x003f);
+
+		buff[0] = c1;
+		buff[1] = c2;
+		buff[2] = c3;
+		buff[3] = '\0';
+		android_puts(buff);
+	}
+	else if(unicode >= 0x80)
+	{
+		unsigned char c1 = 0xc0 + ((unicode & 0x0700) >> 6) + ((unicode & 0x00c0) >> 6);
+		unsigned char c2 = 0x80 + (unicode & 0x003f);
+
+		buff[0] = c1;
+		buff[1] = c2;
+		buff[2] = '\0';
+		android_puts(buff);
+	}
+	else
+	{
+		buff[0] = (char)unicode;
+		buff[1] = '\0';
+		android_puts(buff);
+	}
+#endif
+	android_putchar_internal2(unicode);
+}
+
+
+/* from tile.c */
+extern short glyph2tile[];
+extern int total_tiles_used;
+
+
+/*
+void FDECL(tty_print_glyph, (winid,XCHAR_P,XCHAR_P,int));
+void android_tiled_print_glyph(winid window, xchar x, xchar y, int glyph)
+*/
+void android_tiled_print_glyph(window, x, y, glyph)
+    winid window;
+    xchar x, y;
+    int glyph;
+{
+	/* This is a bit arbitrary, but basically whenever we are about to
+	   print a glyph, we check to see if we are in the desired tiling mode. */
+
+	/* We want tiles on if the user has requested so, and we are not on
+	   the rogue level. */	
+	int shouldtilesbeenabled = g_AndroidTiled && !Is_rogue_level(&u.uz);
+
+	/* Check to see if our desired state is any different than what the user
+	   should already have been set to. */
+	if(shouldtilesbeenabled != g_AndroidTilesEnabledForUser)
+	{
+		if(shouldtilesbeenabled)
+		{
+			/* Escape sequence to enter tiled view. */
+			android_puts("\033Ar");
+		}
+		else
+		{
+			/* Escape sequence to leave tiled view, for a character view. */
+			android_puts("\033AR");
+		}
+
+		/* Remember what we told the user. */
+		g_AndroidTilesEnabledForUser = shouldtilesbeenabled;
+	}
+
+	/* Now, if the user is not currently set to be in tiled view mode,
+	   we just call into the TTY code to print the correct colored
+	   character. */
+	if(!g_AndroidTilesEnabledForUser)
+	{
+		tty_print_glyph(window, x, y, glyph);
+		return;
+	}
+
+	int tile = glyph2tile[glyph];
+
+	android_puts("\033A5");
+
+	--x;	/* column 0 is never used */
+/*
+    x += cw->offx;
+    y += cw->offy;
+*/
+	cmov(x, y);
+
+    /* map glyph to character and color */
+/*
+    mapglyph(glyph, &ch, &color, &special, x, y);
+	android_putchar(ch);
+*/
+
+// TODO: UTF8 here?
+//	android_putchar(tile);
+
+	android_put_utf8(tile + 0x100);
+//	android_put_utf8(tile);
+
+	android_puts("\033A0");
+}
+
+#endif	/* ANDROID_GRAPHICS_TILED */
 
 #if 0
 
@@ -634,6 +770,16 @@ void android_clear_nhwindow(winid window)
 		android_puts("\033A0");
 		return;
 	}
+#ifdef ANDROID_GRAPHICS_TILED
+	else if(cw && cw->type == NHW_MAP && g_AndroidTiled && g_AndroidTilesEnabledForUser)
+	{
+		android_puts("\033A5");
+		android_puts("\033[H\033[J");
+		android_puts("\033A0");
+		return;
+	}
+#endif
+
 	tty_clear_nhwindow(window);
 }
 
@@ -833,6 +979,18 @@ void android_curs(winid window, int x, int y)
 
 		android_puts("\033A0");
 		return;
+	}
+	else if(cw && cw->type == NHW_MAP)
+	{
+		if(g_AndroidTilesEnabledForUser)
+		{
+			android_puts("\033A5");
+			--x;	/* column 0 is never used */
+			cmov(x, y);
+			android_puts("\033A0");
+
+			return;
+		}
 	}
 	tty_curs(window, x, y);
 }
@@ -1307,6 +1465,68 @@ android_debuglog("GOT MENU");
 	}
 #endif
 	tty_putstr(window, attr, str);
+}
+
+
+void android_display_file(const char *fname, BOOLEAN_P complain)
+{
+	/* Adapted from tty_display_file(). We can't easily use that directly,
+	   as it calls the other tty_...() functions directly. */
+
+	dlb *f;
+	char buf[BUFSZ];
+	char *cr;
+
+	tty_clear_nhwindow(WIN_MESSAGE);
+	f = dlb_fopen(fname, "r");
+	if(!f)
+	{
+		if(complain)
+		{
+			home();
+			mark_synch();
+			raw_print("");
+			perror(fname);
+			wait_synch();
+			pline("Cannot open \"%s\".", fname);
+	    }
+		else if(u.ux)
+		{
+			docrt();
+		}
+	}
+	else
+	{
+		winid datawin = create_nhwindow(NHW_TEXT);
+		boolean empty = TRUE;
+
+		if(complain
+#ifndef NO_TERMS
+			&& nh_CD
+#endif
+		)
+		{
+			/* attempt to scroll text below map window if there's room */
+			wins[datawin]->offy = wins[WIN_STATUS]->offy+3;
+			if((int) wins[datawin]->offy + 12 > (int) ttyDisplay->rows)
+				wins[datawin]->offy = 0;
+		}
+		while(dlb_fgets(buf, BUFSZ, f))
+		{
+			if((cr = index(buf, '\n')) != 0)
+				*cr = 0;
+			if(index(buf, '\t') != 0)
+				tabexpand(buf);
+			empty = FALSE;
+			putstr(datawin, 0, buf);
+			if(wins[datawin]->flags & WIN_CANCELLED)
+			    break;
+	    }
+	    if(!empty)
+			display_nhwindow(datawin, FALSE);
+		destroy_nhwindow(datawin);
+	    dlb_fclose(f);
+    }
 }
 
 

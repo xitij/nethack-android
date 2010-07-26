@@ -97,6 +97,7 @@
 #ifdef ANDROID
 # define ANDROID_GRAPHICS
 # define DEFAULT_WINDOW_SYS "androidtty"	/* "androidtty" or "tty" */
+# define ANDROID_GRAPHICS_TILED
 #endif
 
 /* Atari supports GEM_GRAPHICS and/or TTY_GRAPHICS */
