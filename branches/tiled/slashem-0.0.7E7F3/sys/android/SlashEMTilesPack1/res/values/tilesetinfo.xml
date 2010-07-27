@@ -4,7 +4,7 @@
 		<item>Abigaba 24x24</item>
 	</string-array>
 	<string-array name="TileSetBitmaps">
-		<item>Stiles24</item>
+		<item>stiles24</item>
 	</string-array>
 	<integer-array name="TileSetTileSizesX">
 		<item>24</item>
