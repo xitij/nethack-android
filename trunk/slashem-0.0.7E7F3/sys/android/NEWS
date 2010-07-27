@@ -1,3 +1,14 @@
+1.2.1
+-----
+
+- Tile drawing.
+- Loading of tile sets from external packages.
+- NetHack "standard 16x16" tile set included.
+- Option to auto-scroll with player movement.
+- Option to use smooth scrolling.
+- Basic zoom functionality.
+- Key binding improvements: Back button remapping, option to block or forward to system.
+
 1.1.2 (July 6, 2010)
 --------------------
 

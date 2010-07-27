@@ -19,7 +19,9 @@ HACKCSRC = allmain.c alloc.c apply.c artifact.c attrib.c ball.c bones.c \
 	   rnd.c role.c rumors.c save.c shk.c shknam.c sit.c sounds.c sp_lev.c \
 	   spell.c steal.c steed.c \
 	   tech.c \
-	   teleport.c timeout.c topten.c track.c trap.c \
+	   teleport.c \
+	   tile.c \
+	   timeout.c topten.c track.c trap.c \
 	   u_init.c uhitm.c vault.c version.c vision.c weapon.c were.c wield.c \
 	   windows.c wizard.c worm.c worn.c write.c zap.c \
 	   monstr.c vis_tab.c \

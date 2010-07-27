@@ -7,7 +7,10 @@
 
 VARDAT = data rumors quest.dat oracles options
 
-all:	$(VARDAT) spec_levs quest_levs dungeon ../include/filename.h
+all:	$(VARDAT) spec_levs quest_levs dungeon ../include/filename.h ../src/tile.c
+
+../src/tile.c:
+	(cd ../src ; make tile.c)
 
 ../util/makedefs:
 	(cd ../util ; make makedefs)
