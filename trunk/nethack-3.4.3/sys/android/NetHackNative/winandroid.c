@@ -192,7 +192,11 @@ void android_tiled_print_glyph(window, x, y, glyph)
 
 	/* We want tiles on if the user has requested so, and we are not on
 	   the rogue level. */	
-	int shouldtilesbeenabled = g_AndroidTiled && !Is_rogue_level(&u.uz);
+	int shouldtilesbeenabled = g_AndroidTiled
+#ifdef REINCARNATION
+			 && !Is_rogue_level(&u.uz)
+#endif
+			;
 
 	/* Check to see if our desired state is any different than what the user
 	   should already have been set to. */
