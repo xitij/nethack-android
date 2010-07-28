@@ -7,7 +7,7 @@
 		<item>x11tiles</item>
 	</string-array>
 	<string-array name="TileSetInfo">
-		<item>Standard 16x16 - from standard Slash'EM distribution</item>
+		<item>Standard 16x16 - from standard NetHack distribution</item>
 	</string-array>
 	<integer-array name="TileSetTileSizesX">
 		<item>16</item>
