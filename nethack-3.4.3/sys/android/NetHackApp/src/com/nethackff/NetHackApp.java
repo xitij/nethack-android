@@ -1840,9 +1840,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	class TileSetInfo
 	{
-		public String packageName1;
+		public String packageName;
 		public String tileSetName;
 		public String bitmapName;
+		public String infoString;
 		public int tileSizeX;
 		public int tileSizeY;
 		public int defaultZoomPercentage;
@@ -1853,7 +1854,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		int tilesizex = 0, tilesizey = 0;
 //			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
 
-		Uri path = Uri.parse("android.resource://" + info.packageName1 + "/drawable/" + info.bitmapName);
+		Uri path = Uri.parse("android.resource://" + info.packageName + "/drawable/" + info.bitmapName);
 
 		try
 		{
@@ -1888,14 +1889,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					int idtilesizey = res.getIdentifier("TileSetTileSizesY", "array", curr.packageName);
 					int idbitmap = res.getIdentifier("TileSetBitmaps", "array", curr.packageName);
 					int idzoom = res.getIdentifier("TileSetDefaultZoom", "array", curr.packageName);
+					int idinfo = res.getIdentifier("TileSetInfo", "array", curr.packageName);
 
 					String[] tilesetnames = res.getStringArray(idname);
 					for(int i = 0; i < tilesetnames.length; i++)
 					{
 						TileSetInfo info = new TileSetInfo();
-						info.packageName1 = curr.packageName;
+						info.packageName = curr.packageName;
 						info.tileSetName = tilesetnames[i];
 						info.bitmapName = res.getStringArray(idbitmap)[i];
+						info.infoString = res.getStringArray(idinfo)[i];
 						info.tileSizeX = res.getIntArray(idtilesizex)[i];
 						info.tileSizeY = res.getIntArray(idtilesizey)[i];
 						info.defaultZoomPercentage = res.getIntArray(idzoom)[i];
@@ -2198,7 +2201,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				LinkedList<TileSetInfo> tilesetlist = findTileSets();
 				String tilesetnames[] = new String[tilesetlist.size()];
 				String tilesetvalues[] = new String[tilesetlist.size()];
-
+				String tilesetinfo[] = new String[tilesetlist.size()];
+				
 				ListIterator<TileSetInfo> iter = tilesetlist.listIterator();
 				int index = 0;
 				while(iter.hasNext())
@@ -2206,10 +2210,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					TileSetInfo info = iter.next();
 					tilesetnames[index] = info.tileSetName;
 					tilesetvalues[index] = info.tileSetName;
+					tilesetinfo[index] = info.infoString;
 					index++;
 				}
 				bundle.putStringArray("TileSetNames", tilesetnames);
 				bundle.putStringArray("TileSetValues", tilesetvalues);
+				bundle.putStringArray("TileSetInfo", tilesetinfo);
 				intent.putExtras(bundle);
 				startActivity(intent);
 				return true;
