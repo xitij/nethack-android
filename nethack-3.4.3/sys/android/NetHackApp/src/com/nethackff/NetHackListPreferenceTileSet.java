@@ -1,4 +1,4 @@
-package com.slashemff;
+package com.nethackff;
 
 import android.content.Context;
 import android.preference.ListPreference;
