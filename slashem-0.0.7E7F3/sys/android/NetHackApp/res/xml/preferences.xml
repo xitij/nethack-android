@@ -16,7 +16,7 @@
 			android:entries="@array/UIModeEntries"
 			android:entryValues="@array/UIModeValues"/>
 
-		<ListPreference
+		<com.slashemff.NetHackListPreferenceTileSet
 			android:title="Tile Set"
 			android:key="TileSet"/>
 
