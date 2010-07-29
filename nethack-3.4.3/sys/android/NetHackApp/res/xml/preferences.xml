@@ -12,7 +12,7 @@
 		<ListPreference
 			android:title="UI Mode"
 			android:key="UIMode"
-			android:defaultValue="AndroidTTY"
+			android:defaultValue="AndroidTiled"
 			android:entries="@array/UIModeEntries"
 			android:entryValues="@array/UIModeValues"/>
 
