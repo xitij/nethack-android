@@ -23,7 +23,8 @@ public class NetHackPreferences extends PreferenceActivity
 		tileSetList.setEntryValues(tilesetvalues);
 		tileSetList.setEntries(tilesetnames);
 		tileSetList.setTileSetInfo(tilesetinfo);
-
+		tileSetList.setDefaultValue(tilesetvalues[0]);
+		
 		tileSetList.setInfoFromValue();
 	}
 }

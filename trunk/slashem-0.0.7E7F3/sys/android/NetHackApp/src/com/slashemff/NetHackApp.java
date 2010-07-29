@@ -2177,8 +2177,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			{
 				Intent intent = new Intent(this, NetHackPreferences.class);
 				Bundle bundle = new Bundle();
-//				bundle.putString("sample", "this is the test commands");
-//				bundle.putString("sample1", "this is the test commands1");
 
 				LinkedList<TileSetInfo> tilesetlist = findTileSets();
 				String tilesetnames[] = new String[tilesetlist.size()];
@@ -2241,13 +2239,13 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
-		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
+		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTiled"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
 		optCharacterColorSet = NetHackTerminalView.ColorSet.valueOf(prefs.getString("CharacterColorSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Unspecified"));
 
-		optTileSetName = prefs.getString("TileSet", "");
+		optTileSetName = prefs.getString("TileSet", "Standard 16x16");	// Could potentially get the default from first in getTileSetsInPackage() list.
 		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = prefs.getBoolean("KeyboardShownInPortrait", true);
 		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = prefs.getBoolean("KeyboardShownInLandscape", false);
 
