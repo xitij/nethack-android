@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string-array name="TileSetNames">
+		<item>Abigaba 32x32</item>
+		<item>Abigaba(alt) 32x32</item>
+		<item>Absurd 32x32</item>
+		<item>Absurd(alt) 32x32</item>
+		<item>RLTiles 32x32</item>
+	</string-array>
+	<string-array name="TileSetBitmaps">
+		<item>chozo32</item>
+		<item>chozo32b</item>
+		<item>absurd32</item>
+		<item>absurd32_nethack</item>
+		<item>rltiles</item>
+	</string-array>
+	<string-array name="TileSetInfo">
+		<item>Abigaba 32x32 - by Chozo Abigaba (http://www.multifoliate.com/nh/)</item>
+		<item>Abigaba(alt) 32x32 - by Chozo Abigaba, modified by kb (http://www.multifoliate.com/nh/)</item>
+		<item>Absurd 32x32 - by John Shaw (http://www.aesthetictech.8m.com/Absurd.htm)</item>
+		<item>Absurd(alt) 32x32 - by John Shaw (http://www.aesthetictech.8m.com/Absurd.htm)</item>
+		<item>RLTiles 32x32 - public domain roguelike tileset "RLTiles" (http://rltiles.sf.net)</item>
+	</string-array>
+	<integer-array name="TileSetTileSizesX">
+		<item>32</item>
+		<item>32</item>
+		<item>32</item>
+		<item>32</item>
+		<item>32</item>
+	</integer-array>
+	<integer-array name="TileSetTileSizesY">
+		<item>32</item>
+		<item>32</item>
+		<item>32</item>
+		<item>32</item>
+		<item>32</item>
+	</integer-array>
+	<integer-array name="TileSetDefaultZoom">
+		<item>50</item>
+		<item>50</item>
+		<item>50</item>
+		<item>50</item>
+		<item>50</item>
+	</integer-array>
+</resources>
