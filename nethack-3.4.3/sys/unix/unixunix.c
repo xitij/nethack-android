@@ -169,17 +169,14 @@ getlock()
 		    (void) putchar(c);
 		    (void) fflush(stdout);
 		    while (getchar() != '\n') ; /* eat rest of line and newline */
+
+#if defined(ANDROID)
+			printf("\n");	/* Seems to be needed to get a line break. */
+#endif
 		}
 		if(c == 'y' || c == 'Y')
 		{
-#if !(defined(SELF_RECOVER) && defined(ANDROID))
-			if(eraseoldlocks())
-				goto gotlock;
-			else {
-				unlock_file(HLOCK);
-				error("Couldn't destroy old game.");
-			}
-#else /*SELF_RECOVER*/
+#if defined(SELF_RECOVER) && defined(ANDROID)
 
 			if(recover_savefile()) {
 
@@ -191,9 +188,35 @@ getlock()
 				goto gotlock;
 			} else {
 				unlock_file(HLOCK);
-				error("Couldn't recover old game.");
+
+				if(iflags.window_inited)
+				{
+					c = yn("Couldn't recover old game. Destroy it?");
+				}
+				else
+				{
+					printf("Couldn't recover old game. Destroy it? [yn] ");
+				    (void) fflush(stdout);
+				    c = getchar();
+				    (void) putchar(c);
+				    (void) fflush(stdout);
+				    while (getchar() != '\n');
+
+					printf("\n");
+				}
+
+				if(!(c == 'y' || c == 'Y'))
+				{
+					exit(1);
+				}
 			}
 #endif
+			if(eraseoldlocks())
+				goto gotlock;
+			else {
+				unlock_file(HLOCK);
+				error("Couldn't destroy old game.");
+			}
 		}
 		else {
 			unlock_file(HLOCK);

@@ -52,7 +52,9 @@ enum
 	kCmdRefresh,
 	kCmdSwitchTo128,
 	kCmdSwitchToAmiga,
-	kCmdSwitchToIBM
+	kCmdSwitchToIBM,
+	kCmdTilesEnable,
+	kCmdTilesDisable
 };
 
 enum
@@ -69,6 +71,20 @@ static int s_ReadyForSave = 0;
 static int s_Command = kCmdNone;
 static int s_Quit = 0;
 int g_AndroidPureTTY = 0;
+
+#ifdef ANDROID_GRAPHICS_TILED
+
+/* Whether the user has requested tiled mode or not. Even if we are on the
+   Rogue level and thus not actually in tiled mode, this would still be true. */
+int g_AndroidTiled = 0;
+
+/* If we think the user (Android UI) is currently drawing a tiled view, this
+   is true. The native code is the master here, sending control signals to
+   drive the Android UI views to the expected state, and this variable is used
+   to decide when to send those signals. */
+int g_AndroidTilesEnabledForUser = 0;
+
+#endif	/* ANDROID_GRAPHICS_TILED */
 
 static void NDECL(wd_message);
 #ifdef WIZARD
@@ -423,6 +439,73 @@ static void android_putchar_internal(int c)
 }
 
 
+/* TEMP */
+void android_putchar_internal2(int c)
+{
+	while(1)
+	{
+		pthread_mutex_lock(&s_SendMutex);
+
+		uint16_t unicode = c;
+
+		/* Store the Unicode in the buffer using UTF8 encoding. Note:
+		   we could potentially just store them with 2 byte per character
+		   Unicode in the array. */
+
+		if(unicode >= 0x800)
+		{
+			if(s_SendCnt < SENDBUFFSZ - 2)
+			{
+				unsigned char c1 = 0xe0 + ((unicode & 0xf000) >> 12);
+				unsigned char c2 = 0x80 + ((unicode & 0x0f00) >> 6) + ((unicode & 0x00c0) >> 6);
+				unsigned char c3 = 0x80 + (unicode & 0x003f);
+
+				s_SendBuff[s_SendCnt++] = (char)c1;
+				s_SendBuff[s_SendCnt++] = (char)c2;
+				s_SendBuff[s_SendCnt++] = (char)c3;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+		}
+		else if(unicode >= 0x80)
+		{
+			if(s_SendCnt < SENDBUFFSZ - 1)
+			{
+				unsigned char c1 = 0xc0 + ((unicode & 0x0700) >> 6) + ((unicode & 0x00c0) >> 6);
+				unsigned char c2 = 0x80 + (unicode & 0x003f);
+
+				s_SendBuff[s_SendCnt++] = (char)c1;
+				s_SendBuff[s_SendCnt++] = (char)c2;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+
+		}
+		else
+		{
+			if(s_SendCnt < SENDBUFFSZ)
+			{
+				s_SendBuff[s_SendCnt++] = (char)unicode;
+
+				pthread_mutex_unlock(&s_SendMutex);
+
+				return;
+			}
+		}
+
+		s_SendWaitingForNotFull = 1;
+
+		pthread_mutex_unlock(&s_SendMutex);
+
+		sem_wait(&s_SendNotFullSema);
+	}
+}
+
+
 void android_putchar(int c)
 {
 
@@ -492,20 +575,34 @@ int TMP_main(int argc, char *argv[]);
 
 #define AUTOSAVE_FILENAME "android_autosave.txt"
 
+/* The last time we auto-saved (probably due to Activity pause), this
+   was the value of the "moves" variable. */
+static int s_MovesOnLastAutoSave = -1;
+
 void android_autosave_save()
 {
-	FILE *f = fopen(AUTOSAVE_FILENAME, "w");
-	if(f)
+	/* If the move counter hasn't increased since the last time we saved,
+	   we assume that there is nothing of importance that needs to be saved.
+	   This is done so that when switching between different activities
+	   (for example bringing up the preference menu), we don't slow down
+	   the UI to save the state each time. */
+	if(moves != s_MovesOnLastAutoSave)
 	{
-		fprintf(f, "%s\n", plname);
-		fclose(f);
-	}
+		FILE *f = fopen(AUTOSAVE_FILENAME, "w");
+		if(f)
+		{
+			fprintf(f, "%s\n", plname);
+			fclose(f);
+		}
 
 #ifdef INSURANCE
-	save_currentstate();
+		save_currentstate();
+
+		s_MovesOnLastAutoSave = moves;
 #else
 # error "Can't save without INSURANCE."
 #endif
+	}
 }
 
 
@@ -648,6 +745,20 @@ int android_getch(void)
 			{
 				s_SwitchCharSetCmd = cmd;
 			}
+			else if(cmd == kCmdTilesEnable || cmd == kCmdTilesDisable)
+			{
+#ifdef ANDROID_GRAPHICS_TILED
+				g_AndroidTiled = (cmd == kCmdTilesEnable);
+#endif
+
+				/* Not sure about this, we really could use a better way to
+				   force a redraw. */
+				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				{
+					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+				}
+
+			}
 
 			if(s_WaitingForCommandPerformed)
 			{
@@ -711,6 +822,8 @@ int android_getch(void)
 				}
 
 				bot();
+
+				curs_on_u();
 
 				continue;
 			}
@@ -829,7 +942,7 @@ static void *sThreadFunc()
 	}
 	else
 	{
-		choose_windows(DEFAULT_WINDOW_SYS);
+		choose_windows("android");
 	}
 
 	if(!g_AndroidPureTTY)
@@ -973,8 +1086,14 @@ not_recovered:
 	return(0);
 }
 
+static const int kUiModeAndroidTTY = 0;
+static const int kUiModePureTTY = 1;
+#ifdef ANDROID_GRAPHICS_TILED
+static const int kUiModeAndroidTiled = 2;
+#endif
+
 int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
-		int puretty, jstring nethackdir)
+		int uimode, jstring nethackdir)
 {
 	char *p;
 	int x, y;
@@ -996,7 +1115,11 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	strcpy(g_NetHackDir, nethackdirnative);
 	(*env)->ReleaseStringUTFChars(env, nethackdir, nethackdirnative);
 
-	g_AndroidPureTTY = puretty;
+	g_AndroidPureTTY = (uimode == kUiModePureTTY);
+#ifdef ANDROID_GRAPHICS_TILED
+	g_AndroidTiled = (uimode == kUiModeAndroidTiled);
+	g_AndroidTilesEnabledForUser = g_AndroidTiled;
+#endif
 	s_SendWaitingForNotFull = 0;
 	s_ReceiveWaitingForData = 0;
 	s_ReceiveWaitingForConsumption = 0;
@@ -1162,6 +1285,20 @@ void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
 	sSendCmd(cmd, 0);
 }
 
+
+void Java_com_nethackff_NetHackApp_NetHackSetTilesEnabled(
+		JNIEnv *env, jobject thiz, int tilesenabled)
+{
+	int sync = 1;	/* Maybe less risk for timing-related display bugs this way? */
+	if(tilesenabled)
+	{
+		sSendCmd(kCmdTilesEnable, sync);
+	}
+	else
+	{
+		sSendCmd(kCmdTilesDisable, sync);
+	}
+}
 
 int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
 		jobject thiz)

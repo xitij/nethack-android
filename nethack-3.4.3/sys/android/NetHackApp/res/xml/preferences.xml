@@ -12,9 +12,14 @@
 		<ListPreference
 			android:title="UI Mode"
 			android:key="UIMode"
-			android:defaultValue="AndroidTTY"
+			android:defaultValue="AndroidTiled"
 			android:entries="@array/UIModeEntries"
 			android:entryValues="@array/UIModeValues"/>
+
+		<com.nethackff.NetHackListPreferenceTileSet
+			android:title="Tile Set"
+			android:key="TileSet"/>
+
 
 		<CheckBoxPreference android:key="Fullscreen"
 			android:title="Fullscreen"
@@ -54,6 +59,16 @@
 			android:summary="If set, text and menu views may use word wrapping to fit on screen."
 			android:defaultValue="true"/>
 
+		<CheckBoxPreference android:key="ScrollToFollowPlayer"
+			android:title="Scroll to Follow Player"
+			android:summary="If set, the map may scroll to keep the player on screen."
+			android:defaultValue="true"/>
+
+		<CheckBoxPreference android:key="ScrollSmoothly"
+			android:title="Scroll Smoothly"
+			android:summary="When moving the map to a new position, scrolling will happen smoothly."
+			android:defaultValue="true"/>
+
 	</PreferenceCategory>
 	<PreferenceCategory android:title="Input">
 		<CheckBoxPreference android:key="MoveWithTrackball"
@@ -69,7 +84,14 @@
 			android:title="Sticky Shift Keys"
 			android:defaultValue="false"/>
 		<PreferenceScreen
-				android:title="Key Bindings">
+			android:title="Key Bindings">
+			<ListPreference
+				android:title="Back Button"
+				android:summary="Select functionality for Back button."
+				android:key="BackButtonFunc"
+				android:defaultValue="ForwardToSystem"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
 			<ListPreference
 				android:title="Camera Button"
 				android:summary="Select functionality for Camera button."
@@ -110,6 +132,20 @@
 				android:summary="Select functionality for Right Shift key."
 				android:key="RightShiftKeyFunc"
 				android:defaultValue="ShiftKey"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Volume Up Button"
+				android:summary="Select functionality for Volume Up button."
+				android:key="VolumeUpButtonFunc"
+				android:defaultValue="ZoomIn"
+				android:entries="@array/KeyActions"
+				android:entryValues="@array/KeyActionValues"/>
+			<ListPreference
+				android:title="Volume Down Button"
+				android:summary="Select functionality for Volume Down button."
+				android:key="VolumeDownButtonFunc"
+				android:defaultValue="ZoomOut"
 				android:entries="@array/KeyActions"
 				android:entryValues="@array/KeyActionValues"/>
 

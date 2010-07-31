@@ -7,11 +7,17 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -20,10 +26,12 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore.Images.Media;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -50,11 +58,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.Thread;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.LinkedList;
 
 public class NetHackApp extends Activity implements Runnable, OnGestureListener
 {
@@ -62,6 +75,36 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	NetHackTerminalView messageView;
 	NetHackTerminalView statusView;
 	NetHackTerminalView menuView;
+	NetHackTiledView tiledView;
+
+	NetHackView getMapView()
+	{
+		if(isTiledViewMode())
+		{
+			return tiledView;
+		}
+		else
+		{
+			return mainView;
+		}
+	}
+
+	/**
+	 * True if the native code has told us to use a tiled map view. Note that it's
+	 * possible for this to be false even if the human user has requested tiles,
+	 * because we could be on the TTY Rogue level, or the desired mode may not have
+	 * propagated throught the native code yet. 
+	 */
+	static boolean tilesEnabled = false;
+
+	boolean isTiledViewMode()
+	{
+		return (uiModeActual == UIMode.AndroidTiled) && tilesEnabled;
+	}
+	boolean isPureTTYMode()
+	{
+		return uiModeActual == UIMode.PureTTY;	
+	}
 
 	NetHackKeyboard virtualKeyboard;
 	
@@ -139,7 +182,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		AltKey,
 		CtrlKey,
 		ShiftKey,
-		EscKey
+		EscKey,
+		ZoomIn,
+		ZoomOut,
+		ForwardToSystem		// Forward for O/S to handle.
 	}
 	
 	enum ColorMode
@@ -153,7 +199,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		Invalid,
 		PureTTY,
-		AndroidTTY
+		AndroidTTY,
+		AndroidTiled,
 	}
 
 	enum FontSize
@@ -173,7 +220,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		IBM,
 		Amiga
 	}
-	
+
+	boolean optScrollSmoothly = true;
+	boolean optScrollWithPlayer = true;
 	boolean optAllowTextReformat = true;
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
@@ -185,12 +234,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	boolean optMoveWithTrackball = true;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
-	KeyAction optKeyBindBack = KeyAction.None;
+	KeyAction optKeyBindBack = KeyAction.ForwardToSystem;
 	KeyAction optKeyBindCamera = KeyAction.VirtualKeyboard;
 	KeyAction optKeyBindMenu = KeyAction.None;
 	KeyAction optKeyBindSearch = KeyAction.CtrlKey;
 	KeyAction optKeyBindShiftLeft = KeyAction.ShiftKey;
 	KeyAction optKeyBindShiftRight = KeyAction.ShiftKey;
+	KeyAction optKeyBindVolumeUp = KeyAction.ZoomIn;
+	KeyAction optKeyBindVolumeDown = KeyAction.ZoomOut;
+
+	String optTileSetName;	
 
 	public KeyAction getKeyActionFromKeyCode(int keyCode)
 	{
@@ -198,28 +251,34 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		switch(keyCode)
 		{
 			case KeyEvent.KEYCODE_ALT_LEFT:
-				keyAction = optKeyBindAltLeft; 	
+				keyAction = optKeyBindAltLeft;
 				break;
 			case KeyEvent.KEYCODE_ALT_RIGHT:
-				keyAction = optKeyBindAltRight; 	
-				break;
-			case KeyEvent.KEYCODE_CAMERA:
-				keyAction = optKeyBindCamera; 	
+				keyAction = optKeyBindAltRight;
 				break;
 			case KeyEvent.KEYCODE_BACK:
-				keyAction = optKeyBindBack; 	
+				keyAction = optKeyBindBack;
+				break;
+			case KeyEvent.KEYCODE_CAMERA:
+				keyAction = optKeyBindCamera;
 				break;
 			case KeyEvent.KEYCODE_MENU:
 				keyAction = optKeyBindMenu;
 				break;
 			case KeyEvent.KEYCODE_SEARCH:
-				keyAction = optKeyBindSearch; 	
+				keyAction = optKeyBindSearch;
 				break;
 			case KeyEvent.KEYCODE_SHIFT_LEFT:
 				keyAction = optKeyBindShiftLeft; 	
 				break;
 			case KeyEvent.KEYCODE_SHIFT_RIGHT:
 				keyAction = optKeyBindShiftRight; 	
+				break;
+			case KeyEvent.KEYCODE_VOLUME_UP:
+				keyAction = optKeyBindVolumeUp;
+				break;
+			case KeyEvent.KEYCODE_VOLUME_DOWN:
+				keyAction = optKeyBindVolumeDown;
 				break;
 			default:
 				break;
@@ -250,10 +309,40 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 			prefsEditor.commit();
 			updateLayout();
+
+			// Take this as an opportunity to scroll to the player, as we may have exposed
+			// or obscured a part of the map view.
+			getMapView().pendingRedraw = true;
+			scrollWithPlayerRefresh = true;
+
 			return true;
 		}
 
-		if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
+		if(keyAction == KeyAction.ZoomIn || keyAction == KeyAction.ZoomOut)
+		{
+			NetHackView view = getMapView();
+			if(keyAction == KeyAction.ZoomIn)
+			{
+				view.zoomIn();
+				scrollWithPlayerRefresh = true;
+			}
+			else if(keyAction == KeyAction.ZoomOut)
+			{
+				view.zoomOut();
+				scrollWithPlayerRefresh = true;
+			}
+			else
+			{
+				return true;	
+			}
+		}
+
+		if(keyAction == KeyAction.ForwardToSystem)
+		{
+			return super.onKeyDown(keyCode, event);
+		}
+
+		if(keyCode == KeyEvent.KEYCODE_MENU)
 		{
 			return super.onKeyDown(keyCode, event);
 		}
@@ -399,8 +488,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public int quitCount = 0;
 
-	NetHackTerminalView currentView;
+	NetHackTerminalView currentTerminalView;
 	NetHackTerminalView preLogView;
+	NetHackTiledView currentTiledView;
 	boolean escSeq = false;
 	boolean escSeqAndroid = false;
 	String currentString = "";
@@ -444,7 +534,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			screenConfig = ScreenConfig.Landscape;
 		}
 
-		rebuildViews();
+		rebuildViews(true);	// Not sure if there is a good reason to use this immediate mode here.
 	}
 
 	final int menuViewWidth = 80;
@@ -485,7 +575,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		// Compute how many characters would fit on screen in the status line. This gets passed
 		// on to the native code so it knows if it should shorten the status or not.
-		int statuswidthonscreen = sizeX/statusView.charWidth;
+		int statuswidthonscreen = sizeX/statusView.squareSizeX;
 
 		// Regardless of how much we can actually fit, we still keep the width of the actual
 		// view constant. This is done so that in case the text on the first line still doesn't fit
@@ -502,7 +592,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		mainView.colorSet = optCharacterColorSet;
 	}
 	
-	public void rebuildViews()
+	public void rebuildViews(boolean immediate)
 	{
 		screenLayout.removeAllViews();
 
@@ -522,13 +612,176 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		screenLayout.setOrientation(LinearLayout.VERTICAL);
 		setContentView(screenLayout);
 
-		NetHackRefreshDisplay();
+		// I had some problems where I would switch in and out of tiled mode
+		// from the preference menu, and the application would freeze up. It seems
+		// to be somehow related to the communication buffers in the native code,
+		// possibly some sort of threading deadlock. I'm not sure if this is a true
+		// fix or just a workaround, but deferring the call to NetHackRefreshDisplay()
+		// seems to help. One theory I had was that when called from onStart(), the
+		// communication thread isn't running yet and can't consume from the buffers
+		// that the native thread may be waiting for, but I had some indication of that
+		// not being the cause.
+		if(!immediate)
+		{
+			refreshDisplay = true;
+		}
+		else
+		{
+			NetHackRefreshDisplay();
+		}
+
 	}
+
+	public long autoScrollLastTime = -1;
+	public int autoScrollX = 0;
+	public int autoScrollY = 0;
+
+	public void startAutoScroll(int deltax, int deltay)
+	{
+		autoScrollX = deltax;
+		autoScrollY = deltay;
+		autoScrollLastTime = System.currentTimeMillis();
+
+		if(!optScrollSmoothly)
+		{
+			performAutoScroll(1.0f);
+			stopAutoScroll();
+			return;	
+		}
+	}
+	public void stopAutoScroll()
+	{
+		autoScrollX = 0;
+		autoScrollY = 0;
+		autoScrollLastTime = -1;
+	}
+
+	public void performAutoScroll(float p)
+	{
+		int deltax = (int)Math.floor(autoScrollX*p + 0.5f);
+		int deltay = (int)Math.floor(autoScrollY*p + 0.5f);
+		if(deltax != 0 || deltay != 0)
+		{
+			scrollToLimited(getMapView(), getMapView().getScrollX() + deltax, getMapView().getScrollY() + deltay, true);
+			autoScrollX -= deltax;
+			autoScrollY -= deltay;
+			long t = System.currentTimeMillis();
+			autoScrollLastTime = t;
+		}
+	}
+
+	public void updateAutoScroll()
+	{
+		if(!optScrollSmoothly)
+		{
+			return;	
+		}
+		if(autoScrollX != 0 || autoScrollY != 0)
+		{
+			long t = System.currentTimeMillis();
+			long dt = 0;
+			if(autoScrollLastTime >= 0)
+			{
+				dt = t - autoScrollLastTime;
+			}
+			else
+			{
+				dt = t;				
+			}
+
+			float p = 1.0f - (float)Math.exp(-(float)dt/150.0f);
+			performAutoScroll(p);
+		}
+	}
+
+	public void updateScrollWithPlayer()
+	{
+		PlayerPos pp = new PlayerPos();
+		getPlayerPosInView(pp);
+		int playerposx = pp.posX;
+		int playerposy = pp.posY;
+		if(optScrollWithPlayer)
+		{
+			NetHackView view = getMapView();
+			if(!view.pendingRedraw && (scrollWithPlayerLastPosX != playerposx || scrollWithPlayerLastPosY != playerposy || scrollWithPlayerRefresh) && playerposx >= 0 && playerposy >= 0)
+			{
+				int newplayerpixelposx = view.computeViewCoordX(playerposx) + view.squareSizeX/2;
+				int newplayerpixelposy = view.computeViewCoordY(playerposy) + view.squareSizeY/2;
+
+				float relposx = ((float)(newplayerpixelposx - view.getScrollX()))/view.getWidth();
+				float relposy = ((float)(newplayerpixelposy - view.getScrollY()))/view.getHeight();
+
+				float margin = 0.25f;
+				int mintiles = 2;
+
+				float marginpixels = margin*Math.min(view.getWidth(), view.getHeight());
+				float marginx = (Math.max(marginpixels, mintiles*view.squareSizeX) + 0.5f*view.squareSizeX)/(float)view.getWidth();
+				float marginy = (Math.max(marginpixels, mintiles*view.squareSizeY) + 0.5f*view.squareSizeY)/(float)view.getHeight();
+
+				marginx = Math.min(marginx, 0.5f);
+				marginy = Math.min(marginy, 0.5f);
+
+				int dx = 0, dy = 0;
+				if(relposx < marginx || relposx > 1.0f - marginx)
+				{
+					float scrollrelx;
+					if(relposx < 0.5)
+					{	
+						scrollrelx = relposx - marginx;
+					}
+					else
+					{
+						scrollrelx = relposx - (1.0f - marginx);
+					}
+					dx = (int)Math.floor(scrollrelx*view.getWidth() + 0.5f);
+				}
+				float scrollrely = 0.0f;
+				if(relposy < marginy || relposy > 1.0f - marginy)
+				{
+					if(relposy < 0.5)
+					{	
+						scrollrely = relposy - marginy;
+					}
+					else
+					{
+						scrollrely = relposy - (1.0f - marginy);
+					}
+					dy = (int)Math.floor(scrollrely*view.getHeight() + 0.5f);
+				}
+
+				if(dx != 0 || dy != 0)
+				{
+					startAutoScroll(dx, dy);
+				}
+
+				scrollWithPlayerLastPosX = playerposx;
+				scrollWithPlayerLastPosY = playerposy;
+				scrollWithPlayerRefresh = false;
+			}
+		}
+		else
+		{
+			scrollWithPlayerLastPosX = playerposx;
+			scrollWithPlayerLastPosY = playerposy;
+			scrollWithPlayerRefresh = false;
+		}
+	}
+
+	public int scrollWithPlayerLastPosX = -1;
+	public int scrollWithPlayerLastPosY = -1;
+	public boolean scrollWithPlayerRefresh = false;
 
 	private Handler handler = new Handler()
 	{
 		public void handleMessage(Message msg)
 		{
+			if(deferredCenterOnPlayer)
+			{
+				centerOnPlayer();
+			}
+			updateScrollWithPlayer();
+			updateAutoScroll();
+				
 			if(NetHackHasQuit() != 0)
 			{
 				gameInitialized = false;
@@ -541,14 +794,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			{
 				clearScreen = false;
 				mainView.terminal.clearScreen();
-				mainView.invalidate();
+				getMapView().invalidate();
 				return;
 			}
 
 			if(NetHackGetPlayerPosShouldRecenter() != 0)
 			{
 				// This doesn't seem to work very well in pure TTY mode. 
-				if(uiModeActual == UIMode.AndroidTTY)
+				if(!isPureTTYMode())
 				{
 					centerOnPlayer();
 				}
@@ -576,17 +829,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					{
 						if(c == 'A')
 						{
-							if(currentView == currentDbgTerminalView && currentView != null)
+							if(currentTerminalView == currentDbgTerminalView && currentTerminalView != null)
 							{
 								writeTranscript(currentString);
 							}
-							if(currentView == null)
+							if(currentTerminalView == null && currentTiledView == null)
 							{
 								Log.i("NetHackDbg", currentString);
 							}
+							else if(currentTiledView != null)
+							{
+								currentTiledView.write(currentString);
+							}
 							else
 							{
-								currentView.write(currentString);
+								currentTerminalView.write(currentString);
 							}
 							currentString = "";
 							escSeqAndroid = true;
@@ -603,31 +860,41 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					{
 						if(c == '0')
 						{
-							if((currentView == null) && (preLogView != null))
+							if((currentTerminalView == null) && currentTiledView == null && (preLogView != null))
 							{
-								currentView = preLogView;
+								currentTerminalView = preLogView;
+								currentTiledView = null;
 								preLogView = null;
 							}
 							else
 							{
-								currentView = mainView;
+								currentTerminalView = mainView;
+								currentTiledView = null;
 							}
 						}
 						else if(c == '1')
 						{
-							currentView = messageView;
+							currentTerminalView = messageView;
+							currentTiledView = null;
 						}
 						else if(c == '2')
 						{
-							currentView = statusView;
+							currentTerminalView = statusView;
+							currentTiledView = null;
 						}
 						else if(c == '4')
 						{
-							currentView = menuView;
+							currentTerminalView = menuView;
+							currentTiledView = null;
+						}
+						else if(c == '5')
+						{
+							currentTerminalView = null;
+							currentTiledView = tiledView;
 						}
 						else if(c == 'S')
 						{
-							if(currentView == menuView)
+							if(currentTerminalView == menuView)
 							{
 								menuShown = true;
 								menuView.scrollTo(0, 0);
@@ -636,7 +903,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 						}
 						else if(c == 'H')
 						{
-							if(currentView == menuView)
+							if(currentTerminalView == menuView)
 							{
 								menuShown = false;
 								updateLayout();
@@ -645,36 +912,59 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 						else if(c == '3')
 						{
 							// TEMP
-							if(currentView != null)
+							if(currentTerminalView != null)
 							{
-								preLogView = currentView;
+								preLogView = currentTerminalView;
 							}
-							currentView = null;							
+							currentTerminalView = null;							
 						}
 						else if(c == 'C')
 						{
-							if(currentView != null)
+							if(currentTerminalView != null)
 							{
-								currentView.setDrawCursor(!currentView.getDrawCursor());
+								currentTerminalView.setDrawCursor(!currentTerminalView.getDrawCursor());
 								//currentView.invalidate();
 							}
+						}
+						else if(c == 'R')	// On Rogue level, or otherwise switching to TTY view.
+						{
+							tilesEnabled = false;
+							mainView.terminal.clearScreen();
+							rebuildViews(false);
+
+							scrollWithPlayerRefresh = true;
+						}
+						else if(c == 'r')	// Not on Rogue level
+						{
+							tilesEnabled = true;
+							if(tiledView != null)
+							{
+								tiledView.terminal.clearScreen();
+							}
+							rebuildViews(false);				
+
+							scrollWithPlayerRefresh = true;
 						}
 						escSeq = escSeqAndroid = false;	
 					}
 				}
 				if(!escSeq)
 				{
-					if(currentView == currentDbgTerminalView && currentView != null)
+					if(currentTerminalView == currentDbgTerminalView && currentTerminalView != null)
 					{
 						writeTranscript(currentString);
 					}
-					if(currentView == null)
+					if(currentTerminalView == null && currentTiledView == null)
 					{
 						Log.i("NetHackDbg", currentString);
 					}
+					else if(currentTiledView != null)
+					{
+						currentTiledView.write(currentString);
+					}
 					else
 					{
-						currentView.write(currentString);
+						currentTerminalView.write(currentString);
 					}
 					currentString = "";
 				}
@@ -825,8 +1115,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 
 			uiModeActual = optUIModeNew;
-			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
-			if(NetHackInit(pureTTY ? 1 : 0, nethackdir) == 0)
+			int uimode = 1;
+			if(uiModeActual == UIMode.AndroidTTY)
+			{
+				uimode = 0;
+				tilesEnabled = false;
+			}
+			if(uiModeActual == UIMode.AndroidTiled)
+			{
+				uimode = 2;
+				tilesEnabled = true;	// Native code knows to expect this.
+			}
+			if(NetHackInit(uimode, nethackdir) == 0)
 			{
 				// TODO
 				return;
@@ -880,19 +1180,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public void onDestroy()
 	{
-		if(NetHackHasQuit() == 0)
-		{
-			Log.i("NetHack", "Auto-saving");
-			if(NetHackSave() != 0)
-			{
-				Log.i("NetHack", "Auto-save succeeded");
-			}
-			else
-			{
-				Log.w("NetHack", "Auto-save failed");
-			}
-		}
-
 		stopCommThread();
 		super.onDestroy();
 		//TestShutdown();
@@ -1048,26 +1335,27 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return gestureScanner.onTouchEvent(me);
 	}
 
-	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
+	public void scrollToLimited(NetHackView scrollView, int newscrollx, int newscrolly, boolean setnewdesiredcentertoactual)
 	{
-		View scrollView = mainView;
 		int termx, termy;
-		if(uiModeActual != UIMode.PureTTY && menuShown)
+		if(scrollView == menuView)
 		{
-			scrollView = menuView;
-			termx = menuView.charWidth*menuView.sizeX;
-//			termy = menuView.charHeight*menuView.sizeY;
-			termy = menuView.charHeight*menuView.getNumDisplayedLines();
+			termx = menuView.squareSizeX*menuView.sizeX;
+//			termy = menuView.squareSizeY*menuView.sizeY;
+			termy = menuView.squareSizeY*menuView.getNumDisplayedLines();
 
+		}
+		else if(scrollView == tiledView)
+		{
+			termx = tiledView.squareSizeX*tiledView.sizeX;
+			termy = tiledView.squareSizeY*tiledView.sizeY;
 		}
 		else
 		{
-			termx = mainView.charWidth*mainView.sizeX;
-			termy = mainView.charHeight*mainView.sizeY;
+			termx = mainView.squareSizeX*mainView.sizeX;
+			termy = mainView.squareSizeY*mainView.sizeY;
 		}
-	
-		int newscrollx = scrollView.getScrollX() + (int)distanceX;
-		int newscrolly = scrollView.getScrollY() + (int)distanceY;
+
 		if(newscrollx < 0)
 		{
 			newscrollx = 0;
@@ -1097,6 +1385,29 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 
 		scrollView.scrollTo(newscrollx, newscrolly);
+
+		if(setnewdesiredcentertoactual)
+		{
+			scrollView.desiredCenterPosX = newscrollx + scrollView.getWidth()*0.5f;
+			scrollView.desiredCenterPosY = newscrolly + scrollView.getHeight()*0.5f;
+		}
+	}
+	
+	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) 
+	{
+		NetHackView scrollView = getMapView();
+	
+		if(!isPureTTYMode() && menuShown)
+		{
+			scrollView = menuView;
+		}
+
+		int newscrollx = scrollView.getScrollX() + (int)distanceX;
+		int newscrolly = scrollView.getScrollY() + (int)distanceY;
+		scrollToLimited(scrollView, newscrollx, newscrolly, true);
+
+		stopAutoScroll();
+
 		return true;
 	}
 
@@ -1120,7 +1431,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return true;
 	}
 
-	public void centerOnPlayer()
+	class PlayerPos
+	{
+		int posX, posY;
+	};
+
+	public void getPlayerPosInView(PlayerPos p)
 	{
 		// Probably would be better to get these two with one function call, but
 		// seems a bit messy to return two values at once through JNI.
@@ -1135,10 +1451,50 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		//	 (see wintty.c:    newwin->offy = 1;
 		posx--;
 		posy++;
-		posx -= mainView.offsetX;
-		posy -= mainView.offsetY;
 
-		mainView.scrollToCenterAtPos(posx, posy);
+		if(isTiledViewMode())
+		{
+			posx -= tiledView.offsetX;
+			posy -= tiledView.offsetY;
+
+			posy--;
+		}
+		else
+		{
+			posx -= mainView.offsetX;
+			posy -= mainView.offsetY;
+		}
+		p.posX = posx;
+		p.posY = posy;
+	}
+
+	boolean deferredCenterOnPlayer = false;
+	
+	public void centerOnPlayer()
+	{
+		PlayerPos pp = new PlayerPos();
+		getPlayerPosInView(pp);
+		int posx = pp.posX;
+		int posy = pp.posY;
+
+		NetHackView view = getMapView();
+		if(view.getWidth() == 0 || view.getHeight() == 0)
+		{
+			// This is a bit of a hack - it looks like we sometimes (like when starting the game)
+			// get here before the view has been measured or something, and end up getting back
+			// 0 as the dimensions. This would make us scroll to the wrong position. To avoid this,
+			// we just set this flag, which will make us try again on the next update. There
+			// is probably some better solution, but this seems to work OK.
+			deferredCenterOnPlayer = true;
+			return;
+		}
+		deferredCenterOnPlayer = false;
+		int cursorcenterx = posx*view.squareSizeX + view.squareSizeX/2;
+		int cursorcentery = posy*view.squareSizeY + view.squareSizeY/2;
+		int newscrollx = cursorcenterx - view.getWidth()/2;
+		int newscrolly = cursorcentery - view.getHeight()/2;
+
+		startAutoScroll(newscrollx - view.getScrollX(), newscrolly - view.getScrollY());
 	}
 	
 	public synchronized void startCommThread()
@@ -1168,9 +1524,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		startCommThread();
 	}
-	
+
 	public void onPause()
 	{
+		if(NetHackHasQuit() == 0)
+		{
+			Log.i("NetHack", "Auto-saving");
+			if(NetHackSave() != 0)
+			{
+				Log.i("NetHack", "Auto-save succeeded");
+			}
+			else
+			{
+				Log.w("NetHack", "Auto-save failed");
+			}
+		}		
 		stopCommThread();
 
 		super.onPause();
@@ -1191,7 +1559,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		boolean keyboardInPortraitBefore = optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()];
 		boolean keyboardInLandscapeBefore = optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()];
- 
+
+		String tilesetbefore = optTileSetName;
+		
 		getPrefs();
 
 		// Probably makes sense to do this, in case the user held down some key
@@ -1212,14 +1582,31 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		if(optUIModeNew != uiModeBefore)
 		{
-			Dialog dialog = new Dialog(this);
-			dialog.setContentView(R.layout.uimodechanged);
-			dialog.setTitle(getString(R.string.uimodechanged_title));
-			dialog.show();
+			// Switching in or out of pure TTY mode still requires a full
+			// re-initialization of the application.
+			if(optUIModeNew == UIMode.PureTTY || uiModeActual == UIMode.PureTTY)
+			{
+				Dialog dialog = new Dialog(this);
+				dialog.setContentView(R.layout.uimodechanged);
+				dialog.setTitle(getString(R.string.uimodechanged_title));
+				dialog.show();
+			}
+			else
+			{
+				// Switching between tiled and TTY Android mode we should be able
+				// to do without restarting.
+				if(optUIModeNew == UIMode.AndroidTTY)
+				{
+					NetHackSetTilesEnabled(0);
+				}
+				else
+				{
+					NetHackSetTilesEnabled(1);		
+				}
+				uiModeActual = optUIModeNew;
+			}				
 		}
 
-// TEMP
-		Log.i("NetHackDbg", "Before: " + characterSetBefore.toString() + " After: " + optCharacterSet);
 		if(optCharacterSet != characterSetBefore)
 		{
 			int index = -1;
@@ -1250,7 +1637,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		menuView.setWhiteBackgroundMode(blackonwhite);
 		messageView.setWhiteBackgroundMode(blackonwhite);
 		statusView.setWhiteBackgroundMode(blackonwhite);
-
 		int textsize = getOptFontSize();
 		mainView.setTextSize(textsize);
 		messageView.setTextSize(textsize);
@@ -1289,10 +1675,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			shouldrebuild = true;
 		}
-
+		if(uiModeActual == UIMode.AndroidTiled)
+		{
+			if(!tilesetbefore.equals(optTileSetName) || tiledView.tileBitmap == null)
+			{
+				shouldrebuild = true;
+				usePreferredTileSet();
+			}
+		}
 		if(shouldrebuild)
 		{
-			rebuildViews();
+			rebuildViews(false);
+		}
+		if(tiledView != null)
+		{
+			tiledView.setWhiteBackgroundMode(blackonwhite);
 		}
 	}	
 
@@ -1323,17 +1720,32 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
 				LayoutParams.WRAP_CONTENT, 0.0f));
 
+		if(tiledView != null)
+		{
+			tiledView.setLayoutParams(
+					new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT,
+					LayoutParams.WRAP_CONTENT, 1.0f));
+		}
+
 		screenLayout.removeAllViews();
 		if(!menuShown)
 		{
-			boolean pureTTY = (uiModeActual == UIMode.PureTTY);
+			boolean pureTTY = isPureTTYMode();
 
 			//layout.addView(dbgTerminalTranscript);
 			if(!pureTTY)
 			{
 				screenLayout.addView(messageView);
 			}
-			screenLayout.addView(mainView);
+			if(isTiledViewMode())
+			{
+				screenLayout.addView(tiledView);
+			}
+			else
+			{
+				screenLayout.addView(mainView);
+			}
+
 			if(!pureTTY)
 			{
 				screenLayout.addView(statusView);
@@ -1352,7 +1764,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			screenLayout.addView(virtualKeyboard.virtualKeyboardView);
 		}
 
-		mainView.invalidate();
+		getMapView().invalidate();
 	}
 
 	
@@ -1365,7 +1777,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		messageView.setDrawCursor(false);
 		statusView.setDrawCursor(false);
 
-		currentView = mainView;
+		currentTerminalView = mainView;
+		currentTiledView = null;
 
 		//currentDbgTerminalView = messageView;
 		if(currentDbgTerminalView != null)
@@ -1425,6 +1838,136 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	Bitmap fontBitmap;
 
+	class TileSetInfo
+	{
+		public String packageName;
+		public String tileSetName;
+		public String bitmapName;
+		public String infoString;
+		public int tileSizeX;
+		public int tileSizeY;
+		public int defaultZoomPercentage;
+	};
+
+	public void useTileSet(TileSetInfo info)
+	{
+		int tilesizex = 0, tilesizey = 0;
+//			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
+
+		Uri path = Uri.parse("android.resource://" + info.packageName + "/drawable/" + info.bitmapName);
+
+		try
+		{
+			Bitmap bmp = Media.getBitmap(getContentResolver(), path);
+			if(bmp != null)
+			{
+				tiledView.setBitmap(bmp, info.tileSizeX, info.tileSizeY, info.defaultZoomPercentage);
+			}
+		}
+		catch(FileNotFoundException e)
+		{
+		}
+		catch(IOException e)
+		{
+		}
+	}
+
+	public LinkedList<TileSetInfo> getTileSetsInPackage(ApplicationInfo curr)
+	{
+		LinkedList<TileSetInfo> tilesetlist = new LinkedList<TileSetInfo>();
+
+		try
+		{
+			{
+				try
+				{
+					Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
+					//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
+					//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
+					int idname = res.getIdentifier("TileSetNames", "array", curr.packageName);
+					int idtilesizex = res.getIdentifier("TileSetTileSizesX", "array", curr.packageName);
+					int idtilesizey = res.getIdentifier("TileSetTileSizesY", "array", curr.packageName);
+					int idbitmap = res.getIdentifier("TileSetBitmaps", "array", curr.packageName);
+					int idzoom = res.getIdentifier("TileSetDefaultZoom", "array", curr.packageName);
+					int idinfo = res.getIdentifier("TileSetInfo", "array", curr.packageName);
+
+					String[] tilesetnames = res.getStringArray(idname);
+					for(int i = 0; i < tilesetnames.length; i++)
+					{
+						TileSetInfo info = new TileSetInfo();
+						info.packageName = curr.packageName;
+						info.tileSetName = tilesetnames[i];
+						info.bitmapName = res.getStringArray(idbitmap)[i];
+						info.infoString = res.getStringArray(idinfo)[i];
+						info.tileSizeX = res.getIntArray(idtilesizex)[i];
+						info.tileSizeY = res.getIntArray(idtilesizey)[i];
+						info.defaultZoomPercentage = res.getIntArray(idzoom)[i];
+						tilesetlist.add(info);
+					}
+				}
+				catch(NotFoundException e)
+				{
+				}
+			}
+		}
+		catch(NameNotFoundException e)
+		{
+		}
+		return tilesetlist;
+	}
+	
+	public LinkedList<TileSetInfo> findTileSets()
+	{
+		LinkedList<TileSetInfo> tilesetlist = new LinkedList<TileSetInfo>();
+
+		try
+		{
+			// A bit lame, should be a better way to find the ApplicationInfo of ourselves.
+			tilesetlist.addAll(getTileSetsInPackage(this.getPackageManager().getApplicationInfo("com.nethackff", 0)));
+		}
+		catch(NameNotFoundException e)
+		{
+		}
+
+		List<ApplicationInfo> appsList = getBaseContext().getPackageManager().getInstalledApplications(0);
+		Iterator<ApplicationInfo> appsIter = appsList.iterator(); 
+		int tilesizex = 1, tilesizey = 1;
+		while(appsIter.hasNext())
+		{ 
+			ApplicationInfo curr = appsIter.next(); 
+			if(curr.packageName.startsWith("com.nethackff_tiles_"))
+			{
+				tilesetlist.addAll(getTileSetsInPackage(curr));
+			}
+		}
+
+		return tilesetlist;
+	}
+
+	public void usePreferredTileSet()
+	{
+		LinkedList<TileSetInfo> tilesetlist = findTileSets();
+		if(tilesetlist.size() > 0)
+		{
+			ListIterator<TileSetInfo> iter = tilesetlist.listIterator();
+			boolean found = false;
+			while(iter.hasNext())
+			{
+				TileSetInfo info = iter.next();
+				if(info.tileSetName.equals(optTileSetName))
+				{
+					useTileSet(info);
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+			{
+				useTileSet(tilesetlist.get(0));
+			}
+		}
+	}
+		
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
@@ -1464,18 +2007,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optCharacterSet = CharacterSet.Invalid;
 		optOrientation = Orientation.Invalid;	// Make sure it gets detected in onStart().
 
-		boolean pureTTY;
 		if(!gameInitialized)
 		{
 			uiModeActual = optUIModeNew;
 		}
-		pureTTY = (uiModeActual == UIMode.PureTTY);
 
 		int textsize = getOptFontSize();
 		mainView = new NetHackTerminalView(this, mainTerminalState);
 		mainView.setTextSize(textsize);
 		//		mainView.offsetY = messageRows;
-		if(!pureTTY)
+		if(!isPureTTYMode())
 		{
 			mainView.sizeY -= messageRows + statusRows;
 			mainView.offsetY = 1;
@@ -1491,6 +2032,17 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 		fontBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dungeonfont);
 		mainView.fontBitmap = fontBitmap;
+
+		tiledView = new NetHackTiledView(this);
+		// TODO: Try to avoid the call to usePreferredTileSet() in AndroidTTY mode -
+		// it may waste some resources.
+		if(uiModeActual == UIMode.AndroidTiled || uiModeActual == UIMode.AndroidTTY)
+		{
+			usePreferredTileSet();
+		}
+		tiledView.sizeY -= messageRows + statusRows;
+		tiledView.offsetY = 1;
+		tiledView.computeSizePixels();
 
 		Configuration config = getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
@@ -1641,7 +2193,29 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 			case R.id.preferences:
 			{
-				startActivity(new Intent(this, NetHackPreferences.class));
+				Intent intent = new Intent(this, NetHackPreferences.class);
+				Bundle bundle = new Bundle();
+
+				LinkedList<TileSetInfo> tilesetlist = findTileSets();
+				String tilesetnames[] = new String[tilesetlist.size()];
+				String tilesetvalues[] = new String[tilesetlist.size()];
+				String tilesetinfo[] = new String[tilesetlist.size()];
+				
+				ListIterator<TileSetInfo> iter = tilesetlist.listIterator();
+				int index = 0;
+				while(iter.hasNext())
+				{
+					TileSetInfo info = iter.next();
+					tilesetnames[index] = info.tileSetName;
+					tilesetvalues[index] = info.tileSetName;
+					tilesetinfo[index] = info.infoString;
+					index++;
+				}
+				bundle.putStringArray("TileSetNames", tilesetnames);
+				bundle.putStringArray("TileSetValues", tilesetvalues);
+				bundle.putStringArray("TileSetInfo", tilesetinfo);
+				intent.putExtras(bundle);
+				startActivity(intent);
 				return true;
 			}
 			case R.id.importconfig:
@@ -1666,12 +2240,16 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	private void getPrefs()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+		optKeyBindBack = getKeyActionEnumFromString(prefs.getString("BackButtonFunc", "ForwardToSystem"));
 		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "VirtualKeyboard"));
 		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "CtrlKey"));
 		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "AltKey"));
 		optKeyBindAltRight = getKeyActionEnumFromString(prefs.getString("RightAltKeyFunc", "AltKey"));
 		optKeyBindShiftLeft = getKeyActionEnumFromString(prefs.getString("LeftShiftKeyFunc", "ShiftKey"));
 		optKeyBindShiftRight = getKeyActionEnumFromString(prefs.getString("RightShiftKeyFunc", "ShiftKey"));
+		optKeyBindVolumeUp = getKeyActionEnumFromString(prefs.getString("VolumeUpButtonFunc", "ZoomIn"));
+		optKeyBindVolumeDown = getKeyActionEnumFromString(prefs.getString("VolumeDownButtonFunc", "ZoomOut"));
+
 		altKey.sticky = prefs.getBoolean("StickyAlt", false);
 		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
 		shiftKey.sticky = prefs.getBoolean("StickyShift", false);
@@ -1679,14 +2257,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
-		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTTY"));
+		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTiled"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
 		optCharacterColorSet = NetHackTerminalView.ColorSet.valueOf(prefs.getString("CharacterColorSet", "Amiga"));
 		optFontSize = FontSize.valueOf(prefs.getString("FontSize", "FontSize10"));
 		optOrientation = Orientation.valueOf(prefs.getString("Orientation", "Unspecified"));
 
+		optTileSetName = prefs.getString("TileSet", "Standard 16x16");	// Could potentially get the default from first in getTileSetsInPackage() list.
 		optKeyboardShownInConfig[ScreenConfig.Portrait.ordinal()] = prefs.getBoolean("KeyboardShownInPortrait", true);
 		optKeyboardShownInConfig[ScreenConfig.Landscape.ordinal()] = prefs.getBoolean("KeyboardShownInLandscape", false);
+
+		optScrollSmoothly = prefs.getBoolean("ScrollSmoothly", true);
+		optScrollWithPlayer = prefs.getBoolean("ScrollToFollowPlayer", true);
 	}
 
 	public static String appDir;
@@ -1706,6 +2288,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
 	public native void NetHackRefreshDisplay();
 	public native void NetHackSwitchCharSet(int charsetindex);
+	public native void NetHackSetTilesEnabled(int tilesenabled);
 	
 	public native int NetHackGetPlayerPosX();
 	public native int NetHackGetPlayerPosY();

@@ -13,5 +13,18 @@ public class NetHackPreferences extends PreferenceActivity
 		//	requestWindowFeature(Window.FEATURE_NO_TITLE);
 
 		addPreferencesFromResource(R.xml.preferences);
+
+		NetHackListPreferenceTileSet tileSetList = (NetHackListPreferenceTileSet)findPreference("TileSet"); 
+
+		String tilesetnames[] = this.getIntent().getExtras().getStringArray("TileSetNames");
+		String tilesetvalues[] = this.getIntent().getExtras().getStringArray("TileSetValues");
+		String tilesetinfo[] = this.getIntent().getExtras().getStringArray("TileSetInfo");
+		
+		tileSetList.setEntryValues(tilesetvalues);
+		tileSetList.setEntries(tilesetnames);
+		tileSetList.setTileSetInfo(tilesetinfo);
+		tileSetList.setDefaultValue(tilesetvalues[0]);
+		
+		tileSetList.setInfoFromValue();
 	}
 }
