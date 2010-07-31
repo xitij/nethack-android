@@ -15,7 +15,7 @@
 	android:layout_height="wrap_content"
 	android:orientation="vertical">
 
-<TextView android:text="@string/TextView01"
+<TextView
 	android:id="@+id/TextView01"
 	android:layout_width="fill_parent"
 	android:layout_height="wrap_content"/>
