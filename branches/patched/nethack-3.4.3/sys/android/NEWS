@@ -1,7 +1,23 @@
-Changes since 1.2.4
--------------------
+1.3.1 (July 31, 2010)
+---------------------
+
+- Tile drawing.
+- Loading of tile sets from external packages.
+- NetHack "standard 16x16" tile set included.
+- Option to auto-scroll with player movement.
+- Option to use smooth scrolling.
+- Basic zoom functionality.
+- Key binding improvements: Back button remapping, option to block or forward to system.
+
+1.2.5 (July 6, 2010)
+--------------------
 
 - Made Ctrl-P work in "Android TTY" mode.
+- Added prompt to destroy old game, if the recovery failed.
+- Fixed text background bug with Amiga colors.
+- Fixed cursor position when refreshing the screen (on orientation change, etc).
+- Fixed display wraparound bug.
+- More reliable auto-saving.
 
 1.2.4 (July 2, 2010)
 --------------------
