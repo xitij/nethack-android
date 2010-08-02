@@ -3,10 +3,9 @@
 
 <string name="TextView01">&lt;p&gt;This is not a separate application, but rather, a package of extra tilesets to be used with the &lt;a href=&quot;http://market.android.com/details?id=com.nethackff&quot;&gt;NetHack&lt;/a&gt; application. To use, simply install and launch the NetHack application, then use the Preferences menu to pick a tileset (and enable tiled UI mode, if needed).&lt;/p&gt;&lt;p&gt;The tilesets included here were made by other people, and have been made freely available online for use by the NetHack community. If you are the creator of one of these and wish for it to be removed from this package, or want to be credited differently, please contact the &lt;a href=&quot;mailto:farnstrom@gmail.com&quot;&gt;developer&lt;/a&gt;.&lt;/p&gt;</string>
 <string name="TilesAbigabaHeader">Abigaba 32x32</string>
-<string name="TilesAbigabaInfo">This tileset is included by permission from its creator, Chozo Abigaba. For
-more info and download, see www.multifoliate.com/nh/.</string>
+<string name="TilesAbigabaInfo">This tileset is included by permission from its creator, Chozo Abigaba. For more info and download, see www.multifoliate.com/nh/.</string>
 <string name="TilesAbigabaAltHeader">Abigaba(alt) 32x32</string>
-<string name="TilesAbigabaAltInfo">This is a variant of the Abigaba tiles, modified by kb, the author of this web page: www.multifoliate.com/nh/.</string>
+<string name="TilesAbigabaAltInfo">This is a variant of the Abigaba tiles, modified by K. Bailey. For more info and download, see www.multifoliate.com/nh/.</string>
 <string name="TilesAbsurdHeader">Absurd 32x32</string>
 <string name="TilesAbsurdInfo">This tileset was created by John Shaw, and was originally available here: www.aesthetictech.8m.com/Absurd.htm
 See also nethack.wikia.com/wiki/The_Absurd_NetHack_Tileset for more information. The new home for this tileset will be www.thinktwicenews.com.</string>
