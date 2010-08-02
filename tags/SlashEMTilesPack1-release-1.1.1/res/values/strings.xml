@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+<string name="TextView01">&lt;p&gt;This is not a separate application, but rather, a package containing an extra tileset to be used with the &lt;a href=&quot;http://market.android.com/details?id=com.slashemff&quot;&gt;NetHack Slash"'"EM&lt;/a&gt; application. To use, simply install and launch the NetHack Slash"'"EM application, then use the Preferences menu to pick a tileset (and enable tiled UI mode, if needed).&lt;/p</string>
+<string name="TilesAbigabaHeader">Abigaba 24x24</string>
+<string name="TilesAbigabaInfo">This tileset is included by permission from its creator, Chozo Abigaba. For
+more info and download, see www.multifoliate.com/nh/.</string>
+</resources>
