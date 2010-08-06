@@ -32,6 +32,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore.Images.Media;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -285,7 +286,59 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		return keyAction;		
 	}
-	
+
+	enum MoveDir
+	{
+		None,
+		UpLeft,
+		Up,
+		UpRight,
+		Left,
+		Center,
+		Right,
+		DownLeft,
+		Down,
+		DownRight
+	};
+
+	public char getCharForDir(MoveDir dir)
+	{
+		char c = '\0';
+		switch(dir)
+		{
+			case None:
+				break;
+			case UpLeft:
+				c = 'y';
+				break;
+			case Up:
+				c = 'k';
+				break;
+			case UpRight:
+				c = 'u';
+				break;
+			case Left:
+				c = 'h';
+				break;
+			case Center:
+				c = '.';	// Not sure
+				break;
+			case Right:
+				c = 'l';
+				break;
+			case DownLeft:
+				c = 'b';
+				break;
+			case Down:
+				c = 'j';
+				break;
+			case DownRight:
+				c = 'n';
+				break;
+		}
+		return c;
+	}
+
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
 		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
@@ -369,23 +422,33 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		if(optMoveWithTrackball)
 		{
+			MoveDir dir = MoveDir.None;
 			switch(keyCode)
 			{
 				case KeyEvent.KEYCODE_DPAD_DOWN:
-					c = 'j';
+					dir = MoveDir.Down;
+					//c = 'j';
 					break;
 				case KeyEvent.KEYCODE_DPAD_UP:
-					c = 'k';
+					dir = MoveDir.Up;
+					//c = 'k';
 					break;
 				case KeyEvent.KEYCODE_DPAD_LEFT:
-					c = 'h';
+					dir = MoveDir.Left;
+					//c = 'h';
 					break;
 				case KeyEvent.KEYCODE_DPAD_RIGHT:
-					c = 'l';
+					dir = MoveDir.Right;
+					//c = 'l';
 					break;
 				case KeyEvent.KEYCODE_DPAD_CENTER:
+					//dir = MoveDir.Center;
 					c = ',';
 					break;
+			}
+			if(dir != MoveDir.None)
+			{
+				c = getCharForDir(dir);
 			}
 		}
 		
@@ -1426,8 +1489,83 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public void onShowPress(MotionEvent e)
 	{
 	}
+
 	public boolean onSingleTapUp(MotionEvent e)
 	{
+		NetHackView mapview = getMapView();
+		if(mapview != null)
+		{
+			// TODO: Think more about this - should at least store it, maybe.
+			DisplayMetrics metrics = new DisplayMetrics();
+			getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+			int loconscreen[] = new int[2];
+			mapview.getLocationOnScreen(loconscreen);
+
+			float xx = e.getRawX()/(float)metrics.widthPixels;
+			float yy = (e.getRawY() - loconscreen[1])/(float)mapview.getHeight();
+			int dx = ((xx <= 0.333f) ? -1 : (xx >= 0.667f ? 1 : 0));
+			int dy = ((yy <= 0.333f) ? -1 : (yy >= 0.667f ? 1 : 0));
+
+			MoveDir dir = MoveDir.None;
+			// Very lame... should do something with the numbers here, except
+			// Java makes it hard to assign values to enums... can probably use an array to look up in.
+			if(dy == -1)
+			{
+				if(dx == -1)
+				{
+					dir = MoveDir.UpLeft;
+				}
+				else if(dx == 1)
+				{
+					dir = MoveDir.UpRight;
+				}
+				else
+				{
+					dir = MoveDir.Up;
+				}
+			}
+			else if(dy == 1)
+			{
+				if(dx == -1)
+				{
+					dir = MoveDir.DownLeft;
+				}
+				else if(dx == 1)
+				{
+					dir = MoveDir.DownRight;
+				}
+				else
+				{
+					dir = MoveDir.Down;
+				}
+			}
+			else
+			{
+				if(dx == -1)
+				{
+					dir = MoveDir.Left;
+				}
+				else if(dx == 1)
+				{
+					dir = MoveDir.Right;
+				}
+				else
+				{
+					dir = MoveDir.Center;
+				}		
+			}
+			if(dir != MoveDir.Center && dir != MoveDir.None)
+			{
+				char c = getCharForDir(dir);
+				String tmp = "";
+				tmp += c;
+				NetHackTerminalSend(tmp);
+			}
+			Log.i("NetHackDbg", "(xx, yy) = (" + xx + ", " + yy + ")"); 
+
+			Log.i("NetHackDbg", "(" + loconscreen[0] + ", " + loconscreen[1] + ") - (" + (loconscreen[0] + mapview.getWidth()) + ", " + (loconscreen[1] + mapview.getHeight()) + ")");
+		}
 		return true;
 	}
 
