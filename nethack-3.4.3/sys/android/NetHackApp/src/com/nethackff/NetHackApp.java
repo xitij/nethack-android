@@ -222,6 +222,12 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		Amiga
 	}
 
+	enum TouchscreenMovement
+	{
+		Disabled,
+		Grid3x3
+	}
+
 	boolean optScrollSmoothly = true;
 	boolean optScrollWithPlayer = true;
 	boolean optAllowTextReformat = true;
@@ -233,6 +239,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	FontSize optFontSize = FontSize.FontSize10;
 	Orientation optOrientation = Orientation.Invalid;
 	boolean optMoveWithTrackball = true;
+	TouchscreenMovement optTouchscreenMovement = TouchscreenMovement.Grid3x3;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
 	KeyAction optKeyBindBack = KeyAction.ForwardToSystem;
@@ -1493,7 +1500,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public boolean onSingleTapUp(MotionEvent e)
 	{
 		NetHackView mapview = getMapView();
-		if(mapview != null)
+		if(mapview != null && (optTouchscreenMovement == TouchscreenMovement.Grid3x3))
 		{
 			// TODO: Think more about this - should at least store it, maybe.
 			DisplayMetrics metrics = new DisplayMetrics();
@@ -1562,9 +1569,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				tmp += c;
 				NetHackTerminalSend(tmp);
 			}
-			Log.i("NetHackDbg", "(xx, yy) = (" + xx + ", " + yy + ")"); 
-
-			Log.i("NetHackDbg", "(" + loconscreen[0] + ", " + loconscreen[1] + ") - (" + (loconscreen[0] + mapview.getWidth()) + ", " + (loconscreen[1] + mapview.getHeight()) + ")");
 		}
 		return true;
 	}
@@ -2394,6 +2398,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
+		optTouchscreenMovement = TouchscreenMovement.valueOf(prefs.getString("TouchscreenMovement", "Grid3x3"));
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTiled"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));

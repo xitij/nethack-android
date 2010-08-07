@@ -74,6 +74,13 @@
 		<CheckBoxPreference android:key="MoveWithTrackball"
 			android:title="Move with Trackball"
 			android:defaultValue="true"/>
+		<ListPreference
+			android:title="Touchscreen Movement"
+			android:key="TouchscreenMovement"
+			android:defaultValue="Grid3x3"
+			android:entries="@array/TouchscreenMovementEntries"
+			android:entryValues="@array/TouchscreenMovementValues"/>
+		
 		<CheckBoxPreference android:key="StickyAlt"
 			android:title="Sticky Alt Keys"
 			android:defaultValue="false"/>
