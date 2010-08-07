@@ -80,6 +80,14 @@
 		<item>FontSize14</item>
 		<item>FontSize15</item>
 	</string-array>
+	<string-array name="TouchscreenMovementEntries">
+		<item>Disabled</item>
+		<item>3x3 Grid</item>
+	</string-array>
+	<string-array name="TouchscreenMovementValues">
+		<item>Disabled</item>
+		<item>Grid3x3</item>
+	</string-array>
 	<string-array name="CharacterSetEntries">
 		<item>128 char ANSI</item>
 		<item>IBM</item>
