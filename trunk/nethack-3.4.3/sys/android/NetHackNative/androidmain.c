@@ -14,10 +14,13 @@
 #define RECEIVEBUFFSZ 255
 #define SENDBUFFSZ 1023
 
-static char s_ReceiveBuff[RECEIVEBUFFSZ + 1];
-static char s_SendBuff[SENDBUFFSZ + 1];
-static int s_ReceiveCnt;
-static int s_SendCnt;
+static unsigned char s_MsgReceiveBuff[RECEIVEBUFFSZ + 1];
+static unsigned char s_SendBuff[SENDBUFFSZ + 1];
+static volatile int s_MsgReceiveCnt;
+static volatile int s_SendCnt;
+
+static unsigned char s_CharReceiveBuff[RECEIVEBUFFSZ + 1];
+static int s_CharReceiveCnt;
 
 static pthread_mutex_t s_ReceiveMutex;
 static pthread_mutex_t s_SendMutex;
@@ -44,6 +47,17 @@ enum
 };
 static AndroidGameState s_GameStateStack[kGameStateStackSize];
 static int s_GameStateStackCount = 0;
+
+enum
+{
+	kInputEventKeys
+};
+
+static void sPushInputEvent(unsigned char eventtype, uint16_t datalen,
+		const void *data)
+{
+}
+
 
 enum
 {
@@ -688,6 +702,96 @@ extern int g_android_prevent_output;
 static int s_ShouldRefresh = 0;
 static int s_SwitchCharSetCmd = -1;
 
+
+static int android_msgq_is_empty()
+{
+	return s_MsgReceiveCnt == 0;
+}
+
+
+static unsigned char android_msgq_pop_byte()
+{
+	unsigned char ret = s_MsgReceiveBuff[0];
+	int i;
+
+	/* Hmm, no good! */
+	/* TODO: Switch to ring buffer!!! */
+	for(i = 0; i < s_MsgReceiveCnt - 1; i++)
+	{
+		s_MsgReceiveBuff[i] = s_MsgReceiveBuff[i + 1];
+	}
+	s_MsgReceiveCnt--;
+
+	return ret;
+}
+
+
+static void android_push_char(unsigned char c)
+{
+	if(s_CharReceiveCnt >= RECEIVEBUFFSZ)
+	{
+		/* Buffer filled up, should be avoided, but if it happens, dropping
+		   the new character may be more reasonable than dropping the
+		   oldest or doing anything else - trying to wait for consumption
+		   with threading and stuff is probably too much risk to get a
+		   freeze or something. */
+
+		return;
+	}
+
+	s_CharReceiveBuff[s_CharReceiveCnt++] = c;
+}
+
+
+static void android_process_input_event_keys()
+{
+	while(!android_msgq_is_empty())
+	{
+		unsigned char c = android_msgq_pop_byte();
+		if(c)
+		{
+			android_push_char(c);
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
+
+static void android_process_message_queue()
+{
+	int processedany = 0;
+
+	while(!android_msgq_is_empty())
+	{
+		unsigned char msgtype = android_msgq_pop_byte();
+
+		switch(msgtype)
+		{
+			case kInputEventKeys:
+				android_process_input_event_keys();
+				break;
+			default:
+				exit(1);	/* Probably too aggressive for released builds. */
+				break;
+		}
+
+		processedany = 1;
+	}
+
+	if(processedany)
+	{
+		if(s_ReceiveWaitingForConsumption)
+		{
+			s_ReceiveWaitingForConsumption = 0;
+			sem_post(&s_ReceiveWaitingForConsumptionSema);
+		}
+	}
+}
+
+
 int android_getch(void)
 {
 	while(1)
@@ -753,9 +857,9 @@ int android_getch(void)
 
 				/* Not sure about this, we really could use a better way to
 				   force a redraw. */
-				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				if(s_CharReceiveCnt < RECEIVEBUFFSZ)
 				{
-					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+					s_CharReceiveBuff[s_CharReceiveCnt++] = 18;	/* ^R */
 				}
 
 			}
@@ -799,9 +903,9 @@ int android_getch(void)
 						break;
 				}
 
-				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				if(s_CharReceiveCnt < RECEIVEBUFFSZ)
 				{
-					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+					s_CharReceiveBuff[s_CharReceiveCnt++] = 18;	/* ^R */
 				}
 
 				continue;
@@ -829,21 +933,17 @@ int android_getch(void)
 			}
 		}
 
-		if(s_ReceiveCnt > 0)
-		{
-			int ret = s_ReceiveBuff[0], i;
-			/* Hmm, no good! */
-			for(i = 0; i < s_ReceiveCnt - 1; i++)
-			{
-				s_ReceiveBuff[i] = s_ReceiveBuff[i + 1];
-			}
-			s_ReceiveCnt--;
+		android_process_message_queue();
 
-			if(s_ReceiveWaitingForConsumption)
+		if(s_CharReceiveCnt > 0)
+		{
+			int ret = s_CharReceiveBuff[0], i;
+			/* Hmm, no good! */
+			for(i = 0; i < s_CharReceiveCnt - 1; i++)
 			{
-				s_ReceiveWaitingForConsumption = 0;
-				sem_post(&s_ReceiveWaitingForConsumptionSema);
+				s_CharReceiveBuff[i] = s_CharReceiveBuff[i + 1];
 			}
+			s_CharReceiveCnt--;
 
 			pthread_mutex_unlock(&s_ReceiveMutex);
 			return ret;
@@ -1123,7 +1223,8 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	s_SendWaitingForNotFull = 0;
 	s_ReceiveWaitingForData = 0;
 	s_ReceiveWaitingForConsumption = 0;
-	s_ReceiveCnt = 0;
+	s_CharReceiveCnt = 0;
+	s_MsgReceiveCnt = 0;
 	s_SendCnt = 0;
 	s_Quit = 0;	
 	s_ReadyForSave = 0;
@@ -1348,42 +1449,14 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
-		jstring str)
+static void sStartReceive()
 {
-	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
-
 	pthread_mutex_lock(&s_ReceiveMutex);
+}
 
-	const char *ptr = nativestr;
-	for(; *ptr;)
-	{
-		if(s_ReceiveCnt < RECEIVEBUFFSZ)
-		{
-			unsigned int c = *ptr++;
 
-			/* For the meta keys to work, we need to convert the UTF
-			   encoding back to 8 bit chars, which we do here. */
-			if((c & 0xe0) == 0xc0)
-			{
-				unsigned int d = *ptr++;
-				c = ((c << 6) & 0xc0) | (d & 0x3f);
-			}
-
-			s_ReceiveBuff[s_ReceiveCnt++] = (char)c;
-		}
-		else
-		{
-			s_ReceiveWaitingForConsumption = 1;
-
-			pthread_mutex_unlock(&s_ReceiveMutex);
-
-			sem_wait(&s_ReceiveWaitingForConsumptionSema);
-
-			pthread_mutex_lock(&s_ReceiveMutex);
-		}
-	}
-
+static void sEndReceive()
+{
 	if(s_ReceiveWaitingForData)
 	{
 		s_ReceiveWaitingForData = 0;
@@ -1391,6 +1464,51 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 	}
 
 	pthread_mutex_unlock(&s_ReceiveMutex);
+}
+
+
+static void sMsgReceiveByte(unsigned char c)
+{
+	while(s_MsgReceiveCnt >= RECEIVEBUFFSZ)
+	{
+		s_ReceiveWaitingForConsumption = 1;
+
+		pthread_mutex_unlock(&s_ReceiveMutex);
+		sem_wait(&s_ReceiveWaitingForConsumptionSema);
+
+		pthread_mutex_lock(&s_ReceiveMutex);
+	}
+
+	s_MsgReceiveBuff[s_MsgReceiveCnt++] = c;
+}
+
+
+void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
+		jstring str)
+{
+	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
+
+	sStartReceive();
+
+	sMsgReceiveByte((char)kInputEventKeys);
+
+	const char *ptr = nativestr;
+	for(; *ptr;)
+	{
+		unsigned int c = *ptr++;
+
+		/* For the meta keys to work, we need to convert the UTF
+		   encoding back to 8 bit chars, which we do here. */
+		if((c & 0xe0) == 0xc0)
+		{
+			unsigned int d = *ptr++;
+			c = ((c << 6) & 0xc0) | (d & 0x3f);
+		}
+
+		sMsgReceiveByte((unsigned char)c);
+	}
+
+	sEndReceive();
 
 	(*env)->ReleaseStringUTFChars(env, str, nativestr);
 }
