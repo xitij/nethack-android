@@ -2,6 +2,8 @@
 #include "dlb.h"
 #include "wintty.h"
 
+#include "comm.h"
+
 #include <string.h>
 #include <jni.h>
 
@@ -11,27 +13,19 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define RECEIVEBUFFSZ 255
-#define SENDBUFFSZ 1023
-
-static unsigned char s_MsgReceiveBuff[RECEIVEBUFFSZ + 1];
+static unsigned char s_CharReceiveBuff[RECEIVEBUFFSZ + 1];
 static unsigned char s_SendBuff[SENDBUFFSZ + 1];
-static volatile int s_MsgReceiveCnt;
 static volatile int s_SendCnt;
 
-static unsigned char s_CharReceiveBuff[RECEIVEBUFFSZ + 1];
 static int s_CharReceiveCnt;
 
-static pthread_mutex_t s_ReceiveMutex;
 static pthread_mutex_t s_SendMutex;
 static sem_t s_ReceiveWaitingForDataSema;
-static sem_t s_ReceiveWaitingForConsumptionSema;
 static sem_t s_SendNotFullSema;
 static sem_t s_CommandPerformedSema;
 
 static int s_SendWaitingForNotFull;
 static int s_ReceiveWaitingForData;
-static int s_ReceiveWaitingForConsumption;
 static int s_WaitingForCommandPerformed;
 
 static int s_PlayerPosShouldRecenter = 0;	/* Protected by s_ReceiveMutex */
@@ -703,27 +697,6 @@ static int s_ShouldRefresh = 0;
 static int s_SwitchCharSetCmd = -1;
 
 
-static int android_msgq_is_empty()
-{
-	return s_MsgReceiveCnt == 0;
-}
-
-
-static unsigned char android_msgq_pop_byte()
-{
-	unsigned char ret = s_MsgReceiveBuff[0];
-	int i;
-
-	/* Hmm, no good! */
-	/* TODO: Switch to ring buffer!!! */
-	for(i = 0; i < s_MsgReceiveCnt - 1; i++)
-	{
-		s_MsgReceiveBuff[i] = s_MsgReceiveBuff[i + 1];
-	}
-	s_MsgReceiveCnt--;
-
-	return ret;
-}
 
 
 static void android_push_char(unsigned char c)
@@ -783,11 +756,7 @@ static void android_process_message_queue()
 
 	if(processedany)
 	{
-		if(s_ReceiveWaitingForConsumption)
-		{
-			s_ReceiveWaitingForConsumption = 0;
-			sem_post(&s_ReceiveWaitingForConsumptionSema);
-		}
+		android_msgq_wake_waiting();
 	}
 }
 
@@ -1224,7 +1193,9 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	s_ReceiveWaitingForData = 0;
 	s_ReceiveWaitingForConsumption = 0;
 	s_CharReceiveCnt = 0;
-	s_MsgReceiveCnt = 0;
+
+	android_msgq_init();
+
 	s_SendCnt = 0;
 	s_Quit = 0;	
 	s_ReadyForSave = 0;
@@ -1467,22 +1438,6 @@ static void sEndReceive()
 }
 
 
-static void sMsgReceiveByte(unsigned char c)
-{
-	while(s_MsgReceiveCnt >= RECEIVEBUFFSZ)
-	{
-		s_ReceiveWaitingForConsumption = 1;
-
-		pthread_mutex_unlock(&s_ReceiveMutex);
-		sem_wait(&s_ReceiveWaitingForConsumptionSema);
-
-		pthread_mutex_lock(&s_ReceiveMutex);
-	}
-
-	s_MsgReceiveBuff[s_MsgReceiveCnt++] = c;
-}
-
-
 void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
@@ -1490,7 +1445,7 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 
 	sStartReceive();
 
-	sMsgReceiveByte((char)kInputEventKeys);
+	android_msgq_push_byte((char)kInputEventKeys);
 
 	const char *ptr = nativestr;
 	for(; *ptr;)
@@ -1505,7 +1460,7 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 			c = ((c << 6) & 0xc0) | (d & 0x3f);
 		}
 
-		sMsgReceiveByte((unsigned char)c);
+		android_msgq_push_byte((unsigned char)c);
 	}
 
 	sEndReceive();
