@@ -22,12 +22,10 @@ static volatile int s_SendCnt;
 static int s_CharReceiveCnt;
 
 static pthread_mutex_t s_SendMutex;
-static sem_t s_ReceiveWaitingForDataSema;
 static sem_t s_SendNotFullSema;
 static sem_t s_CommandPerformedSema;
 
 static int s_SendWaitingForNotFull;
-static int s_ReceiveWaitingForData;
 static int s_WaitingForCommandPerformed;
 
 static int s_PlayerPosShouldRecenter = 0;	/* Protected by s_ReceiveMutex */
@@ -1409,30 +1407,12 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 }
 
 
-static void sStartReceive()
-{
-	pthread_mutex_lock(&s_ReceiveMutex);
-}
-
-
-static void sEndReceive()
-{
-	if(s_ReceiveWaitingForData)
-	{
-		s_ReceiveWaitingForData = 0;
-		sem_post(&s_ReceiveWaitingForDataSema);
-	}
-
-	pthread_mutex_unlock(&s_ReceiveMutex);
-}
-
-
 void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
 	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
 
-	sStartReceive();
+	android_msgq_begin_message();
 
 	android_msgq_push_byte((char)kInputEventKeys);
 
@@ -1452,10 +1432,11 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 		android_msgq_push_byte((unsigned char)c);
 	}
 
-	sEndReceive();
+	android_msgq_end_message();
 
 	(*env)->ReleaseStringUTFChars(env, str, nativestr);
 }
+
 
 jstring Java_com_nethackff_NetHackApp_NetHackTerminalReceive(JNIEnv *env,
 		jobject thiz)
