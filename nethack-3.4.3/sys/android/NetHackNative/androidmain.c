@@ -44,7 +44,8 @@ static int s_GameStateStackCount = 0;
 
 enum
 {
-	kInputEventKeys
+	kInputEventKeys,
+	kInputEventMapTap
 };
 
 static void sPushInputEvent(unsigned char eventtype, uint16_t datalen,
@@ -724,36 +725,40 @@ static void android_process_input_event_keys()
 }
 
 
-static void android_process_message_queue()
+static int android_process_input_event_maptap(int *clickxout, int *clickyout)
 {
-	int processedany = 0;
+	int x = android_msgq_pop_byte();
+	int y = android_msgq_pop_byte();
 
-	while(!android_msgq_is_empty())
+	if(clickxout && clickyout)
 	{
-		unsigned char msgtype = android_msgq_pop_byte();
+		*clickxout = x;
+		*clickyout = y;
 
-		switch(msgtype)
-		{
-			case kInputEventKeys:
-				android_process_input_event_keys();
-				break;
-			default:
-				exit(1);	/* Probably too aggressive for released builds. */
-				break;
-		}
-
-		processedany = 1;
+		return 1;
 	}
-
-	if(processedany)
+	else
 	{
-		android_msgq_wake_waiting();
+		return 0;
 	}
 }
 
 
-int android_getch(void)
+void android_process_input(int *chout, int *clickxout, int *clickyout)
 {
+	if(chout)
+	{
+		*chout = -1;
+	}
+	if(clickxout)
+	{
+		*clickxout = -1;
+	}
+	if(clickyout)
+	{
+		*clickyout = -1;
+	}
+
 	while(1)
 	{
 		pthread_mutex_lock(&s_ReceiveMutex);
@@ -889,9 +894,41 @@ int android_getch(void)
 			}
 		}
 
-		android_process_message_queue();
+		int processedany = 0;
+		int done = 0;
 
-		if(s_CharReceiveCnt > 0)
+		while(!android_msgq_is_empty())
+		{
+			unsigned char msgtype = android_msgq_pop_byte();
+
+			switch(msgtype)
+			{
+				case kInputEventKeys:
+					android_process_input_event_keys();
+					break;
+				case kInputEventMapTap:
+					done = android_process_input_event_maptap(clickxout, clickyout);
+					break;
+				default:
+					exit(1);	/* Probably too aggressive for released builds. */
+					break;
+			}
+
+			processedany = 1;
+		}
+
+		if(processedany)
+		{
+			android_msgq_wake_waiting();
+		}
+
+		if(done)
+		{
+			pthread_mutex_unlock(&s_ReceiveMutex);
+			return;
+		}
+
+		if(s_CharReceiveCnt > 0 && chout)
 		{
 			int ret = s_CharReceiveBuff[0], i;
 			/* Hmm, no good! */
@@ -902,7 +939,8 @@ int android_getch(void)
 			s_CharReceiveCnt--;
 
 			pthread_mutex_unlock(&s_ReceiveMutex);
-			return ret;
+			*chout = ret;
+			return;
 		}
 
 		s_ReceiveWaitingForData = 1;
@@ -911,8 +949,16 @@ int android_getch(void)
 
 		sem_wait(&s_ReceiveWaitingForDataSema);
 	}
-	/*return EOF;*/
 }
+
+
+int android_getch(void)
+{
+	int ch;
+	android_process_input(&ch, NULL, NULL);
+	return ch;
+}
+
 
 
 static void sSendCmd(int cmd, int sync)
@@ -1435,6 +1481,17 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 	android_msgq_end_message();
 
 	(*env)->ReleaseStringUTFChars(env, str, nativestr);
+}
+
+
+void Java_com_nethackff_NetHackApp_NetHackMapTap(JNIEnv *env,
+		jobject thiz, int x, int y)
+{
+	android_msgq_begin_message();
+	android_msgq_push_byte((char)kInputEventMapTap);
+	android_msgq_push_byte((unsigned char)x);
+	android_msgq_push_byte((unsigned char)y);
+	android_msgq_end_message();
 }
 
 
