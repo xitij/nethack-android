@@ -83,10 +83,12 @@
 	<string-array name="TouchscreenMovementEntries">
 		<item>Disabled</item>
 		<item>3x3 Grid</item>
+		<item>Mouse Click</item>
 	</string-array>
 	<string-array name="TouchscreenMovementValues">
 		<item>Disabled</item>
 		<item>Grid3x3</item>
+		<item>MouseClick</item>
 	</string-array>
 	<string-array name="CharacterSetEntries">
 		<item>128 char ANSI</item>
