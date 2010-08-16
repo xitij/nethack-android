@@ -225,7 +225,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	enum TouchscreenMovement
 	{
 		Disabled,
-		Grid3x3
+		MouseClick,
+		Grid3x3,
 	}
 
 	boolean optScrollSmoothly = true;
@@ -239,7 +240,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	FontSize optFontSize = FontSize.FontSize10;
 	Orientation optOrientation = Orientation.Invalid;
 	boolean optMoveWithTrackball = true;
-	TouchscreenMovement optTouchscreenMovement = TouchscreenMovement.Grid3x3;
+	TouchscreenMovement optTouchscreenMovement = TouchscreenMovement.MouseClick;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
 	KeyAction optKeyBindBack = KeyAction.ForwardToSystem;
@@ -1500,7 +1501,27 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public boolean onSingleTapUp(MotionEvent e)
 	{
 		NetHackView mapview = getMapView();
-		if(mapview != null && (optTouchscreenMovement == TouchscreenMovement.Grid3x3))
+		if(mapview == null)
+		{
+			return true;
+		}
+		if(optTouchscreenMovement == TouchscreenMovement.MouseClick)
+		{
+			// TODO: Think more about this - should at least store it, maybe.
+			DisplayMetrics metrics = new DisplayMetrics();
+			getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+			int loconscreen[] = new int[2];
+			mapview.getLocationOnScreen(loconscreen);
+
+			// TODO: Check if within view?
+			int viewx = (int)Math.floor(e.getRawX() - loconscreen[0] + mapview.getScrollX() + 0.5f);
+			int viewy = (int)Math.floor(e.getRawY() - loconscreen[1] + mapview.getScrollY() + 0.5f);
+			int squarex = mapview.computeViewColumnFromCoordXClamped(viewx) + mapview.offsetX;
+			int squarey = mapview.computeViewColumnFromCoordYClamped(viewy) + mapview.offsetY;
+			NetHackMapTap(squarex, squarey);
+		}
+		else if(optTouchscreenMovement == TouchscreenMovement.Grid3x3)
 		{
 			// TODO: Think more about this - should at least store it, maybe.
 			DisplayMetrics metrics = new DisplayMetrics();
@@ -2398,7 +2419,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
-		optTouchscreenMovement = TouchscreenMovement.valueOf(prefs.getString("TouchscreenMovement", "Grid3x3"));
+		optTouchscreenMovement = TouchscreenMovement.valueOf(prefs.getString("TouchscreenMovement", "MouseClick"));
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTiled"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
@@ -2426,6 +2447,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
+	public native void NetHackMapTap(int x, int y);
 	public native int NetHackHasQuit();
 	public native int NetHackSave();
 	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
