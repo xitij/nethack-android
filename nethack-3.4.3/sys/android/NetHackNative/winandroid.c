@@ -1783,6 +1783,7 @@ int android_nh_poskey(int *x, int *y, int *mod)
 		   elsewhere in the NH code - column 0 doesn't seem to be used. */
 		*x = clickx + 1;
 		*y = clicky;
+		*mod = CLICK_1;
 		return 0;
 	}
 
