@@ -45,7 +45,23 @@ static int s_GameStateStackCount = 0;
 enum
 {
 	kInputEventKeys,
-	kInputEventMapTap
+	kInputEventMapTap,
+	kInputEventDir
+};
+
+/* Note: must match enum MoveDir on the Java side. */
+enum MoveDir
+{
+	kMoveDirNone,
+	kMoveDirUpLeft,
+	kMoveDirUp,
+	kMoveDirUpRight,
+	kMoveDirLeft,
+	kMoveDirCenter,
+	kMoveDirRight,
+	kMoveDirDownLeft,
+	kMoveDirDown,
+	kMoveDirDownRight
 };
 
 static void sPushInputEvent(unsigned char eventtype, uint16_t datalen,
@@ -725,6 +741,48 @@ static void android_process_input_event_keys()
 }
 
 
+static void android_process_input_event_dir()
+{
+	static signed char s_nhindex[] =
+	{
+		-1,		/* None */
+		1,		/* UpLeft */
+		2,		/* Up */
+		3,		/* UpRight */
+		0,		/* Left */
+		-1,		/* Center */
+		4,		/* Right */
+		7,		/* DownLeft */
+		6,		/* Down */
+		5		/* DownRight */
+	};
+	
+	unsigned char c = android_msgq_pop_byte();
+	int index = -1;
+	if(c < 10)
+	{
+		index = s_nhindex[c];
+	}
+	if(index >= 0)
+	{
+		const char *sdp;
+		if(iflags.num_pad)
+			sdp = ndir;
+		else
+			sdp = sdir;
+
+		android_push_char(sdp[index]);
+		return;
+	}
+
+	if(c == kMoveDirCenter)
+	{
+		/* TODO */
+		android_push_char(',');
+	}
+}
+
+
 static int android_process_input_event_maptap(int *clickxout, int *clickyout)
 {
 	int x = android_msgq_pop_byte();
@@ -908,6 +966,9 @@ void android_process_input(int *chout, int *clickxout, int *clickyout)
 					break;
 				case kInputEventMapTap:
 					done = android_process_input_event_maptap(clickxout, clickyout);
+					break;
+				case kInputEventDir:
+					android_process_input_event_dir();
 					break;
 				default:
 					exit(1);	/* Probably too aggressive for released builds. */
@@ -1453,6 +1514,16 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 }
 
 
+void Java_com_nethackff_NetHackApp_NetHackSendDir(JNIEnv *env, jobject thiz,
+		int dir)
+{
+	android_msgq_begin_message();
+	android_msgq_push_byte((unsigned char)kInputEventDir);
+	android_msgq_push_byte((unsigned char)dir);
+	android_msgq_end_message();
+}
+
+
 void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
@@ -1460,7 +1531,7 @@ void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 
 	android_msgq_begin_message();
 
-	android_msgq_push_byte((char)kInputEventKeys);
+	android_msgq_push_byte((unsigned char)kInputEventKeys);
 
 	const char *ptr = nativestr;
 	for(; *ptr;)
