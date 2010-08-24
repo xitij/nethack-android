@@ -743,6 +743,8 @@ static void android_process_input_event_keys()
 
 static void android_process_input_event_dir()
 {
+	/* Look-up table for mapping our enum MoveDir to the direction code
+	   that NetHack uses. Perhaps we should change it to just use the same. */
 	static signed char s_nhindex[] =
 	{
 		-1,		/* None */
@@ -757,32 +759,59 @@ static void android_process_input_event_dir()
 		5		/* DownRight */
 	};
 	
+	/* Get the direction, and map it a NetHack direction code. */
 	unsigned char c = android_msgq_pop_byte();
 	int index = -1;
 	if(c < 10)
 	{
 		index = s_nhindex[c];
 	}
+
+	/* Variables for a potential destination position. */
+	int destx = u.ux, desty = u.uy;
+
+	/* Check if we are in the regular movement loop. If not, we should
+	   stay away from trying to generate characters for context-sensitive
+	   commands. */
+	int ismoveloop = (android_getgamestate() == kAndroidGameStateMoveLoop);
+
 	if(index >= 0)
 	{
-		const char *sdp;
-		if(iflags.num_pad)
-			sdp = ndir;
-		else
-			sdp = sdir;
+		if(!ismoveloop)
+		{
+			/* Map the direction to a character, respecting the 'number_pad'
+			   option. */
+			const char *sdp;
+			if(iflags.num_pad)
+				sdp = ndir;
+			else
+				sdp = sdir;
+			android_push_char(sdp[index]);
+			return;
+		}
 
-		android_push_char(sdp[index]);
+		/* Compute the desired position after the move. */
+		destx += xdir[index];
+		desty += ydir[index];
+	}
+	else if(c == kMoveDirCenter && !ismoveloop)
+	{
+		/* In this case, we are not in the main movement loop, and got the
+		   center direction - treat as a period character. */
+		android_push_char('.');
 		return;
 	}
 
-	if(c == kMoveDirCenter)
+	/* For the remainder of the cases, we will use click_to_cmd(). This handles
+	   opening/kicking doors, picking up stuff, moving up/down, etc. */
+	if(c != kMoveDirNone)
 	{
 		/* click_to_cmd() does a better job with context-sensitive stuff
 		   when the 'travel' option is on - let's pretend it always is,
 		   in this context. */
 		boolean oldtravelcmd = iflags.travelcmd;
 
-		const char *cmd = click_to_cmd(u.ux, u.uy, CLICK_1);
+		const char *cmd = click_to_cmd(destx, desty, CLICK_1);
 
 		/* Restore the 'travel' option. */
 		iflags.travelcmd = oldtravelcmd;
