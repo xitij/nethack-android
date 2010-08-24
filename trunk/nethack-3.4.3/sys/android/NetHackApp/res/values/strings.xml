@@ -80,15 +80,27 @@
 		<item>FontSize14</item>
 		<item>FontSize15</item>
 	</string-array>
-	<string-array name="TouchscreenMovementEntries">
-		<item>Disabled</item>
+	<string-array name="TouchscreenTapEntries">
+		<item>Nothing</item>
 		<item>3x3 Grid</item>
 		<item>Mouse Click</item>
 	</string-array>
-	<string-array name="TouchscreenMovementValues">
+	<string-array name="TouchscreenTapValues">
 		<item>Disabled</item>
 		<item>Grid3x3</item>
 		<item>MouseClick</item>
+	</string-array>
+	<string-array name="TouchscreenHoldEntries">
+		<item>Nothing</item>
+		<item>Mouse Click</item>
+		<item>Center on Location</item>
+		<item>Center on Player</item>
+	</string-array>
+	<string-array name="TouchscreenHoldValues">
+		<item>Disabled</item>
+		<item>MouseClick</item>
+		<item>CenterOnLocation</item>
+		<item>CenterOnPlayer</item>
 	</string-array>
 	<string-array name="CharacterSetEntries">
 		<item>128 char ANSI</item>

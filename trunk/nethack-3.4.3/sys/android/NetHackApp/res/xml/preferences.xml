@@ -75,11 +75,18 @@
 			android:title="Move with Trackball"
 			android:defaultValue="true"/>
 		<ListPreference
-			android:title="Touchscreen Movement"
-			android:key="TouchscreenMovement"
-			android:defaultValue="Grid3x3"
-			android:entries="@array/TouchscreenMovementEntries"
-			android:entryValues="@array/TouchscreenMovementValues"/>
+			android:title="Touchscreen Tap"
+			android:key="TouchscreenTap"
+			android:defaultValue="MouseClick"
+			android:entries="@array/TouchscreenTapEntries"
+			android:entryValues="@array/TouchscreenTapValues"/>
+
+		<ListPreference
+			android:title="Touchscreen Hold"
+			android:key="TouchscreenHold"
+			android:defaultValue="CenterOnPlayer"
+			android:entries="@array/TouchscreenHoldEntries"
+			android:entryValues="@array/TouchscreenHoldValues"/>
 		
 		<CheckBoxPreference android:key="StickyAlt"
 			android:title="Sticky Alt Keys"
