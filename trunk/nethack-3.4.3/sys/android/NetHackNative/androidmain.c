@@ -777,8 +777,22 @@ static void android_process_input_event_dir()
 
 	if(c == kMoveDirCenter)
 	{
-		/* TODO */
-		android_push_char(',');
+		/* click_to_cmd() does a better job with context-sensitive stuff
+		   when the 'travel' option is on - let's pretend it always is,
+		   in this context. */
+		boolean oldtravelcmd = iflags.travelcmd;
+
+		const char *cmd = click_to_cmd(u.ux, u.uy, CLICK_1);
+
+		/* Restore the 'travel' option. */
+		iflags.travelcmd = oldtravelcmd;
+
+		/* Add the characters for the command (probably always just 1, in this
+		   particular case. */
+		while(*cmd)
+		{
+			android_push_char(*cmd++);
+		}
 	}
 }
 
