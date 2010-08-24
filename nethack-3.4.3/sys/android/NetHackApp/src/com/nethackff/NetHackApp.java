@@ -227,6 +227,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		Disabled,
 		MouseClick,
 		Grid3x3,
+		CenterOnLocation,
+		CenterOnPlayer,
 	}
 
 	boolean optScrollSmoothly = true;
@@ -240,7 +242,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	FontSize optFontSize = FontSize.FontSize10;
 	Orientation optOrientation = Orientation.Invalid;
 	boolean optMoveWithTrackball = true;
-	TouchscreenMovement optTouchscreenMovement = TouchscreenMovement.MouseClick;
+	TouchscreenMovement optTouchscreenTap = TouchscreenMovement.MouseClick;
+	TouchscreenMovement optTouchscreenHold = TouchscreenMovement.CenterOnPlayer;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
 	KeyAction optKeyBindBack = KeyAction.ForwardToSystem;
@@ -1492,36 +1495,46 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 	public void onLongPress(MotionEvent e)
 	{
-		centerOnPlayer();
+		executeTouchAction(optTouchscreenHold, e);
 	}
 	public void onShowPress(MotionEvent e)
 	{
 	}
 
-	public boolean onSingleTapUp(MotionEvent e)
+	public void getSquareFromMapTouch(MotionEvent e, int squarexyout[])
+	{
+		NetHackView mapview = getMapView();
+
+		// TODO: Think more about this - should at least store it, maybe.
+		DisplayMetrics metrics = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+		int loconscreen[] = new int[2];
+		mapview.getLocationOnScreen(loconscreen);
+
+		// TODO: Check if within view?
+		int viewx = (int)Math.floor(e.getRawX() - loconscreen[0] + mapview.getScrollX() + 0.5f);
+		int viewy = (int)Math.floor(e.getRawY() - loconscreen[1] + mapview.getScrollY() + 0.5f);
+		int squarex = mapview.computeViewColumnFromCoordXClamped(viewx) + mapview.offsetX;
+		int squarey = mapview.computeViewColumnFromCoordYClamped(viewy) + mapview.offsetY;
+		squarexyout[0] = squarex;
+		squarexyout[1] = squarey;
+	}
+	public void executeTouchAction(TouchscreenMovement action, MotionEvent e)
 	{
 		NetHackView mapview = getMapView();
 		if(mapview == null)
 		{
-			return true;
+			return;
 		}
-		if(optTouchscreenMovement == TouchscreenMovement.MouseClick)
+
+		if(action == TouchscreenMovement.MouseClick)
 		{
-			// TODO: Think more about this - should at least store it, maybe.
-			DisplayMetrics metrics = new DisplayMetrics();
-			getWindowManager().getDefaultDisplay().getMetrics(metrics);
-
-			int loconscreen[] = new int[2];
-			mapview.getLocationOnScreen(loconscreen);
-
-			// TODO: Check if within view?
-			int viewx = (int)Math.floor(e.getRawX() - loconscreen[0] + mapview.getScrollX() + 0.5f);
-			int viewy = (int)Math.floor(e.getRawY() - loconscreen[1] + mapview.getScrollY() + 0.5f);
-			int squarex = mapview.computeViewColumnFromCoordXClamped(viewx) + mapview.offsetX;
-			int squarey = mapview.computeViewColumnFromCoordYClamped(viewy) + mapview.offsetY;
-			NetHackMapTap(squarex, squarey);
+			int squarexy[] = new int[2];
+			getSquareFromMapTouch(e, squarexy);
+			NetHackMapTap(squarexy[0], squarexy[1]);
 		}
-		else if(optTouchscreenMovement == TouchscreenMovement.Grid3x3)
+		else if(action == TouchscreenMovement.Grid3x3)
 		{
 			// TODO: Think more about this - should at least store it, maybe.
 			DisplayMetrics metrics = new DisplayMetrics();
@@ -1591,6 +1604,22 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				NetHackTerminalSend(tmp);
 			}
 		}
+		else if(action == TouchscreenMovement.CenterOnPlayer)
+		{
+			centerOnPlayer();
+		}
+		else if(action == TouchscreenMovement.CenterOnLocation)
+		{
+			int squarexy[] = new int[2];
+			getSquareFromMapTouch(e, squarexy);
+			centerOnSquare(squarexy[0], squarexy[1]);
+		}
+	}
+
+	public boolean onSingleTapUp(MotionEvent e)
+	{
+		executeTouchAction(optTouchscreenTap, e);
+
 		return true;
 	}
 
@@ -1635,11 +1664,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	public void centerOnPlayer()
 	{
-		PlayerPos pp = new PlayerPos();
-		getPlayerPosInView(pp);
-		int posx = pp.posX;
-		int posy = pp.posY;
-
 		NetHackView view = getMapView();
 		if(view.getWidth() == 0 || view.getHeight() == 0)
 		{
@@ -1652,6 +1676,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return;
 		}
 		deferredCenterOnPlayer = false;
+
+		PlayerPos pp = new PlayerPos();
+		getPlayerPosInView(pp);
+		int posx = pp.posX;
+		int posy = pp.posY;
+		centerOnSquare(posx, posy);
+	}
+
+	public void centerOnSquare(int posx, int posy)
+	{
+		NetHackView view = getMapView();
+		if(view.getWidth() == 0 || view.getHeight() == 0)
+		{
+			return;
+		}
 		int cursorcenterx = posx*view.squareSizeX + view.squareSizeX/2;
 		int cursorcentery = posy*view.squareSizeY + view.squareSizeY/2;
 		int newscrollx = cursorcenterx - view.getWidth()/2;
@@ -2419,7 +2458,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
-		optTouchscreenMovement = TouchscreenMovement.valueOf(prefs.getString("TouchscreenMovement", "MouseClick"));
+		optTouchscreenTap = TouchscreenMovement.valueOf(prefs.getString("TouchscreenTap", "MouseClick"));
+		optTouchscreenHold = TouchscreenMovement.valueOf(prefs.getString("TouchscreenHold", "CenterOnPlayer"));
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTiled"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
