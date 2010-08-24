@@ -298,6 +298,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		return keyAction;		
 	}
 
+	// Note: must match enum MoveDir in androidmain.c
 	enum MoveDir
 	{
 		None,
@@ -311,44 +312,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		Down,
 		DownRight
 	};
-
-	public char getCharForDir(MoveDir dir)
-	{
-		char c = '\0';
-		switch(dir)
-		{
-			case None:
-				break;
-			case UpLeft:
-				c = 'y';
-				break;
-			case Up:
-				c = 'k';
-				break;
-			case UpRight:
-				c = 'u';
-				break;
-			case Left:
-				c = 'h';
-				break;
-			case Center:
-				c = '.';	// Not sure
-				break;
-			case Right:
-				c = 'l';
-				break;
-			case DownLeft:
-				c = 'b';
-				break;
-			case Down:
-				c = 'j';
-				break;
-			case DownRight:
-				c = 'n';
-				break;
-		}
-		return c;
-	}
 
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
@@ -453,13 +416,14 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 					//c = 'l';
 					break;
 				case KeyEvent.KEYCODE_DPAD_CENTER:
-					//dir = MoveDir.Center;
-					c = ',';
+					dir = MoveDir.Center;
+					//c = ',';
 					break;
 			}
 			if(dir != MoveDir.None)
 			{
-				c = getCharForDir(dir);
+				//c = getCharForDir(dir);
+				NetHackSendDir(dir.ordinal());
 			}
 		}
 		
@@ -1594,14 +1558,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				else
 				{
 					dir = MoveDir.Center;
-				}		
+				}
 			}
-			if(dir != MoveDir.Center && dir != MoveDir.None)
+			if(dir != MoveDir.None)
 			{
-				char c = getCharForDir(dir);
-				String tmp = "";
-				tmp += c;
-				NetHackTerminalSend(tmp);
+				NetHackSendDir(dir.ordinal());
 			}
 		}
 		else if(action == TouchscreenMovement.CenterOnPlayer)
@@ -2487,6 +2448,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
+	public native void NetHackSendDir(int moveDir);	// enum MoveDir
 	public native void NetHackMapTap(int x, int y);
 	public native int NetHackHasQuit();
 	public native int NetHackSave();
