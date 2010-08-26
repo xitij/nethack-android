@@ -233,6 +233,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	boolean optScrollSmoothly = true;
 	boolean optScrollWithPlayer = true;
+	boolean optAllowContextSensitive = true;
 	boolean optAllowTextReformat = true;
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
@@ -423,7 +424,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			if(dir != MoveDir.None)
 			{
 				//c = getCharForDir(dir);
-				NetHackSendDir(dir.ordinal());
+				NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
 			}
 		}
 		
@@ -1562,7 +1563,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 			if(dir != MoveDir.None)
 			{
-				NetHackSendDir(dir.ordinal());
+				NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
 			}
 		}
 		else if(action == TouchscreenMovement.CenterOnPlayer)
@@ -2419,6 +2420,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
+		optAllowContextSensitive = prefs.getBoolean("AllowContextSensitive", true);
 		optTouchscreenTap = TouchscreenMovement.valueOf(prefs.getString("TouchscreenTap", "MouseClick"));
 		optTouchscreenHold = TouchscreenMovement.valueOf(prefs.getString("TouchscreenHold", "CenterOnPlayer"));
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
@@ -2448,7 +2450,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
-	public native void NetHackSendDir(int moveDir);	// enum MoveDir
+	public native void NetHackSendDir(int moveDir, int allowcontext);	// enum MoveDir
 	public native void NetHackMapTap(int x, int y);
 	public native int NetHackHasQuit();
 	public native int NetHackSave();

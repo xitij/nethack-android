@@ -61,7 +61,11 @@ enum MoveDir
 	kMoveDirRight,
 	kMoveDirDownLeft,
 	kMoveDirDown,
-	kMoveDirDownRight
+	kMoveDirDownRight,
+
+	/* Not an actual direction, but a bit we use in the message to indicate
+	   that a context-sensitive interpretation of the direction is allowed. */
+	kMoveDirAllowContextSensitive = 0x80
 };
 
 static void sPushInputEvent(unsigned char eventtype, uint16_t datalen,
@@ -762,6 +766,19 @@ static void android_process_input_event_dir()
 	
 	/* Get the direction, and map it a NetHack direction code. */
 	unsigned char c = android_msgq_pop_byte();
+
+	/* Check if we are in the regular movement loop. If not, we should
+	   stay away from trying to generate characters for context-sensitive
+	   commands. */
+	int allowcontext = (android_getgamestate() == kAndroidGameStateMoveLoop);
+
+	/* Strip and store the bit for if context-sensitive actions are allowed. */
+	if(!(c & kMoveDirAllowContextSensitive))
+	{
+		allowcontext = 0;
+	}
+	c &= ~kMoveDirAllowContextSensitive;
+
 	int index = -1;
 	if(c < 10)
 	{
@@ -771,14 +788,9 @@ static void android_process_input_event_dir()
 	/* Variables for a potential destination position. */
 	int destx = u.ux, desty = u.uy;
 
-	/* Check if we are in the regular movement loop. If not, we should
-	   stay away from trying to generate characters for context-sensitive
-	   commands. */
-	int ismoveloop = (android_getgamestate() == kAndroidGameStateMoveLoop);
-
 	if(index >= 0)
 	{
-		if(!ismoveloop)
+		if(!allowcontext)
 		{
 			/* Map the direction to a character, respecting the 'number_pad'
 			   option. */
@@ -795,7 +807,7 @@ static void android_process_input_event_dir()
 		destx += xdir[index];
 		desty += ydir[index];
 	}
-	else if(c == kMoveDirCenter && !ismoveloop)
+	else if(c == kMoveDirCenter && !allowcontext)
 	{
 		/* In this case, we are not in the main movement loop, and got the
 		   center direction - treat as a period character. */
@@ -1559,11 +1571,18 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 
 
 void Java_com_nethackff_NetHackApp_NetHackSendDir(JNIEnv *env, jobject thiz,
-		int dir)
+		int dir, int allowcontext)
 {
 	android_msgq_begin_message();
 	android_msgq_push_byte((unsigned char)kInputEventDir);
-	android_msgq_push_byte((unsigned char)dir);
+
+	unsigned char c = (unsigned char)dir;
+	if(allowcontext)
+	{
+		c |= kMoveDirAllowContextSensitive;
+	}
+	android_msgq_push_byte(c);
+
 	android_msgq_end_message();
 }
 
