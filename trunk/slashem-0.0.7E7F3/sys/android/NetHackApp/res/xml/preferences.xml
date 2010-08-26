@@ -77,14 +77,14 @@
 		<ListPreference
 			android:title="Touchscreen Tap"
 			android:key="TouchscreenTap"
-			android:defaultValue="MouseClick"
+			android:defaultValue="Grid3x3"
 			android:entries="@array/TouchscreenTapEntries"
 			android:entryValues="@array/TouchscreenTapValues"/>
 
 		<ListPreference
 			android:title="Touchscreen Hold"
 			android:key="TouchscreenHold"
-			android:defaultValue="CenterOnPlayer"
+			android:defaultValue="MouseClick"
 			android:entries="@array/TouchscreenHoldEntries"
 			android:entryValues="@array/TouchscreenHoldValues"/>
 
