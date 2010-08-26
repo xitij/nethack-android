@@ -87,6 +87,14 @@ public class NetHackView extends View
 		return coordy/squareSizeY;
 	}
 
+	int computeViewColumnFromCoordXClamped(int coordx)
+	{
+		return Math.min(Math.max(coordx/squareSizeX, 0), sizeX - 1);
+	}
+	int computeViewColumnFromCoordYClamped(int coordy)
+	{
+		return Math.min(Math.max(coordy/squareSizeY, 0), sizeY - 1);
+	}
 
 	protected void onMeasure(int widthmeasurespec, int heightmeasurespec)
 	{

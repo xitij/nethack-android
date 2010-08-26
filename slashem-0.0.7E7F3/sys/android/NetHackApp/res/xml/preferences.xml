@@ -74,6 +74,25 @@
 		<CheckBoxPreference android:key="MoveWithTrackball"
 			android:title="Move with Trackball"
 			android:defaultValue="true"/>
+		<ListPreference
+			android:title="Touchscreen Tap"
+			android:key="TouchscreenTap"
+			android:defaultValue="MouseClick"
+			android:entries="@array/TouchscreenTapEntries"
+			android:entryValues="@array/TouchscreenTapValues"/>
+
+		<ListPreference
+			android:title="Touchscreen Hold"
+			android:key="TouchscreenHold"
+			android:defaultValue="CenterOnPlayer"
+			android:entries="@array/TouchscreenHoldEntries"
+			android:entryValues="@array/TouchscreenHoldValues"/>
+
+		<CheckBoxPreference android:key="AllowContextSensitive"
+			android:title="Allow Context Sensitive Input"
+			android:summary="If set, trackball/touchscreen directions can open doors, pick up objects, etc.."
+			android:defaultValue="true"/>
+		
 		<CheckBoxPreference android:key="StickyAlt"
 			android:title="Sticky Alt Keys"
 			android:defaultValue="false"/>
