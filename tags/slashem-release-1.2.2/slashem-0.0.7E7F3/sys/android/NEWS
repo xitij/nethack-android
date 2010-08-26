@@ -1,0 +1,34 @@
+1.2.2 (August 26, 2010)
+-----------------------
+
+- Added touchscreen movement options (3x3 grid or travel, plus long press options).
+- Improved context sensitivity when using trackball, for picking up stuff,
+  opening/kick doors, etc.
+- 'number_pad' option works better, allowing use of the trackball.
+
+1.2.1 (July 31, 2010)
+---------------------
+
+- Tile drawing.
+- Loading of tile sets from external packages.
+- NetHack "standard 16x16" tile set included.
+- Option to auto-scroll with player movement.
+- Option to use smooth scrolling.
+- Basic zoom functionality.
+- Key binding improvements: Back button remapping, option to block or forward to system.
+
+1.1.2 (July 6, 2010)
+--------------------
+
+- Made Ctrl-P work in "Android TTY" mode.
+- Added prompt to destroy old game, if the recovery failed.
+- Fixed text background bug with Amiga colors.
+- Fixed cursor position when refreshing the screen (on orientation change, etc).
+- Fixed display wraparound bug.
+- More reliable auto-saving.
+
+1.1.1 (July 5, 2010)
+--------------------
+
+- First release, based off the NetHack application version 1.2.4, with
+  Slash'EM 0.0.7E7F3.
