@@ -2421,8 +2421,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
 		optAllowContextSensitive = prefs.getBoolean("AllowContextSensitive", true);
-		optTouchscreenTap = TouchscreenMovement.valueOf(prefs.getString("TouchscreenTap", "MouseClick"));
-		optTouchscreenHold = TouchscreenMovement.valueOf(prefs.getString("TouchscreenHold", "CenterOnPlayer"));
+		optTouchscreenTap = TouchscreenMovement.valueOf(prefs.getString("TouchscreenTap", "Grid3x3"));
+		optTouchscreenHold = TouchscreenMovement.valueOf(prefs.getString("TouchscreenHold", "MouseClick"));
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTiled"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
