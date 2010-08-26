@@ -37,7 +37,14 @@ HACKCSRC = allmain.c alloc.c apply.c artifact.c attrib.c ball.c bones.c \
 LOCAL_MODULE    := slashem
 
 ANDROID_NATIVE_DIR := ../sys/android/NetHackNative
-LOCAL_SRC_FILES :=  $(ANDROID_NATIVE_DIR)/androidmain.c $(ANDROID_NATIVE_DIR)/winandroid.c monst.c objects.c $(HACKCSRC)
+LOCAL_SRC_FILES :=		\
+		$(ANDROID_NATIVE_DIR)/androidmain.c		\
+		$(ANDROID_NATIVE_DIR)/androidrecover.c	\
+		$(ANDROID_NATIVE_DIR)/comm.c			\
+		$(ANDROID_NATIVE_DIR)/winandroid.c		\
+		monst.c									\
+		objects.c								\
+		$(HACKCSRC)
 
 # The -fno-builtin-printf stuff is here so that out #define remapping
 # it to android_printf() works. Would be nice to not rely on #defines

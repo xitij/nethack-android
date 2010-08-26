@@ -32,6 +32,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore.Images.Media;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -221,8 +222,18 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		Amiga
 	}
 
+	enum TouchscreenMovement
+	{
+		Disabled,
+		MouseClick,
+		Grid3x3,
+		CenterOnLocation,
+		CenterOnPlayer,
+	}
+
 	boolean optScrollSmoothly = true;
 	boolean optScrollWithPlayer = true;
+	boolean optAllowContextSensitive = true;
 	boolean optAllowTextReformat = true;
 	boolean optFullscreen = true;
 	ColorMode optColorMode = ColorMode.Invalid;
@@ -232,6 +243,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	FontSize optFontSize = FontSize.FontSize10;
 	Orientation optOrientation = Orientation.Invalid;
 	boolean optMoveWithTrackball = true;
+	TouchscreenMovement optTouchscreenTap = TouchscreenMovement.MouseClick;
+	TouchscreenMovement optTouchscreenHold = TouchscreenMovement.CenterOnPlayer;
 	KeyAction optKeyBindAltLeft = KeyAction.AltKey;
 	KeyAction optKeyBindAltRight = KeyAction.AltKey;
 	KeyAction optKeyBindBack = KeyAction.ForwardToSystem;
@@ -285,7 +298,22 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		return keyAction;		
 	}
-	
+
+	// Note: must match enum MoveDir in androidmain.c
+	enum MoveDir
+	{
+		None,
+		UpLeft,
+		Up,
+		UpRight,
+		Left,
+		Center,
+		Right,
+		DownLeft,
+		Down,
+		DownRight
+	};
+
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
 		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
@@ -369,23 +397,34 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		if(optMoveWithTrackball)
 		{
+			MoveDir dir = MoveDir.None;
 			switch(keyCode)
 			{
 				case KeyEvent.KEYCODE_DPAD_DOWN:
-					c = 'j';
+					dir = MoveDir.Down;
+					//c = 'j';
 					break;
 				case KeyEvent.KEYCODE_DPAD_UP:
-					c = 'k';
+					dir = MoveDir.Up;
+					//c = 'k';
 					break;
 				case KeyEvent.KEYCODE_DPAD_LEFT:
-					c = 'h';
+					dir = MoveDir.Left;
+					//c = 'h';
 					break;
 				case KeyEvent.KEYCODE_DPAD_RIGHT:
-					c = 'l';
+					dir = MoveDir.Right;
+					//c = 'l';
 					break;
 				case KeyEvent.KEYCODE_DPAD_CENTER:
-					c = ',';
+					dir = MoveDir.Center;
+					//c = ',';
 					break;
+			}
+			if(dir != MoveDir.None)
+			{
+				//c = getCharForDir(dir);
+				NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
 			}
 		}
 		
@@ -1403,13 +1442,128 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	}
 	public void onLongPress(MotionEvent e)
 	{
-		centerOnPlayer();
+		executeTouchAction(optTouchscreenHold, e);
 	}
 	public void onShowPress(MotionEvent e)
 	{
 	}
+
+	public void getSquareFromMapTouch(MotionEvent e, int squarexyout[])
+	{
+		NetHackView mapview = getMapView();
+
+		// TODO: Think more about this - should at least store it, maybe.
+		DisplayMetrics metrics = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+		int loconscreen[] = new int[2];
+		mapview.getLocationOnScreen(loconscreen);
+
+		// TODO: Check if within view?
+		int viewx = (int)Math.floor(e.getRawX() - loconscreen[0] + mapview.getScrollX() + 0.5f);
+		int viewy = (int)Math.floor(e.getRawY() - loconscreen[1] + mapview.getScrollY() + 0.5f);
+		int squarex = mapview.computeViewColumnFromCoordXClamped(viewx) + mapview.offsetX;
+		int squarey = mapview.computeViewColumnFromCoordYClamped(viewy) + mapview.offsetY;
+		squarexyout[0] = squarex;
+		squarexyout[1] = squarey;
+	}
+	public void executeTouchAction(TouchscreenMovement action, MotionEvent e)
+	{
+		NetHackView mapview = getMapView();
+		if(mapview == null)
+		{
+			return;
+		}
+
+		if(action == TouchscreenMovement.MouseClick)
+		{
+			int squarexy[] = new int[2];
+			getSquareFromMapTouch(e, squarexy);
+			NetHackMapTap(squarexy[0], squarexy[1]);
+		}
+		else if(action == TouchscreenMovement.Grid3x3)
+		{
+			// TODO: Think more about this - should at least store it, maybe.
+			DisplayMetrics metrics = new DisplayMetrics();
+			getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+			int loconscreen[] = new int[2];
+			mapview.getLocationOnScreen(loconscreen);
+
+			float xx = e.getRawX()/(float)metrics.widthPixels;
+			float yy = (e.getRawY() - loconscreen[1])/(float)mapview.getHeight();
+			int dx = ((xx <= 0.333f) ? -1 : (xx >= 0.667f ? 1 : 0));
+			int dy = ((yy <= 0.333f) ? -1 : (yy >= 0.667f ? 1 : 0));
+
+			MoveDir dir = MoveDir.None;
+			// Very lame... should do something with the numbers here, except
+			// Java makes it hard to assign values to enums... can probably use an array to look up in.
+			if(dy == -1)
+			{
+				if(dx == -1)
+				{
+					dir = MoveDir.UpLeft;
+				}
+				else if(dx == 1)
+				{
+					dir = MoveDir.UpRight;
+				}
+				else
+				{
+					dir = MoveDir.Up;
+				}
+			}
+			else if(dy == 1)
+			{
+				if(dx == -1)
+				{
+					dir = MoveDir.DownLeft;
+				}
+				else if(dx == 1)
+				{
+					dir = MoveDir.DownRight;
+				}
+				else
+				{
+					dir = MoveDir.Down;
+				}
+			}
+			else
+			{
+				if(dx == -1)
+				{
+					dir = MoveDir.Left;
+				}
+				else if(dx == 1)
+				{
+					dir = MoveDir.Right;
+				}
+				else
+				{
+					dir = MoveDir.Center;
+				}
+			}
+			if(dir != MoveDir.None)
+			{
+				NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
+			}
+		}
+		else if(action == TouchscreenMovement.CenterOnPlayer)
+		{
+			centerOnPlayer();
+		}
+		else if(action == TouchscreenMovement.CenterOnLocation)
+		{
+			int squarexy[] = new int[2];
+			getSquareFromMapTouch(e, squarexy);
+			centerOnSquare(squarexy[0], squarexy[1]);
+		}
+	}
+
 	public boolean onSingleTapUp(MotionEvent e)
 	{
+		executeTouchAction(optTouchscreenTap, e);
+
 		return true;
 	}
 
@@ -1454,11 +1608,6 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	
 	public void centerOnPlayer()
 	{
-		PlayerPos pp = new PlayerPos();
-		getPlayerPosInView(pp);
-		int posx = pp.posX;
-		int posy = pp.posY;
-
 		NetHackView view = getMapView();
 		if(view.getWidth() == 0 || view.getHeight() == 0)
 		{
@@ -1471,6 +1620,21 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			return;
 		}
 		deferredCenterOnPlayer = false;
+
+		PlayerPos pp = new PlayerPos();
+		getPlayerPosInView(pp);
+		int posx = pp.posX;
+		int posy = pp.posY;
+		centerOnSquare(posx, posy);
+	}
+
+	public void centerOnSquare(int posx, int posy)
+	{
+		NetHackView view = getMapView();
+		if(view.getWidth() == 0 || view.getHeight() == 0)
+		{
+			return;
+		}
 		int cursorcenterx = posx*view.squareSizeX + view.squareSizeX/2;
 		int cursorcentery = posy*view.squareSizeY + view.squareSizeY/2;
 		int newscrollx = cursorcenterx - view.getWidth()/2;
@@ -2238,6 +2402,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		optFullscreen = prefs.getBoolean("Fullscreen", true);
 		optAllowTextReformat = prefs.getBoolean("AllowTextReformat", true);
 		optMoveWithTrackball = prefs.getBoolean("MoveWithTrackball", true);
+		optAllowContextSensitive = prefs.getBoolean("AllowContextSensitive", true);
+		optTouchscreenTap = TouchscreenMovement.valueOf(prefs.getString("TouchscreenTap", "MouseClick"));
+		optTouchscreenHold = TouchscreenMovement.valueOf(prefs.getString("TouchscreenHold", "CenterOnPlayer"));
 		optColorMode = ColorMode.valueOf(prefs.getString("ColorMode", "WhiteOnBlack"));
 		optUIModeNew = UIMode.valueOf(prefs.getString("UIMode", "AndroidTiled"));
 		optCharacterSet = CharacterSet.valueOf(prefs.getString("CharacterSet", "Amiga"));
@@ -2265,6 +2432,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public native void NetHackShutdown();
 	public native String NetHackTerminalReceive();
 	public native void NetHackTerminalSend(String str);
+	public native void NetHackSendDir(int moveDir, int allowcontext);	// enum MoveDir
+	public native void NetHackMapTap(int x, int y);
 	public native int NetHackHasQuit();
 	public native int NetHackSave();
 	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
