@@ -197,6 +197,7 @@ static const char *s_statenames[] =
 {
 	"Invalid",
 	"ExtCmd",
+	"GetPos",
 	"Init",
 	"Menu",
 	"MoveLoop",
