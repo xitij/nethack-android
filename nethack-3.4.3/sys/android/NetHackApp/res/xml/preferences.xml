@@ -87,6 +87,11 @@
 			android:defaultValue="CenterOnPlayer"
 			android:entries="@array/TouchscreenHoldEntries"
 			android:entryValues="@array/TouchscreenHoldValues"/>
+
+		<CheckBoxPreference android:key="AllowContextSensitive"
+			android:title="Allow Context Sensitive Input"
+			android:summary="If set, trackball/touchscreen directions can open doors, pick up objects, etc.."
+			android:defaultValue="true"/>
 		
 		<CheckBoxPreference android:key="StickyAlt"
 			android:title="Sticky Alt Keys"
