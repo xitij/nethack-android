@@ -15,7 +15,7 @@
 	<string name="configimport_msg">This will copy a NetHack configuration file from your SD card or elsewhere, to where the game can read it.</string>
 	<string name="configimport_title">Import Configuration File.</string>
 	<string name="configimport_failed">Failed to copy from</string>
-	<string name="configimport_failed2">If copying from SD card, make sure it's not mounted on your PC.</string>
+	<string name="configimport_failed2">If copying from SD card, make sure it\'s not mounted on your PC.</string>
 	<string name="configimport_success">Configuration imported from</string>
 	<string name="configimport_success2">These settings will take effect the next time the application starts.</string>
 	<string name="config_defaultfile">/sdcard/NetHack.cnf</string>

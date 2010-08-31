@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NetHack Slash'EM</string>
+    <string name="app_name">NetHack Slash\'EM</string>
 	<string name="about">About</string>
 	<string name="about_msg">Android version 1.2.2\nPort by Fredrik Farnstrom\nfarnstrom@gmail.com\nIcon by Rich Jones (rich@anomos.info)\nSee Preferences screen for key bindings.\nTouch the screen to scroll (if needed).\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org and www.slashem.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/\n</string>
-	<string name="about_title">NetHack Slash'EM 0.0.7E7F3</string>
+	<string name="about_title">NetHack Slash\'EM 0.0.7E7F3</string>
 	<string name="uimodechanged_msg">The new UI mode will take effect the next time you start the application.</string>
 	<string name="uimodechanged_title">UI mode changed</string>
 	<string name="menu_exportconfig">Export Config</string>
@@ -15,7 +15,7 @@
 	<string name="configimport_msg">This will copy a NetHack configuration file from your SD card or elsewhere, to where the game can read it.</string>
 	<string name="configimport_title">Import Configuration File.</string>
 	<string name="configimport_failed">Failed to copy from</string>
-	<string name="configimport_failed2">If copying from SD card, make sure it's not mounted on your PC.</string>
+	<string name="configimport_failed2">If copying from SD card, make sure it\'s not mounted on your PC.</string>
 	<string name="configimport_success">Configuration imported from</string>
 	<string name="configimport_success2">These settings will take effect the next time the application starts.</string>
 	<string name="config_defaultfile">/sdcard/SLASHEM.cnf</string>
