@@ -12,5 +12,5 @@ See also nethack.wikia.com/wiki/The_Absurd_NetHack_Tileset for more information.
 <string name="TilesAbsurdAltHeader">Absurd(alt) 32x32</string>
 <string name="TilesAbsurdAltInfo">This is a slightly different version of the Absurd tileset which was found here: bilious.homelinux.org/~paxed/nethack/nhsshot/tileset/absurd32_nethack.png. The main difference I know about is that the walls are pictured straight from above, rather than at an angle.</string>
 <string name="TilesRLTilesHeader">RLTiles 32x32</string>
-<string name="TilesRLTilesInfo">Part of the graphic tiles used in this program is the public domain roguelike tileset '"'RLTiles'"'. You can find the original tileset at: http://rltiles.sf.net</string>
+<string name="TilesRLTilesInfo">Part of the graphic tiles used in this program is the public domain roguelike tileset \"RLTiles\". You can find the original tileset at: http://rltiles.sf.net</string>
 </resources>
