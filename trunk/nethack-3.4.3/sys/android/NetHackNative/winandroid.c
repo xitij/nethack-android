@@ -280,7 +280,7 @@ static int s_MessageNumColumns = 80;
 static int s_StatusNumColumns = 80;
 static int s_NumMsgLines = 1;
 
-void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
+void Java_com_nethackff_NetHackJNI_NetHackSetScreenDim(
 		JNIEnv *env, jobject thiz, int msgwidth, int nummsglines,
 		int statuswidth)
 {
