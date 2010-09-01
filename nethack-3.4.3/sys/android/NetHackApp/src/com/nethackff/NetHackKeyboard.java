@@ -14,9 +14,9 @@ public class NetHackKeyboard implements OnKeyboardActionListener
 	Keyboard virtualKeyboardSymbols;
 	Keyboard virtualKeyboardSymbolsShift;
 
-	NetHackApp netHackApp;
+	NetHackGameActivity netHackApp;
 	
-	NetHackKeyboard(NetHackApp app)
+	NetHackKeyboard(NetHackGameActivity app)
 	{
 		netHackApp = app;
 		virtualKeyboardQwerty = new Keyboard(app, R.xml.keyboard_qwerty);
@@ -194,7 +194,7 @@ needed from 2nd page: <>^_[
 		{
 			String s = "";
 			s += c;
-			netHackApp.NetHackTerminalSend(s);
+			netHackApp.jni.NetHackTerminalSend(s);
 		}
 	}
 	

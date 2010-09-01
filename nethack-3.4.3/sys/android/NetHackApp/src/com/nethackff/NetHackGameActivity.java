@@ -70,8 +70,11 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.LinkedList;
 
-public class NetHackApp extends Activity implements Runnable, OnGestureListener
+public class NetHackGameActivity extends Activity implements Runnable, OnGestureListener
 {
+	// TODO: Check to see if we can get rid of this by declaring the JNI functions as static.
+	NetHackJNI jni;
+
 	NetHackTerminalView mainView;
 	NetHackTerminalView messageView;
 	NetHackTerminalView statusView;
@@ -424,7 +427,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			if(dir != MoveDir.None)
 			{
 				//c = getCharForDir(dir);
-				NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
+				jni.NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
 			}
 		}
 		
@@ -457,7 +460,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			altKey.usedIfActive();
 
 			s += c;
-			NetHackTerminalSend(s);
+			jni.NetHackTerminalSend(s);
 		}
 
 		return true;
@@ -626,7 +629,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		statusView.computeSizePixels();
 		statusView.initStateFromView();
 
-		NetHackSetScreenDim(messageView.getSizeX(), messageRows, statuswidthonscreen);
+		jni.NetHackSetScreenDim(messageView.getSizeX(), messageRows, statuswidthonscreen);
 
 		mainView.colorSet = optCharacterColorSet;
 	}
@@ -666,7 +669,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		}
 		else
 		{
-			NetHackRefreshDisplay();
+			jni.NetHackRefreshDisplay();
 		}
 
 	}
@@ -821,7 +824,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			updateScrollWithPlayer();
 			updateAutoScroll();
 				
-			if(NetHackHasQuit() != 0)
+			if(jni.NetHackHasQuit() != 0)
 			{
 				gameInitialized = false;
 				terminalInitialized = false;
@@ -837,7 +840,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				return;
 			}
 
-			if(NetHackGetPlayerPosShouldRecenter() != 0)
+			if(jni.NetHackGetPlayerPosShouldRecenter() != 0)
 			{
 				// This doesn't seem to work very well in pure TTY mode. 
 				if(!isPureTTYMode())
@@ -846,7 +849,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				}
 			}
 
-			String s = NetHackTerminalReceive();
+			String s = jni.NetHackTerminalReceive();
 			if(s.length() != 0)
 			{
 				for(int i = 0; i < s.length(); i++)
@@ -1016,7 +1019,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 // Is this safe??
 				NetHackTerminalSend(tmp);
 */
-				NetHackRefreshDisplay();
+				jni.NetHackRefreshDisplay();
 				refreshDisplay = false;
 			}
 		}
@@ -1213,7 +1216,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				uimode = 2;
 				tilesEnabled = true;	// Native code knows to expect this.
 			}
-			if(NetHackInit(uimode, nethackdir) == 0)
+			if(jni.NetHackInit(uimode, nethackdir) == 0)
 			{
 				// TODO
 				return;
@@ -1545,7 +1548,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 		{
 			int squarexy[] = new int[2];
 			getSquareFromMapTouch(e, squarexy);
-			NetHackMapTap(squarexy[0], squarexy[1]);
+			jni.NetHackMapTap(squarexy[0], squarexy[1]);
 		}
 		else if(action == TouchscreenMovement.Grid3x3)
 		{
@@ -1611,7 +1614,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 			}
 			if(dir != MoveDir.None)
 			{
-				NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
+				jni.NetHackSendDir(dir.ordinal(), optAllowContextSensitive ? 1 : 0);
 			}
 		}
 		else if(action == TouchscreenMovement.CenterOnPlayer)
@@ -1641,9 +1644,9 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public void getPlayerPosInView(PlayerPos p)
 	{
 		// Probably would be better to get these two with one function call, but
-		// seems a bit messy to return two values at once through JNI.
-		int posx = NetHackGetPlayerPosX();
-		int posy = NetHackGetPlayerPosY();
+		// seems a bit messy to return two values at once through jni.
+		int posx = jni.NetHackGetPlayerPosX();
+		int posy = jni.NetHackGetPlayerPosY();
 
 		// This is a bit funky. I think the difference of two between posx and posy
 		// comes from two different things:
@@ -1739,10 +1742,10 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 
 	public void onPause()
 	{
-		if(NetHackHasQuit() == 0)
+		if(jni.NetHackHasQuit() == 0)
 		{
 			Log.i("NetHack", "Auto-saving");
-			if(NetHackSave() != 0)
+			if(jni.NetHackSave() != 0)
 			{
 				Log.i("NetHack", "Auto-save succeeded");
 			}
@@ -1809,11 +1812,11 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				// to do without restarting.
 				if(optUIModeNew == UIMode.AndroidTTY)
 				{
-					NetHackSetTilesEnabled(0);
+					jni.NetHackSetTilesEnabled(0);
 				}
 				else
 				{
-					NetHackSetTilesEnabled(1);		
+					jni.NetHackSetTilesEnabled(1);		
 				}
 				uiModeActual = optUIModeNew;
 			}				
@@ -1840,7 +1843,7 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 				// TEMP
 				Log.i("NetHackDbg", "Switching to mode " + index);
 
-				NetHackSwitchCharSet(index);
+				jni.NetHackSwitchCharSet(index);
 			}
 		}
 		
@@ -2184,6 +2187,8 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		super.onCreate(savedInstanceState);
 
+		jni = new NetHackJNI();
+
 		altKey = new ModifierKey();
 		ctrlKey = new ModifierKey();
 		shiftKey = new ModifierKey();
@@ -2493,26 +2498,4 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	public /*static*/ NetHackTerminalState messageTerminalState;
 	public /*static*/ NetHackTerminalState statusTerminalState;
 	public NetHackTerminalState menuTerminalState;
-
-	public native int NetHackInit(int puretty, String nethackdir);
-	public native void NetHackShutdown();
-	public native String NetHackTerminalReceive();
-	public native void NetHackTerminalSend(String str);
-	public native void NetHackSendDir(int moveDir, int allowcontext);	// enum MoveDir
-	public native void NetHackMapTap(int x, int y);
-	public native int NetHackHasQuit();
-	public native int NetHackSave();
-	public native void NetHackSetScreenDim(int msgwidth, int nummsglines, int statuswidth);
-	public native void NetHackRefreshDisplay();
-	public native void NetHackSwitchCharSet(int charsetindex);
-	public native void NetHackSetTilesEnabled(int tilesenabled);
-	
-	public native int NetHackGetPlayerPosX();
-	public native int NetHackGetPlayerPosY();
-	public native int NetHackGetPlayerPosShouldRecenter();
-	
-	static
-	{
-		System.loadLibrary("nethack");
-	}
 }
