@@ -1112,29 +1112,77 @@ public class NetHackApp extends Activity implements Runnable, OnGestureListener
 	{
 		return getAppDir() + "/nethackdir"; 
 	}
+
+	public String determineFileLocation()
+	{
+		// Up until version 1.2.1, the application hardcoded the path.
+		// Not sure if this caused a problem in practice, but it's possible
+		// that for example people running the application from the SD card
+		// with a mod could run into trouble, and it's much more proper to
+		// use getFilesDir(). But, unfortunately, that may not actually return
+		// the same value for people with existing installations (in my case,
+		// it returns "/data/data/com.nethackff/files", so we have to be really
+		// careful to not lose saved data. For that reason, we check for the
+		// presence of the "version.txt" file at the old hardcoded location,
+		// and if it's there, we continue to use the old location.
+		String obsoletePath = "/data/data/com.nethackff";
+		if(new File(obsoletePath + "/version.txt").exists())
+		{
+			Log.i("NetHackDbg", "Found obsolete installation");
+			return obsoletePath;
+		}
+		else
+		{
+			String internalPath = getFilesDir().getAbsolutePath(); 
+			if(new File(internalPath + "/version.txt").exists())
+			{
+				Log.i("NetHackDbg", "Found internal installation");
+				return internalPath;
+			}
+			else
+			{
+				// TODO: Continue working out this stuff.
+				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+				if(prefs.contains("UseExternalMemoryForDataFiles"))
+				{
+					boolean useExt = prefs.getBoolean("UseExternalMemoryForDataFiles", true);
+					if(useExt)
+					{
+						Log.i("NetHackDbg", "Found preference, using external!");
+					}
+					else
+					{
+						Log.i("NetHackDbg", "Found preference, NOT using external!");
+					}
+				}
+
+				File externalFile = getExternalFilesDir(null);
+				if(externalFile != null)
+				{
+					Log.i("NetHackDbg", "Found external memory");
+					
+					SharedPreferences.Editor prefsEditor = prefs.edit();
+					prefsEditor.putBoolean("UseExternalMemoryForDataFiles", true);
+					prefsEditor.commit();
+
+					return externalFile.getAbsolutePath();
+				}
+
+				SharedPreferences.Editor prefsEditor = prefs.edit();
+				prefsEditor.putBoolean("UseExternalMemoryForDataFiles", false);
+				prefsEditor.commit();
+
+				Log.i("NetHackDbg", "Using internal memory (new)");
+				return internalPath;
+			}
+		}
+	}
 	public void run()
 	{
 		if(!gameInitialized)
 		{
-			// Up until version 1.2.1, the application hardcoded the path.
-			// Not sure if this caused a problem in practice, but it's possible
-			// that for example people running the application from the SD card
-			// with a mod could run into trouble, and it's much more proper to
-			// use getFilesDir(). But, unfortunately, that may not actually return
-			// the same value for people with existing installations (in my case,
-			// it returns "/data/data/com.nethackff/files", so we have to be really
-			// careful to not lose saved data. For that reason, we check for the
-			// presence of the "version.txt" file at the old hardcoded location,
-			// and if it's there, we continue to use the old location.
-			String obsoletePath = "/data/data/com.nethackff";
-			if(new File(obsoletePath + "/version.txt").exists())
-			{
-				appDir = obsoletePath;
-			}
-			else
-			{
-				appDir = getFilesDir().getAbsolutePath();	
-			}
+			appDir = determineFileLocation();
+
 			Log.i("NetHackDbg", "Using directory '" + appDir + "' for application files.");
 
 			String nethackdir = getNetHackDir();
