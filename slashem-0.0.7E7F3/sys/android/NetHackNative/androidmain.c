@@ -1316,7 +1316,7 @@ static const int kUiModePureTTY = 1;
 static const int kUiModeAndroidTiled = 2;
 #endif
 
-int Java_com_slashemff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
+int Java_com_slashemff_NetHackJNI_NetHackInit(JNIEnv *env, jobject thiz,
 		int uimode, jstring nethackdir)
 {
 	char *p;
@@ -1418,7 +1418,7 @@ int Java_com_slashemff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	return 1;
 }
 
-void Java_com_slashemff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
+void Java_com_slashemff_NetHackJNI_NetHackShutdown(JNIEnv *env, jobject thiz)
 {
 	if(g_ThreadHandle)
 	{
@@ -1443,14 +1443,14 @@ void Java_com_slashemff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 }
 
 
-int Java_com_slashemff_NetHackApp_NetHackHasQuit(JNIEnv *env, jobject thiz)
+int Java_com_slashemff_NetHackJNI_NetHackHasQuit(JNIEnv *env, jobject thiz)
 {
 	return s_Quit;
 }
 
 extern int dosave0();
 
-int Java_com_slashemff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
+int Java_com_slashemff_NetHackJNI_NetHackSave(JNIEnv *env, jobject thiz)
 {
 	if(!s_ReadyForSave)
 	{
@@ -1463,7 +1463,7 @@ int Java_com_slashemff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
 }
 
 
-void Java_com_slashemff_NetHackApp_NetHackRefreshDisplay(
+void Java_com_slashemff_NetHackJNI_NetHackRefreshDisplay(
 		JNIEnv *env, jobject thiz)
 {
 	/* Do we need to do anything to check if we are in a state where
@@ -1478,7 +1478,7 @@ void Java_com_slashemff_NetHackApp_NetHackRefreshDisplay(
 }
 
 
-void Java_com_slashemff_NetHackApp_NetHackSwitchCharSet(
+void Java_com_slashemff_NetHackJNI_NetHackSwitchCharSet(
 		JNIEnv *env, jobject thiz, int charset)
 {
 	int cmd = -1;
@@ -1513,7 +1513,7 @@ void Java_com_slashemff_NetHackApp_NetHackSwitchCharSet(
 }
 
 
-void Java_com_slashemff_NetHackApp_NetHackSetTilesEnabled(
+void Java_com_slashemff_NetHackJNI_NetHackSetTilesEnabled(
 		JNIEnv *env, jobject thiz, int tilesenabled)
 {
 	int sync = 1;	/* Maybe less risk for timing-related display bugs this way? */
@@ -1527,7 +1527,7 @@ void Java_com_slashemff_NetHackApp_NetHackSetTilesEnabled(
 	}
 }
 
-int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
+int Java_com_slashemff_NetHackJNI_NetHackGetPlayerPosX(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1542,7 +1542,7 @@ int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
 }
 
 
-int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
+int Java_com_slashemff_NetHackJNI_NetHackGetPlayerPosY(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1557,7 +1557,7 @@ int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
 }
 
 
-int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
+int Java_com_slashemff_NetHackJNI_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1575,7 +1575,7 @@ int Java_com_slashemff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 }
 
 
-void Java_com_slashemff_NetHackApp_NetHackSendDir(JNIEnv *env, jobject thiz,
+void Java_com_slashemff_NetHackJNI_NetHackSendDir(JNIEnv *env, jobject thiz,
 		int dir, int allowcontext)
 {
 	android_msgq_begin_message();
@@ -1592,7 +1592,7 @@ void Java_com_slashemff_NetHackApp_NetHackSendDir(JNIEnv *env, jobject thiz,
 }
 
 
-void Java_com_slashemff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
+void Java_com_slashemff_NetHackJNI_NetHackTerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
 	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
@@ -1623,7 +1623,7 @@ void Java_com_slashemff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz
 }
 
 
-void Java_com_slashemff_NetHackApp_NetHackMapTap(JNIEnv *env,
+void Java_com_slashemff_NetHackJNI_NetHackMapTap(JNIEnv *env,
 		jobject thiz, int x, int y)
 {
 	android_msgq_begin_message();
@@ -1634,7 +1634,7 @@ void Java_com_slashemff_NetHackApp_NetHackMapTap(JNIEnv *env,
 }
 
 
-jstring Java_com_slashemff_NetHackApp_NetHackTerminalReceive(JNIEnv *env,
+jstring Java_com_slashemff_NetHackJNI_NetHackTerminalReceive(JNIEnv *env,
 		jobject thiz)
 {
 	pthread_mutex_lock(&s_SendMutex);
