@@ -7,12 +7,18 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.Window;
 import java.io.BufferedReader;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -29,6 +35,8 @@ import java.lang.reflect.Method;
 
 public class NetHackApp extends Activity
 {
+	public NetHackGameActivity game;
+
 	static final int MSG_SHOW_DIALOG_SD_CARD_NOT_FOUND = 100;	// TEMP
 	static final int MSG_INSTALL_BEGIN = 101;
 	static final int MSG_INSTALL_END = 102;
@@ -77,10 +85,15 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 					break;
 				case MSG_LAUNCH_GAME:
 					Log.i("NetHackDbg", "MSG_LAUNCH_GAME");	// TEMP
-					Intent intent = new Intent(NetHackApp.this, NetHackGameActivity.class);
-					Bundle bundle = new Bundle();
-					intent.putExtras(bundle);
-					startActivity(intent);
+// TODO: Generate exception if game already exists somehow?
+					game = new NetHackGameActivity(NetHackApp.this);
+					game.onCreate();
+					game.onStart();
+					game.onResume();
+//					Intent intent = new Intent(NetHackApp.this, NetHackGameActivity.class);
+//					Bundle bundle = new Bundle();
+//					intent.putExtras(bundle);
+//					startActivity(intent);
 					break;
 				case MSG_QUIT:
 					Log.i("NetHackDbg", "MSG_LAUNCH_QUIT");	// TEMP
@@ -195,15 +208,133 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
     }
 
 
-	static boolean firstTime = true;	// TODO: Try to get rid of.
-
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.install);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
 
-		installer = new NetHackInstaller(this.getAssets(), this, firstTime);
-		firstTime = false;	// TODO
+		// TODO: Make sure we remove the actual XML data for this.
+		//setContentView(R.layout.install);
+
+		installer = new NetHackInstaller(this.getAssets(), this, true);
 	}
+
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		super.onConfigurationChanged(newConfig);
+
+		if(game != null)
+		{
+			game.onConfigurationChanged(newConfig);
+		}
+	}
+
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		super.onCreateOptionsMenu(menu);
+		getMenuInflater().inflate(R.layout.menu, menu);
+		return true;
+	}
+
+	public void onDestroy()
+	{
+		if(game != null)
+		{
+			game.stopCommThread();
+		}
+		super.onDestroy();
+		//TestShutdown();
+	}
+
+	public boolean onKeyDown(int keycode, KeyEvent event)
+	{
+		if(game != null)
+		{
+			return game.onKeyDown(keycode, event); 
+		}
+		else
+		{
+			return super.onKeyDown(keycode, event);	
+		}
+	}
+
+	public boolean onKeyDownSuper(int keycode, KeyEvent event)
+	{
+		return super.onKeyDown(keycode, event);	
+	}
+
+	public boolean onKeyUp(int keycode, KeyEvent event)
+	{
+		if(game != null)
+		{
+			return game.onKeyUp(keycode, event); 
+		}
+		else
+		{
+			return super.onKeyUp(keycode, event);	
+		}
+	}
+
+	public boolean onKeyUpSuper(int keycode, KeyEvent event)
+	{
+		return super.onKeyUp(keycode, event);	
+	}
+
+	public void onPause()
+	{
+		if(game != null)
+		{
+			if(game.jni.NetHackHasQuit() == 0)
+			{
+				Log.i("NetHack", "Auto-saving");
+				if(game.jni.NetHackSave() != 0)
+				{
+					Log.i("NetHack", "Auto-save succeeded");
+				}
+				else
+				{
+					Log.w("NetHack", "Auto-save failed");
+				}
+			}		
+			game.stopCommThread();
+		}
+
+		super.onPause();
+	}
+
+	public void onResume()
+	{
+		super.onResume();
+
+		if(game != null)
+		{
+			game.onResume();
+		}
+	}
+
+	public boolean onTouchEvent(MotionEvent me)
+	{
+		if(game != null)
+		{
+			return game.onTouchEvent(me);
+		}
+		else
+		{
+			return super.onTouchEvent(me);	
+		}
+	}
+
+	public boolean onOptionsItemSelected(MenuItem item)
+	{
+		if(game != null)
+		{
+			return game.onOptionsItemSelected(item);
+		}
+		else
+		{
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
 }

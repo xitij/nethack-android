@@ -68,8 +68,16 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.LinkedList;
 
-public class NetHackGameActivity extends Activity implements Runnable, OnGestureListener
+//public class NetHackGameActivity extends Activity implements Runnable, OnGestureListener
+public class NetHackGameActivity implements Runnable, OnGestureListener
 {
+	NetHackApp activityNetHackApp;
+
+	NetHackGameActivity(NetHackApp app)
+	{
+		activityNetHackApp = app;
+	}
+
 	// TODO: Check to see if we can get rid of this by declaring the JNI functions as static.
 	NetHackJNI jni;
 
@@ -326,7 +334,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 			boolean newval = !optKeyboardShownInConfig[screenConfig.ordinal()];
 			optKeyboardShownInConfig[screenConfig.ordinal()] = newval;
 
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 			SharedPreferences.Editor prefsEditor = prefs.edit();
 			if(screenConfig == ScreenConfig.Portrait)
 			{
@@ -368,12 +376,12 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 
 		if(keyAction == KeyAction.ForwardToSystem)
 		{
-			return super.onKeyDown(keyCode, event);
+			return activityNetHackApp.onKeyDownSuper(keyCode, event);
 		}
 
 		if(keyCode == KeyEvent.KEYCODE_MENU)
 		{
-			return super.onKeyDown(keyCode, event);
+			return activityNetHackApp.onKeyDownSuper(keyCode, event);
 		}
 
 		if(keyAction == KeyAction.AltKey)
@@ -485,7 +493,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		{
 			if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
 			{
-				return super.onKeyUp(keyCode, event);
+				return activityNetHackApp.onKeyUpSuper(keyCode, event);
 			}
 		}
 
@@ -562,9 +570,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 
 	public void onConfigurationChanged(Configuration newConfig)
 	{
-		super.onConfigurationChanged(newConfig);
-
-		Configuration config = getResources().getConfiguration();		
+		Configuration config = activityNetHackApp.getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
 		{
 			screenConfig = ScreenConfig.Portrait;
@@ -582,7 +588,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 
 	public void initViewsCommon(boolean initial)
 	{
-		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+		Display display = ((WindowManager)activityNetHackApp.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
 		int sizeY = display.getHeight();
 
@@ -638,19 +644,19 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 
 		initViewsCommon(false);	
 
-		Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+		Display display = ((WindowManager)activityNetHackApp.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
 		int sizeY = display.getHeight();
 
 		screenLayout.removeAllViews();
-		screenLayout = new LinearLayout(this);
+		screenLayout = new LinearLayout(activityNetHackApp);
 
-		virtualKeyboard = new NetHackKeyboard(this);
+		virtualKeyboard = new NetHackKeyboard(activityNetHackApp);
 
 		updateLayout();
 
 		screenLayout.setOrientation(LinearLayout.VERTICAL);
-		setContentView(screenLayout);
+		activityNetHackApp.setContentView(screenLayout);
 
 		// I had some problems where I would switch in and out of tiled mode
 		// from the preference menu, and the application would freeze up. It seems
@@ -1054,17 +1060,17 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	{
 		if(!gameInitialized)
 		{
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 			boolean existinginstallationexternal = prefs.getBoolean("InstalledOnExternalMemory", false);
 			if(existinginstallationexternal)
 			{
-				File externalFile = getExternalFilesDir(null);
+				File externalFile = activityNetHackApp.getExternalFilesDir(null);
 				// TODO: Deal with case of externalFile = NULL (unexpected SD card unavailability change)
 				appDir = externalFile.getAbsolutePath();
 			}
 			else
 			{
-				appDir = getFilesDir().getAbsolutePath(); 
+				appDir = activityNetHackApp.getFilesDir().getAbsolutePath(); 
 			}
 
 			Log.i("NetHackDbg", "Using directory '" + appDir + "' for application files.");
@@ -1133,13 +1139,6 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		{
 			throw new RuntimeException(e.getMessage());
 		}
-	}
-
-	public void onDestroy()
-	{
-		stopCommThread();
-		super.onDestroy();
-		//TestShutdown();
 	}
 
 	// This should work, but relying on external commands is generally undesirable,
@@ -1271,7 +1270,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 
 		// TODO: Think more about this - should at least store it, maybe.
 		DisplayMetrics metrics = new DisplayMetrics();
-		getWindowManager().getDefaultDisplay().getMetrics(metrics);
+		activityNetHackApp.getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
 		int loconscreen[] = new int[2];
 		mapview.getLocationOnScreen(loconscreen);
@@ -1302,7 +1301,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		{
 			// TODO: Think more about this - should at least store it, maybe.
 			DisplayMetrics metrics = new DisplayMetrics();
-			getWindowManager().getDefaultDisplay().getMetrics(metrics);
+			activityNetHackApp.getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
 			int loconscreen[] = new int[2];
 			mapview.getLocationOnScreen(loconscreen);
@@ -1469,48 +1468,10 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 			commThread.start();
 		}
 	}
-	public void onResume()
-	{
-		super.onResume();
 
-		while(isCommThreadRunning())
-		{
-			try
-			{
-				Thread.sleep(100);
-			}
-			catch(InterruptedException e)
-			{
-				throw new RuntimeException(e.getMessage());
-			}
-		}
-
-		startCommThread();
-	}
-
-	public void onPause()
-	{
-		if(jni.NetHackHasQuit() == 0)
-		{
-			Log.i("NetHack", "Auto-saving");
-			if(jni.NetHackSave() != 0)
-			{
-				Log.i("NetHack", "Auto-save succeeded");
-			}
-			else
-			{
-				Log.w("NetHack", "Auto-save failed");
-			}
-		}		
-		stopCommThread();
-
-		super.onPause();
-	}
 
 	public void onStart()
 	{
-		super.onStart();
-
 		UIMode uiModeBefore = optUIModeNew;
 
 		int textsizebefore = getOptFontSize();
@@ -1535,12 +1496,12 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 
 		if(optFullscreen)
 		{
-			this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+			activityNetHackApp.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 					WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		}
 		else
 		{
-			this.getWindow().setFlags(0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+			activityNetHackApp.getWindow().setFlags(0, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		}
 
 		if(optUIModeNew != uiModeBefore)
@@ -1549,9 +1510,9 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 			// re-initialization of the application.
 			if(optUIModeNew == UIMode.PureTTY || uiModeActual == UIMode.PureTTY)
 			{
-				Dialog dialog = new Dialog(this);
+				Dialog dialog = new Dialog(activityNetHackApp);
 				dialog.setContentView(R.layout.uimodechanged);
-				dialog.setTitle(getString(R.string.uimodechanged_title));
+				dialog.setTitle(activityNetHackApp.getString(R.string.uimodechanged_title));
 				dialog.show();
 			}
 			else
@@ -1611,16 +1572,16 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 			switch(optOrientation)
 			{
 				case Sensor:
-					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+					activityNetHackApp.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
 					break;
 				case Portrait:
-					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+					activityNetHackApp.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 					break;
 				case Landscape:
-					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+					activityNetHackApp.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 					break;
 				case Unspecified:
-					setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+					activityNetHackApp.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 					break;
 			}
 		}
@@ -1733,7 +1694,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	
 	public void initDisplay()
 	{
-		virtualKeyboard = new NetHackKeyboard(this);
+		virtualKeyboard = new NetHackKeyboard(activityNetHackApp);
 
 		initViewsCommon(true);
 
@@ -1746,22 +1707,22 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		//currentDbgTerminalView = messageView;
 		if(currentDbgTerminalView != null)
 		{
-			Display display = ((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+			Display display = ((WindowManager)activityNetHackApp.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 			int sizeX = display.getWidth();
 
 			dbgTerminalTranscriptState = new NetHackTerminalState();
 			dbgTerminalTranscriptState.colorForeground = NetHackTerminalState.kColGreen;
-			dbgTerminalTranscriptView = new NetHackTerminalView(this, dbgTerminalTranscriptState);
+			dbgTerminalTranscriptView = new NetHackTerminalView(activityNetHackApp, dbgTerminalTranscriptState);
 			dbgTerminalTranscriptView.setSizeXFromPixels(sizeX);
 			dbgTerminalTranscriptView.setSizeY(5);
 			dbgTerminalTranscriptView.initStateFromView();
 		}
 
-		screenLayout = new LinearLayout(this);
+		screenLayout = new LinearLayout(activityNetHackApp);
 		updateLayout();
 
 		screenLayout.setOrientation(LinearLayout.VERTICAL);
-		setContentView(screenLayout);
+		activityNetHackApp.setContentView(screenLayout);
 //		setContentView(mainView);
 
 		refreshDisplay = true;
@@ -1821,7 +1782,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 
 		try
 		{
-			Bitmap bmp = Media.getBitmap(getContentResolver(), path);
+			Bitmap bmp = Media.getBitmap(activityNetHackApp.getContentResolver(), path);
 			if(bmp != null)
 			{
 				tiledView.setBitmap(bmp, info.tileSizeX, info.tileSizeY, info.defaultZoomPercentage);
@@ -1844,7 +1805,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 			{
 				try
 				{
-					Resources res = getBaseContext().getPackageManager().getResourcesForApplication(curr);
+					Resources res = activityNetHackApp.getBaseContext().getPackageManager().getResourcesForApplication(curr);
 					//int resId = getResources().getIdentifier("@string/TileSetName", "string", curr.packageName);
 					//int resId = res.getIdentifier("@string/TileSetName", "string", curr.packageName);
 					int idname = res.getIdentifier("TileSetNames", "array", curr.packageName);
@@ -1886,13 +1847,13 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		try
 		{
 			// A bit lame, should be a better way to find the ApplicationInfo of ourselves.
-			tilesetlist.addAll(getTileSetsInPackage(this.getPackageManager().getApplicationInfo("com.nethackff", 0)));
+			tilesetlist.addAll(getTileSetsInPackage(activityNetHackApp.getPackageManager().getApplicationInfo("com.nethackff", 0)));
 		}
 		catch(NameNotFoundException e)
 		{
 		}
 
-		List<ApplicationInfo> appsList = getBaseContext().getPackageManager().getInstalledApplications(0);
+		List<ApplicationInfo> appsList = activityNetHackApp.getBaseContext().getPackageManager().getInstalledApplications(0);
 		Iterator<ApplicationInfo> appsIter = appsList.iterator(); 
 		int tilesizex = 1, tilesizey = 1;
 		while(appsIter.hasNext())
@@ -1931,17 +1892,14 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		}
 	}
 		
-	public void onCreate(Bundle savedInstanceState)
+	public void onCreate()
 	{
-		super.onCreate(savedInstanceState);
-
 		jni = new NetHackJNI();
 
 		altKey = new ModifierKey();
 		ctrlKey = new ModifierKey();
 		shiftKey = new ModifierKey();
 
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
 //        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NO_STATUS_BAR,
 //      		WindowManager.LayoutParams.FLAG_NO_STATUS_BAR);
 
@@ -1978,7 +1936,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		}
 
 		int textsize = getOptFontSize();
-		mainView = new NetHackTerminalView(this, mainTerminalState);
+		mainView = new NetHackTerminalView(activityNetHackApp, mainTerminalState);
 		mainView.setTextSize(textsize);
 		//		mainView.offsetY = messageRows;
 		if(!isPureTTYMode())
@@ -1995,10 +1953,10 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 //		mainView.sizePixelsY -= 120;	// TEMP
 		mainView.sizePixelsY = 32;	// Hopefully not really relevant - will grow as needed.
 
-		fontBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dungeonfont);
+		fontBitmap = BitmapFactory.decodeResource(activityNetHackApp.getResources(), R.drawable.dungeonfont);
 		mainView.fontBitmap = fontBitmap;
 
-		tiledView = new NetHackTiledView(this);
+		tiledView = new NetHackTiledView(activityNetHackApp);
 		// TODO: Try to avoid the call to usePreferredTileSet() in AndroidTTY mode -
 		// it may waste some resources.
 		if(uiModeActual == UIMode.AndroidTiled || uiModeActual == UIMode.AndroidTTY)
@@ -2009,7 +1967,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		tiledView.offsetY = 1;
 		tiledView.computeSizePixels();
 
-		Configuration config = getResources().getConfiguration();		
+		Configuration config = activityNetHackApp.getResources().getConfiguration();		
 		if(config.orientation == Configuration.ORIENTATION_PORTRAIT)
 		{
 			screenConfig = ScreenConfig.Portrait;
@@ -2019,9 +1977,9 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 			screenConfig = ScreenConfig.Landscape;
 		}
 		
-		messageView = new NetHackTerminalView(this, messageTerminalState);
-		statusView = new NetHackTerminalView(this, statusTerminalState);
-		menuView = new NetHackTerminalView(this, menuTerminalState); 
+		messageView = new NetHackTerminalView(activityNetHackApp, messageTerminalState);
+		statusView = new NetHackTerminalView(activityNetHackApp, statusTerminalState);
+		menuView = new NetHackTerminalView(activityNetHackApp, menuTerminalState); 
 		messageView.setTextSize(textsize);
 		statusView.setTextSize(textsize);
 		menuView.setTextSize(textsize);
@@ -2040,11 +1998,21 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		gestureScanner = new GestureDetector(this);
 	}
 
-	public boolean onCreateOptionsMenu(Menu menu)
+	public void onResume()
 	{
-		super.onCreateOptionsMenu(menu);
-		getMenuInflater().inflate(R.layout.menu, menu);
-		return true;
+		while(isCommThreadRunning())
+		{
+			try
+			{
+				Thread.sleep(100);
+			}
+			catch(InterruptedException e)
+			{
+				throw new RuntimeException(e.getMessage());
+			}
+		}
+
+		startCommThread();
 	}
 
 	public void configExport(String outname)
@@ -2053,16 +2021,16 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		{
 			NetHackFileHelpers.copyFileRaw(getNetHackDir() + "/.nethackrc", outname);
 
-			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
-			alert.setTitle(getString(R.string.dialog_Success));
-			alert.setMessage(getString(R.string.configexport_success) + " '" + outname + "'.");
+			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
+			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Success));
+			alert.setMessage(activityNetHackApp.getString(R.string.configexport_success) + " '" + outname + "'.");
 			alert.show();
 		}
 		catch(IOException e)
 		{
-			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
-			alert.setTitle(getString(R.string.dialog_Error));
-			alert.setMessage(getString(R.string.configexport_failed) + " '" + outname + "'.");
+			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
+			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Error));
+			alert.setMessage(activityNetHackApp.getString(R.string.configexport_failed) + " '" + outname + "'.");
 			alert.show();
 		}
 	}
@@ -2073,16 +2041,16 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		{
 			NetHackFileHelpers.copyFileRaw(inname, getNetHackDir() + "/.nethackrc"); 
 
-			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
-			alert.setTitle(getString(R.string.dialog_Success));
-			alert.setMessage(getString(R.string.configimport_success) + " '" + inname + "'. " + getString(R.string.configimport_success2));
+			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
+			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Success));
+			alert.setMessage(activityNetHackApp.getString(R.string.configimport_success) + " '" + inname + "'. " + activityNetHackApp.getString(R.string.configimport_success2));
 			alert.show();
 		}
 		catch(IOException e)
 		{
-			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
-			alert.setTitle(getString(R.string.dialog_Error));
-			alert.setMessage(getString(R.string.configimport_failed) + " '" + inname + "'. " + getString(R.string.configimport_failed2));
+			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
+			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Error));
+			alert.setMessage(activityNetHackApp.getString(R.string.configimport_failed) + " '" + inname + "'. " + activityNetHackApp.getString(R.string.configimport_failed2));
 			alert.show();
 		}
 	}
@@ -2101,22 +2069,22 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	
 	public void configImportExportDialog(final boolean cfgimport)
 	{
-		final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+		final AlertDialog.Builder dialog = new AlertDialog.Builder(activityNetHackApp);
 		if(cfgimport)
 		{
-			dialog.setTitle(getString(R.string.configimport_title));
-			dialog.setMessage(getString(R.string.configimport_msg));
+			dialog.setTitle(activityNetHackApp.getString(R.string.configimport_title));
+			dialog.setMessage(activityNetHackApp.getString(R.string.configimport_msg));
 		}
 		else
 		{
-			dialog.setTitle(getString(R.string.configexport_title));
-			dialog.setMessage(getString(R.string.configexport_msg));
+			dialog.setTitle(activityNetHackApp.getString(R.string.configexport_title));
+			dialog.setMessage(activityNetHackApp.getString(R.string.configexport_msg));
 		}
-		final EditText input = new EditText(this);
-		input.getText().append(getString(R.string.config_defaultfile));
+		final EditText input = new EditText(activityNetHackApp);
+		input.getText().append(activityNetHackApp.getString(R.string.config_defaultfile));
 
 		dialog.setView(input);
-		dialog.setPositiveButton(getString(R.string.dialog_OK), new DialogInterface.OnClickListener()
+		dialog.setPositiveButton(activityNetHackApp.getString(R.string.dialog_OK), new DialogInterface.OnClickListener()
 		{
 			public void onClick(DialogInterface d, int whichbutton)
 			{
@@ -2124,7 +2092,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 				configImportExport(value, cfgimport);
 			}
 		});
-		dialog.setNegativeButton(getString(R.string.dialog_Cancel), new DialogInterface.OnClickListener()
+		dialog.setNegativeButton(activityNetHackApp.getString(R.string.dialog_Cancel), new DialogInterface.OnClickListener()
 		{
 			public void onClick(DialogInterface d, int whichbutton) {}
 		});
@@ -2144,21 +2112,22 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		dialog.show();
 
 	}
+
 	public boolean onOptionsItemSelected(MenuItem item)
 	{  
 		switch(item.getItemId())
 		{
 			case R.id.about:
 			{
-				Dialog dialog = new Dialog(this);
+				Dialog dialog = new Dialog(activityNetHackApp);
 				dialog.setContentView(R.layout.about);
-				dialog.setTitle(getString(R.string.about_title));
+				dialog.setTitle(activityNetHackApp.getString(R.string.about_title));
 				dialog.show();
 				return true;
 			}
 			case R.id.preferences:
 			{
-				Intent intent = new Intent(this, NetHackPreferences.class);
+				Intent intent = new Intent(activityNetHackApp, NetHackPreferences.class);
 				Bundle bundle = new Bundle();
 
 				LinkedList<TileSetInfo> tilesetlist = findTileSets();
@@ -2180,7 +2149,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 				bundle.putStringArray("TileSetValues", tilesetvalues);
 				bundle.putStringArray("TileSetInfo", tilesetinfo);
 				intent.putExtras(bundle);
-				startActivity(intent);
+				activityNetHackApp.startActivity(intent);
 				return true;
 			}
 			case R.id.importconfig:
@@ -2204,7 +2173,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	
 	private void getPrefs()
 	{
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 		optKeyBindBack = getKeyActionEnumFromString(prefs.getString("BackButtonFunc", "ForwardToSystem"));
 		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "VirtualKeyboard"));
 		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "CtrlKey"));
