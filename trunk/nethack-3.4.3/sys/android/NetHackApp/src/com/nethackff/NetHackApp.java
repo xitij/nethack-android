@@ -42,41 +42,6 @@ public class NetHackApp extends Activity
 	static final int DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 1;
 	static final int DIALOG_INSTALL_PROGRESS = 2;
 	
-	public boolean compareAsset(String assetname)
-	{
-		boolean match = false;
-
-		String destname = getAppDir() + "/" + assetname;
-		File newasset = new File(destname);
-		try
-		{
-			BufferedInputStream out = new BufferedInputStream(new FileInputStream(newasset));
-			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(assetname));
-			match = true;
-			while(true)
-			{
-				int b = in.read();
-				int c = out.read();
-				if(b != c)
-				{
-					match = false;
-					break;
-				}
-				if(b == -1)
-				{
-					break;
-				}
-			}
-			out.close();
-			in.close();
-		}
-		catch (IOException ex)
-		{
-			match = false;
-		}
-		return match;
-	}
-
 	private ProgressDialog progressDialog = null;
 
 	private Handler handler = new Handler()
@@ -163,8 +128,8 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 			for(int i = 0; i < assets.length; i++)
 			{
 				String destname = getNetHackDir() + "/" + assets[i]; 
-				copyAsset("nethackdir/" + assets[i], destname);
-				chmod(destname, 0666);
+				installer.copyAsset("nethackdir/" + assets[i], destname);
+				NetHackFileHelpers.chmod(destname, 0666);
 
 				reportProgress();
 			}
@@ -175,97 +140,8 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 		}
 	}
 
-	public void copyAsset(String assetname)
-	{
-		copyAsset(assetname, getAppDir() + "/" + assetname);
-	}
-
-	public void copyAsset(String srcname, String destname)
-	{
-		File newasset = new File(destname);
-		try
-		{
-			newasset.createNewFile();
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(newasset));
-			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(srcname));
-			int b;
-			while((b = in.read()) != -1)
-			{
-				out.write(b);
-			}
-			out.flush();
-			out.close();
-			in.close();
-		}
-		catch (IOException ex)
-		{
-			//mainView.terminal.write("Failed to copy file '" + srcname + "'.\n");
-		}
-	}
-
-	public void chmod(String filename, int permissions)
-	{
-		// This was a bit problematic - there is an android.os.FileUtils.setPermissions()
-		// function, but apparently that is not a part of the supported interface.
-		// I found some other options:
-		// - java.io.setReadOnly() exists, but seems limited.
-		// - java.io.File.setWritable() is a part of Java 1.6, but doesn't seem to exist in Android.
-		// - java.nio.file.attribute.PosixFilePermission also doesn't seem to exist under Android.
-		// - doCommand("/system/bin/chmod", permissions, filename) was what I used to do, but it was crashing for some.
-		// I don't think these permissions are actually critical for anything in the application,
-		// so for now, we will try to use the undocumented function and just be careful to catch any exceptions
-		// and print some output spew. /FF
-		
-		try
-		{
-		    Class<?> fileUtils = Class.forName("android.os.FileUtils");
-		    Method setPermissions =
-		        fileUtils.getMethod("setPermissions", String.class, int.class, int.class, int.class);
-		    int a = (Integer) setPermissions.invoke(null, filename, permissions, -1, -1);
-		    if(a != 0)
-		    {
-				Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() returned " + a + " for '" + filename + "', probably didn't work.");
-		    }
-		}
-		catch(ClassNotFoundException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - ClassNotFoundException.");
-		}
-		catch(IllegalAccessException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - IllegalAccessException.");
-		}
-		catch(InvocationTargetException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - InvocationTargetException.");
-		}
-		catch(NoSuchMethodException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - NoSuchMethodException.");
-		}
-	}
+	NetHackInstaller installer;
 	
-	public void mkdir(String dirname)
-	{
-		// This is how it used to be done, but it's probably not a good idea
-		// to rely on some external command in a hardcoded path... /FF
-		//	doCommand("/system/bin/mkdir", dirname, "");
-
-		boolean status = new File(dirname).mkdir();
-
-		// Probably good to keep the debug spew here for now. /FF
-		if(status)
-		{
-			Log.i("NetHackDbg", "Created dir '" + dirname + "'");
-
-			// Probably best to keep stuff accessible, for now.
-			chmod(dirname, 0777);
-		}
-		else
-		{
-			Log.i("NetHackDbg", "Failed to create dir '" + dirname + "', may already exist");
-		}
-	}
 
 	public String getAppDir()
 	{
@@ -291,23 +167,23 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 
 		String nethackdir = getNetHackDir();
 
-		mkdir(nethackdir);
+		NetHackFileHelpers.mkdir(nethackdir);
 		reportProgress();
-		mkdir(nethackdir + "/save");
+		NetHackFileHelpers.mkdir(nethackdir + "/save");
 		reportProgress();
 
 		copyNetHackData();
 		reportProgress();
 
-		copyAsset("version.txt");
+		installer.copyAsset("version.txt");
 		reportProgress();
-		copyAsset("NetHack.cnf", nethackdir + "/.nethackrc");
+		installer.copyAsset("NetHack.cnf", nethackdir + "/.nethackrc");
 		reportProgress();
-		copyAsset("charset_amiga.cnf", nethackdir + "/charset_amiga.cnf");
+		installer.copyAsset("charset_amiga.cnf", nethackdir + "/charset_amiga.cnf");
 		reportProgress();
-		copyAsset("charset_ibm.cnf", nethackdir + "/charset_ibm.cnf");
+		installer.copyAsset("charset_ibm.cnf", nethackdir + "/charset_ibm.cnf");
 		reportProgress();
-		copyAsset("charset_128.cnf", nethackdir + "/charset_128.cnf");
+		installer.copyAsset("charset_128.cnf", nethackdir + "/charset_128.cnf");
 		reportProgress();
 
 		handler.sendEmptyMessage(MSG_INSTALL_END);
@@ -396,7 +272,7 @@ Log.i("NetHackDbg", "isExistingInstallationAvailable - on internal memory");
 
 		public boolean isExistingInstallationUpToDate()
 		{
-			return compareAsset("version.txt");
+			return installer.compareAsset("version.txt");
 		}
 
 		public void setAppDir(boolean installexternal)
@@ -411,6 +287,7 @@ Log.i("NetHackDbg", "isExistingInstallationAvailable - on internal memory");
 			{
 				appDir = getFilesDir().getAbsolutePath(); 
 			}
+			installer.appDir = appDir;
 		}
 
 		public void install(boolean installexternal)
@@ -602,6 +479,8 @@ Log.i("NetHackDbg", "Existing installation not up to date!");
 		super.onCreate(savedInstanceState);
 
 		setContentView(R.layout.install);
+
+		installer = new NetHackInstaller(this.getAssets());
 
 		// TODO
 		if(firstTime)
