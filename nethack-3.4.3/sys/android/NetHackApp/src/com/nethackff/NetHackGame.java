@@ -69,11 +69,11 @@ import java.util.ListIterator;
 import java.util.LinkedList;
 
 //public class NetHackGameActivity extends Activity implements Runnable, OnGestureListener
-public class NetHackGameActivity implements Runnable, OnGestureListener
+public class NetHackGame implements Runnable, OnGestureListener
 {
 	NetHackApp activityNetHackApp;
 
-	NetHackGameActivity(NetHackApp app)
+	NetHackGame(NetHackApp app)
 	{
 		activityNetHackApp = app;
 	}

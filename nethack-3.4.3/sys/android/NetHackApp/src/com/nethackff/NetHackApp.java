@@ -35,7 +35,7 @@ import java.lang.reflect.Method;
 
 public class NetHackApp extends Activity
 {
-	public NetHackGameActivity game;
+	public NetHackGame game;
 
 	static final int MSG_SHOW_DIALOG_SD_CARD_NOT_FOUND = 100;	// TEMP
 	static final int MSG_INSTALL_BEGIN = 101;
@@ -86,7 +86,7 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 				case MSG_LAUNCH_GAME:
 					Log.i("NetHackDbg", "MSG_LAUNCH_GAME");	// TEMP
 // TODO: Generate exception if game already exists somehow?
-					game = new NetHackGameActivity(NetHackApp.this);
+					game = new NetHackGame(NetHackApp.this);
 					game.onCreate();
 					game.onStart();
 					game.onResume();
