@@ -1042,70 +1042,6 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		return commThreadRunning;
 	}
 
-	public void chmod(String filename, int permissions)
-	{
-		// This was a bit problematic - there is an android.os.FileUtils.setPermissions()
-		// function, but apparently that is not a part of the supported interface.
-		// I found some other options:
-		// - java.io.setReadOnly() exists, but seems limited.
-		// - java.io.File.setWritable() is a part of Java 1.6, but doesn't seem to exist in Android.
-		// - java.nio.file.attribute.PosixFilePermission also doesn't seem to exist under Android.
-		// - doCommand("/system/bin/chmod", permissions, filename) was what I used to do, but it was crashing for some.
-		// I don't think these permissions are actually critical for anything in the application,
-		// so for now, we will try to use the undocumented function and just be careful to catch any exceptions
-		// and print some output spew. /FF
-		
-		try
-		{
-		    Class<?> fileUtils = Class.forName("android.os.FileUtils");
-		    Method setPermissions =
-		        fileUtils.getMethod("setPermissions", String.class, int.class, int.class, int.class);
-		    int a = (Integer) setPermissions.invoke(null, filename, permissions, -1, -1);
-		    if(a != 0)
-		    {
-				Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() returned " + a + " for '" + filename + "', probably didn't work.");
-		    }
-		}
-		catch(ClassNotFoundException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - ClassNotFoundException.");
-		}
-		catch(IllegalAccessException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - IllegalAccessException.");
-		}
-		catch(InvocationTargetException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - InvocationTargetException.");
-		}
-		catch(NoSuchMethodException e)
-		{
-			Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() failed - NoSuchMethodException.");
-		}
-	}
-	
-	public void mkdir(String dirname)
-	{
-		// This is how it used to be done, but it's probably not a good idea
-		// to rely on some external command in a hardcoded path... /FF
-		//	doCommand("/system/bin/mkdir", dirname, "");
-
-		boolean status = new File(dirname).mkdir();
-
-		// Probably good to keep the debug spew here for now. /FF
-		if(status)
-		{
-			Log.i("NetHackDbg", "Created dir '" + dirname + "'");
-
-			// Probably best to keep stuff accessible, for now.
-			chmod(dirname, 0777);
-		}
-		else
-		{
-			Log.i("NetHackDbg", "Failed to create dir '" + dirname + "', may already exist");
-		}
-	}
-
 	public String getAppDir()
 	{
 		return appDir;
@@ -1136,20 +1072,6 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 			Log.i("NetHackDbg", "Using directory '" + appDir + "' for application files.");
 
 			String nethackdir = getNetHackDir();
-
-			if(!compareAsset("version.txt"))
-			{
-				mkdir(nethackdir);
-				mkdir(nethackdir + "/save");
-
-				copyNetHackData();
-
-				copyAsset("version.txt");
-				copyAsset("NetHack.cnf", nethackdir + "/.nethackrc");
-				copyAsset("charset_amiga.cnf", nethackdir + "/charset_amiga.cnf");
-				copyAsset("charset_ibm.cnf", nethackdir + "/charset_ibm.cnf");
-				copyAsset("charset_128.cnf", nethackdir + "/charset_128.cnf");
-			}
 
 			uiModeActual = optUIModeNew;
 			int uimode = 1;
@@ -1244,69 +1166,6 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	}
 	*/
 
-	public boolean compareAsset(String assetname)
-	{
-		boolean match = false;
-
-		String destname = getAppDir() + "/" + assetname;
-		File newasset = new File(destname);
-		try
-		{
-			BufferedInputStream out = new BufferedInputStream(new FileInputStream(newasset));
-			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(assetname));
-			match = true;
-			while(true)
-			{
-				int b = in.read();
-				int c = out.read();
-				if(b != c)
-				{
-					match = false;
-					break;
-				}
-				if(b == -1)
-				{
-					break;
-				}
-			}
-			out.close();
-			in.close();
-		}
-		catch (IOException ex)
-		{
-			match = false;
-		}
-		return match;
-	}
-	
-	public void copyAsset(String assetname)
-	{
-		copyAsset(assetname, getAppDir() + "/" + assetname);
-	}
-	
-	public void copyAsset(String srcname, String destname)
-	{
-		File newasset = new File(destname);
-		try
-		{
-			newasset.createNewFile();
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(newasset));
-			BufferedInputStream in = new BufferedInputStream(this.getAssets().open(srcname));
-			int b;
-			while((b = in.read()) != -1)
-			{
-				out.write(b);
-			}
-			out.flush();
-			out.close();
-			in.close();
-		}
-		catch (IOException ex)
-		{
-			mainView.terminal.write("Failed to copy file '" + srcname + "'.\n");
-		}
-	}
-
 	public void copyFileRaw(String srcname, String destname) throws IOException
 	{
 		File newasset = new File(destname);
@@ -1328,38 +1187,6 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 		catch(IOException ex)
 		{
 			throw ex;
-		}
-	}
-	public void copyFile(String srcname, String destname)
-	{
-		try
-		{
-			copyFileRaw(srcname, destname);
-		}
-		catch(IOException ex)
-		{
-			mainView.terminal.write("Failed to copy file '" + srcname + "' to '" + destname + "'.\n");
-		}
-	}
-
-	public void copyNetHackData()
-	{
-		AssetManager am = getResources().getAssets();
-		String assets[] = null;
-		try
-		{
-			assets = am.list("nethackdir");
-
-			for(int i = 0; i < assets.length; i++)
-			{
-				String destname = getNetHackDir() + "/" + assets[i]; 
-				copyAsset("nethackdir/" + assets[i], destname);
-				chmod(destname, 0666);
-			}
-		}
-		catch (IOException e)
-		{
-			throw new RuntimeException(e.getMessage());
 		}
 	}
 
