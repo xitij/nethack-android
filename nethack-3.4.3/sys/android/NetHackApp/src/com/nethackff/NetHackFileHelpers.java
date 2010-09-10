@@ -1,6 +1,7 @@
 package com.nethackff;
 
 import android.util.Log;
+import android.os.Environment;
 //import java.io.BufferedReader;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -104,4 +105,16 @@ public class NetHackFileHelpers
 		}
 	}
 
+	static public boolean checkExternalStorageReady()
+	{
+		String state = Environment.getExternalStorageState();
+		if(Environment.MEDIA_MOUNTED.equals(state))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}			
+	}
 }
