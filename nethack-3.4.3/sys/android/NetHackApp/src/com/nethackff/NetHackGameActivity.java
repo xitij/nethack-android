@@ -53,8 +53,6 @@ import android.widget.LinearLayout;
 //import android.widget.ScrollView;
 
 import java.io.BufferedReader;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileDescriptor;
@@ -1166,30 +1164,6 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	}
 	*/
 
-	public void copyFileRaw(String srcname, String destname) throws IOException
-	{
-		File newasset = new File(destname);
-		File srcfile = new File(srcname);
-		try
-		{
-			newasset.createNewFile();
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(newasset));
-			BufferedInputStream in = new BufferedInputStream(new FileInputStream(srcfile));
-			int b;
-			while((b = in.read()) != -1)
-			{
-				out.write(b);
-			}
-			out.flush();
-			out.close();
-			in.close();
-		}
-		catch(IOException ex)
-		{
-			throw ex;
-		}
-	}
-
 	Thread commThread;
 
 	GestureDetector gestureScanner;
@@ -2077,7 +2051,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	{
 		try
 		{
-			copyFileRaw(getNetHackDir() + "/.nethackrc", outname);
+			NetHackFileHelpers.copyFileRaw(getNetHackDir() + "/.nethackrc", outname);
 
 			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
 			alert.setTitle(getString(R.string.dialog_Success));
@@ -2097,7 +2071,7 @@ public class NetHackGameActivity extends Activity implements Runnable, OnGesture
 	{
 		try
 		{
-			copyFileRaw(inname, getNetHackDir() + "/.nethackrc"); 
+			NetHackFileHelpers.copyFileRaw(inname, getNetHackDir() + "/.nethackrc"); 
 
 			AlertDialog.Builder alert = new AlertDialog.Builder(this);  
 			alert.setTitle(getString(R.string.dialog_Success));
