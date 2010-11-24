@@ -14,9 +14,6 @@
 			android:name=".NetHackPreferences"
 			android:label="@string/app_name">
 		</activity>
-		<activity
-			android:name=".NetHackGameActivity">
-		</activity>
     </application>
     <uses-sdk android:minSdkVersion="3" />
 </manifest> 
