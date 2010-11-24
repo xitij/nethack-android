@@ -226,6 +226,11 @@ public class NetHackInstaller
 		activityNetHackApp.handler.sendMessage(Message.obtain(activityNetHackApp.handler, NetHackApp.MSG_INSTALL_BEGIN, finalProgress, 0, null));
 		performInstall();
 
+		setInstalledOnExternalMemory(installexternal);
+	}
+
+	public void setInstalledOnExternalMemory(boolean installexternal)
+	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 		SharedPreferences.Editor prefsEditor = prefs.edit();
 		prefsEditor.putBoolean("InstalledOnExternalMemory", installexternal);
@@ -296,8 +301,222 @@ Log.i("NetHackDbg", "isExistingInstallationAvailable - on internal memory");
 			waitForResponse();
 			return dialogResponse;
 		}
+		public NetHackApp.DialogResponse askUserIfMoveOldInstallationToExternalMemory()
+		{
+			setDialogResponse(NetHackApp.DialogResponse.Invalid);
+			activityNetHackApp.handler.sendEmptyMessage(NetHackApp.MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION);
+			waitForResponse();
+			return dialogResponse;
+		}
+		
+
+		
+		public int countAllFilesInDirectoryTree(File dirorfile)
+		{
+			Log.i("NetHackDbg", "visit " + dirorfile.getPath());
+			if(dirorfile.isDirectory())
+			{
+				int cnt = 0;
+				String[] children = dirorfile.list();
+				for(int i = 0; i < children.length; i++)
+				{
+					cnt += countAllFilesInDirectoryTree(new File(dirorfile, children[i]));
+				}
+
+				// Count ourselves.
+				cnt++;
+
+				return cnt;
+			}
+			else
+			{
+				// Should we check if it exists here?
+				return 1;
+			}
+		}
+
+		public int countAllFilesInDirectoryTree(String dirname)
+		{
+			return countAllFilesInDirectoryTree(new File(dirname));
+		}
+
+		public boolean deleteAllFilesInDirectoryTree(String srcname, boolean reportprogress)
+		{
+			boolean success = true;
+
+			File srcfile = new File(srcname);
+			if(srcfile.isDirectory())
+			{
+				String[] children = srcfile.list();
+				for(int i = 0; i < children.length; i++)
+				{
+					if(!deleteAllFilesInDirectoryTree(srcname + "/" + children[i], reportprogress))
+					{
+						// Even if we failed to delete something, we continue trying with the rest of
+						// the files. Probably makes the most sense.
+						success = false;
+					}
+				}
+
+			}
+			if(reportprogress)
+			{
+				reportProgress();
+			}
+			if(!srcfile.delete())
+			{
+				// Should we do this? Or just continue?
+				return false;	
+			}
+			return success;
+		}
+ 
+		public boolean copyAllFilesInDirectoryTree(String srcname, String destname, boolean reportprogress)
+		{
+			File srcfile = new File(srcname);
+			if(srcfile.isDirectory())
+			{
+				NetHackFileHelpers.mkdir(destname);
+
+				String[] children = srcfile.list();
+				for(int i = 0; i < children.length; i++)
+				{
+					if(!copyAllFilesInDirectoryTree(srcname + "/" + children[i], destname + "/" + children[i], reportprogress))
+					{
+						return false;
+					}
+				}
+			}
+			else
+			{
+				try
+				{
+					NetHackFileHelpers.copyFileRaw(srcname, destname);
+				}
+				catch(IOException e)
+				{
+					return false;	// Failed					
+				}
+			}
+			if(reportprogress)
+			{
+				reportProgress();
+			}
+			return true;
+		}
+
+		public void moveOldInstallationToExternalMemory()
+		{
+			setAppDir(false);
+			String srcdir = getNetHackDir();
+			setAppDir(true);
+			String destdir = getNetHackDir();
+			int finalprogress = countAllFilesInDirectoryTree(srcdir);
+
+			finalprogress *= 2;	// First copy, then delete.
+
+			activityNetHackApp.handler.sendMessage(Message.obtain(activityNetHackApp.handler, NetHackApp.MSG_MOVE_INSTALL_BEGIN, finalprogress, 0, null));
+	
+			installProgress = 0;
+
+			if(copyAllFilesInDirectoryTree(srcdir, destdir, true))
+			{
+				Log.i("NetHackDbg", "File copy succeeded!");
+			}
+			else
+			{
+				// TODO: Should probably notify the user or something in this case.
+				Log.i("NetHackDbg", "File copy failed!");
+				System.exit(0);
+			}
+
+			if(deleteAllFilesInDirectoryTree(srcdir, true))
+			{
+				Log.i("NetHackDbg", "Delete succeeded!");
+			}
+			else
+			{
+				// TODO: Should probably notify the user or something in this case, though there
+				// shouldn't be a need to abort - can probably just leave the undeletable files around
+				// without too much of a problem.
+				Log.i("NetHackDbg", "Delete failed!");				
+			}
+
+			activityNetHackApp.handler.sendEmptyMessage(NetHackApp.MSG_MOVE_INSTALL_END);
+
+			setInstalledOnExternalMemory(true);
+		}
+
+		public boolean checkForOlderVersion()
+		{
+			setAppDir(false);
+
+			String destname = getAppDir() + "/" + "version.txt";
+			File newasset = new File(destname);
+			boolean found = false;
+			try
+			{
+				BufferedInputStream out = new BufferedInputStream(new FileInputStream(newasset));
+				out.close();
+				found = true;
+			}
+			catch (IOException ex)
+			{
+			}
+
+			if(!found)
+			{
+				// Didn't find an old 'version.txt' file amongst the internal file, doesn't look
+				// like we're upgrading from an older version.
+				return true;	// Continue
+			}
+
+			if(isExistingInstallationUpToDate())
+			{
+				// Can't think of why this would happen - if we have an up to date installation,
+				// checkForOlderVersion() probably shouldn't be called in the first place.
+				return true;	// Continue
+			}
+
+			if(NetHackFileHelpers.checkExternalStorageReady())
+			{
+				NetHackApp.DialogResponse r = askUserIfMoveOldInstallationToExternalMemory();
+				if(r == NetHackApp.DialogResponse.Yes)
+				{
+					moveOldInstallationToExternalMemory();
+				}
+				else if(r == NetHackApp.DialogResponse.No)
+				{
+					// User didn't want to move. Remember that the current installation is in internal
+					// memory. It should be updated to the new version soon, preserving existing saved games.
+					setInstalledOnExternalMemory(false);
+				}
+				else	// NetHackApp.DialogResponse.Exit
+				{
+					return false;	// Exit
+				}
+				
+			}
+			else
+			{
+				// In this case, the SD card is unavailable, and there is data from the old version in
+				// internal memory. Since we can't move it to the SD card, just remember that we're
+				// using internal memory for file storage. We could notify the user here, but I expect
+				// this to be a rare situation, and going away as we move to future upgrades.
+				setInstalledOnExternalMemory(false);
+			}
+			return true;
+		}
 		public boolean performInitialChecks()
 		{
+			if(!doesExistingInstallationExist())
+			{
+				if(!checkForOlderVersion())
+				{
+					return false;
+				}
+			}
+			
 			// Check preferences to see if there is an existing installation.
 			if(doesExistingInstallationExist())
 			{
