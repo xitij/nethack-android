@@ -41,13 +41,19 @@ public class NetHackApp extends Activity
 	static final int MSG_INSTALL_BEGIN = 101;
 	static final int MSG_INSTALL_END = 102;
 	static final int MSG_INSTALL_PROGRESS = 103;
-	static final int MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 104;
-	static final int MSG_LAUNCH_GAME = 105;
-	static final int MSG_QUIT = 106;
+	static final int MSG_MOVE_INSTALL_BEGIN = 104;
+	static final int MSG_MOVE_INSTALL_END = 105;
+	static final int MSG_MOVE_INSTALL_PROGRESS = 106;
+	static final int MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 107;
+	static final int MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION = 108;
+	static final int MSG_LAUNCH_GAME = 109;
+	static final int MSG_QUIT = 110;
 
 	static final int DIALOG_SD_CARD_NOT_FOUND = 0;
 	static final int DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 1;
-	static final int DIALOG_INSTALL_PROGRESS = 2;
+	static final int DIALOG_MOVE_OLD_INSTALLATION = 2;
+	static final int DIALOG_INSTALL_PROGRESS = 3;
+	static final int DIALOG_MOVE_INSTALL_PROGRESS = 4;
 	
 	private ProgressDialog progressDialog = null;
 
@@ -66,6 +72,10 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_SD_CARD_NOT_FOUND");
 Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE");
 					NetHackApp.this.showDialog(DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE);
 					break;
+				case MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION:
+Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
+					NetHackApp.this.showDialog(DIALOG_MOVE_OLD_INSTALLATION);
+					break;
 				case MSG_INSTALL_BEGIN:
 					NetHackApp.this.showDialog(DIALOG_INSTALL_PROGRESS);
 					if(progressDialog != null)
@@ -78,10 +88,22 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 					NetHackApp.this.dismissDialog(DIALOG_INSTALL_PROGRESS);
 					break;
 				case MSG_INSTALL_PROGRESS:
+				case MSG_MOVE_INSTALL_PROGRESS:
 					if(progressDialog != null)
 					{
 						progressDialog.setProgress(msg.arg1);
 					}
+					break;
+				case MSG_MOVE_INSTALL_BEGIN:
+					NetHackApp.this.showDialog(DIALOG_MOVE_INSTALL_PROGRESS);
+					if(progressDialog != null)
+					{
+						progressDialog.setMax(msg.arg1);
+					}
+					break;
+				case MSG_MOVE_INSTALL_END:
+					progressDialog = null;
+					NetHackApp.this.dismissDialog(DIALOG_MOVE_INSTALL_PROGRESS);
 					break;
 				case MSG_LAUNCH_GAME:
 					Log.i("NetHackDbg", "MSG_LAUNCH_GAME");	// TEMP
@@ -122,7 +144,8 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 		Invalid,
 		Yes,
 		No,
-		Retry
+		Retry,
+		Exit
 	};
 
 	protected Dialog onCreateDialog(int id)
@@ -193,10 +216,49 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE"
 				//alert.show();
 				break;
 		    }
+		    case DIALOG_MOVE_OLD_INSTALLATION:
+		    {
+				AlertDialog.Builder builder = new AlertDialog.Builder(this);  
+				builder	.setMessage("An existing installation was found in internal memory. This version of NetHack normally installs data files on the SD card. Do you want to move the existing installation? Save game files should be preserved.")
+						.setCancelable(false)
+						.setPositiveButton("Move to SD card", new DialogInterface.OnClickListener()
+						{
+							public void onClick(DialogInterface dialog, int id)
+							{
+								installer.installThread.setDialogResponse(DialogResponse.Yes);
+							}
+						})
+						.setNeutralButton("Keep Existing Installation", new DialogInterface.OnClickListener()
+						{
+							public void onClick(DialogInterface dialog, int id)
+							{
+								installer.installThread.setDialogResponse(DialogResponse.No);
+								//dialog.cancel();
+							}
+						})
+						.setNegativeButton("Exit", new DialogInterface.OnClickListener()
+						{
+							public void onClick(DialogInterface dialog, int id)
+							{
+								installer.installThread.setDialogResponse(DialogResponse.Exit);
+								//NetHackApp.this.finish();
+							}
+						});
+				dialog = builder.create();
+				//alert.show();
+				break;
+		    }
 		    case DIALOG_INSTALL_PROGRESS:
 				progressDialog = new ProgressDialog(this);
 				progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 				progressDialog.setMessage("Installing at " + appDir);
+				progressDialog.setCancelable(false);
+				dialog = progressDialog;
+				break;
+		    case DIALOG_MOVE_INSTALL_PROGRESS:
+				progressDialog = new ProgressDialog(this);
+				progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+				progressDialog.setMessage("Moving to " + appDir);
 				progressDialog.setCancelable(false);
 				dialog = progressDialog;
 				break;
