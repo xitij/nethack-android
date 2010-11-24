@@ -337,10 +337,6 @@ Log.i("NetHackDbg", "Existing installation not up to date!");
 			{
 				boolean installexternally = true;
 
-				// TEMP - for now, don't install externally, until I know more about
-				// problems with saving not always working.
-				installexternally = false;
-
 				while(installexternally && !NetHackFileHelpers.checkExternalStorageReady())
 				{
 					NetHackApp.DialogResponse r = askUserIfInstallOnInternalMemory();
