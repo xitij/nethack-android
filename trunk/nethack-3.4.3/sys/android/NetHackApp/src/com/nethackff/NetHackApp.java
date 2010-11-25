@@ -65,15 +65,12 @@ public class NetHackApp extends Activity
 			switch(msg.what)
 			{
 				case MSG_SHOW_DIALOG_SD_CARD_NOT_FOUND:
-Log.i("NetHackDbg", "MSG_SHOW_DIALOG_SD_CARD_NOT_FOUND");
 					NetHackApp.this.showDialog(DIALOG_SD_CARD_NOT_FOUND);
 					break;
 				case MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE:
-Log.i("NetHackDbg", "MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE");
 					NetHackApp.this.showDialog(DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE);
 					break;
 				case MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION:
-Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 					NetHackApp.this.showDialog(DIALOG_MOVE_OLD_INSTALLATION);
 					break;
 				case MSG_INSTALL_BEGIN:
@@ -106,8 +103,7 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 					NetHackApp.this.dismissDialog(DIALOG_MOVE_INSTALL_PROGRESS);
 					break;
 				case MSG_LAUNCH_GAME:
-					Log.i("NetHackDbg", "MSG_LAUNCH_GAME");	// TEMP
-// TODO: Generate exception if game already exists somehow?
+					// TODO: Generate exception if game already exists somehow?
 					game = new NetHackGame(NetHackApp.this);
 					game.onCreate();
 					game.onStart();
@@ -118,7 +114,6 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 //					startActivity(intent);
 					break;
 				case MSG_QUIT:
-					Log.i("NetHackDbg", "MSG_LAUNCH_QUIT");	// TEMP
 					// Is this the way to do it? TODO: Make sure thread exits cleanly and stuff.
 					finish();
 					break;
@@ -156,23 +151,23 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 		    case DIALOG_SD_CARD_NOT_FOUND:
 		    {
 				AlertDialog.Builder builder = new AlertDialog.Builder(this);  
-				builder	.setMessage("The application normally stores data on the SD card, but there was a problem accessing it. Please choose an action.")
+				builder	.setMessage(getString(R.string.dialog_msg_sd_card_not_found))
 						.setCancelable(false)
-						.setPositiveButton("Retry", new DialogInterface.OnClickListener()
+						.setPositiveButton(getString(R.string.dialog_button_retry), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
 								installer.installThread.setDialogResponse(DialogResponse.Retry);
 							}
 						})
-						.setNeutralButton("Use Internal Memory", new DialogInterface.OnClickListener()
+						.setNeutralButton(getString(R.string.dialog_button_use_internal_memory), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
 								installer.installThread.setDialogResponse(DialogResponse.Yes);
 							}
 						})
-						.setNegativeButton("Exit", new DialogInterface.OnClickListener()
+						.setNegativeButton(getString(R.string.dialog_button_exit), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
@@ -187,16 +182,16 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 		    case DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE:
 		    {
 				AlertDialog.Builder builder = new AlertDialog.Builder(this);  
-				builder	.setMessage("An existing installation was expected on the SD card, but it doesn't seem to be available. Please choose an action.")
+				builder	.setMessage(getString(R.string.dialog_msg_existing_external_installation_unavailable))
 						.setCancelable(false)
-						.setPositiveButton("Retry", new DialogInterface.OnClickListener()
+						.setPositiveButton(getString(R.string.dialog_button_retry), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
 								installer.installThread.setDialogResponse(DialogResponse.Retry);
 							}
 						})
-						.setNeutralButton("Reinstall on Internal Memory", new DialogInterface.OnClickListener()
+						.setNeutralButton(getString(R.string.dialog_button_reinstall_on_internal_memory), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
@@ -204,7 +199,7 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 								//dialog.cancel();
 							}
 						})
-						.setNegativeButton("Exit", new DialogInterface.OnClickListener()
+						.setNegativeButton(getString(R.string.dialog_button_exit), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
@@ -219,16 +214,16 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 		    case DIALOG_MOVE_OLD_INSTALLATION:
 		    {
 				AlertDialog.Builder builder = new AlertDialog.Builder(this);  
-				builder	.setMessage("An existing installation was found in internal memory. This version of NetHack normally installs data files on the SD card. Do you want to move the existing installation? Save game files should be preserved.")
+				builder	.setMessage(getString(R.string.dialog_msg_move_old_installation))
 						.setCancelable(false)
-						.setPositiveButton("Move to SD card", new DialogInterface.OnClickListener()
+						.setPositiveButton(getString(R.string.dialog_button_move_to_sd_card), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
 								installer.installThread.setDialogResponse(DialogResponse.Yes);
 							}
 						})
-						.setNeutralButton("Keep Existing Installation", new DialogInterface.OnClickListener()
+						.setNeutralButton(getString(R.string.dialog_button_keep_existing_installation), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
@@ -236,7 +231,7 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 								//dialog.cancel();
 							}
 						})
-						.setNegativeButton("Exit", new DialogInterface.OnClickListener()
+						.setNegativeButton(getString(R.string.dialog_button_exit), new DialogInterface.OnClickListener()
 						{
 							public void onClick(DialogInterface dialog, int id)
 							{
@@ -251,14 +246,14 @@ Log.i("NetHackDbg", "MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION");
 		    case DIALOG_INSTALL_PROGRESS:
 				progressDialog = new ProgressDialog(this);
 				progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-				progressDialog.setMessage("Installing at " + appDir);
+				progressDialog.setMessage(getString(R.string.dialog_msg_install_progress) + appDir);
 				progressDialog.setCancelable(false);
 				dialog = progressDialog;
 				break;
 		    case DIALOG_MOVE_INSTALL_PROGRESS:
 				progressDialog = new ProgressDialog(this);
 				progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-				progressDialog.setMessage("Moving to " + appDir);
+				progressDialog.setMessage(getString(R.string.dialog_msg_move_install_progress) + appDir);
 				progressDialog.setCancelable(false);
 				dialog = progressDialog;
 				break;
