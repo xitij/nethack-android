@@ -44,16 +44,18 @@ public class NetHackApp extends Activity
 	static final int MSG_MOVE_INSTALL_BEGIN = 104;
 	static final int MSG_MOVE_INSTALL_END = 105;
 	static final int MSG_MOVE_INSTALL_PROGRESS = 106;
-	static final int MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 107;
-	static final int MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION = 108;
-	static final int MSG_LAUNCH_GAME = 109;
-	static final int MSG_QUIT = 110;
+	static final int MSG_SHOW_DIALOG_ASK_INSTALL_LOCATION = 107;
+	static final int MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 108;
+	static final int MSG_SHOW_DIALOG_MOVE_OLD_INSTALLATION = 109;
+	static final int MSG_LAUNCH_GAME = 110;
+	static final int MSG_QUIT = 111;
 
 	static final int DIALOG_SD_CARD_NOT_FOUND = 0;
-	static final int DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 1;
-	static final int DIALOG_MOVE_OLD_INSTALLATION = 2;
-	static final int DIALOG_INSTALL_PROGRESS = 3;
-	static final int DIALOG_MOVE_INSTALL_PROGRESS = 4;
+	static final int DIALOG_ASK_INSTALL_LOCATION = 1;
+	static final int DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE = 2;
+	static final int DIALOG_MOVE_OLD_INSTALLATION = 3;
+	static final int DIALOG_INSTALL_PROGRESS = 4;
+	static final int DIALOG_MOVE_INSTALL_PROGRESS = 5;
 	
 	private ProgressDialog progressDialog = null;
 
@@ -66,6 +68,9 @@ public class NetHackApp extends Activity
 			{
 				case MSG_SHOW_DIALOG_SD_CARD_NOT_FOUND:
 					NetHackApp.this.showDialog(DIALOG_SD_CARD_NOT_FOUND);
+					break;
+				case MSG_SHOW_DIALOG_ASK_INSTALL_LOCATION:
+					NetHackApp.this.showDialog(DIALOG_ASK_INSTALL_LOCATION);
 					break;
 				case MSG_SHOW_DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE:
 					NetHackApp.this.showDialog(DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE);
@@ -179,6 +184,37 @@ public class NetHackApp extends Activity
 				//alert.show();
 				break;
 	    	}
+		    case DIALOG_ASK_INSTALL_LOCATION:
+		    {
+				AlertDialog.Builder builder = new AlertDialog.Builder(this);  
+				builder	.setMessage(getString(R.string.dialog_msg_ask_install_location))
+						.setCancelable(false)
+						.setPositiveButton(getString(R.string.dialog_button_install_on_sd_card), new DialogInterface.OnClickListener()
+						{
+							public void onClick(DialogInterface dialog, int id)
+							{
+								installer.installThread.setDialogResponse(DialogResponse.Yes);
+							}
+						})
+						.setNeutralButton(getString(R.string.dialog_button_install_on_internal_memory), new DialogInterface.OnClickListener()
+						{
+							public void onClick(DialogInterface dialog, int id)
+							{
+								installer.installThread.setDialogResponse(DialogResponse.No);
+								//dialog.cancel();
+							}
+						})
+						.setNegativeButton(getString(R.string.dialog_button_exit), new DialogInterface.OnClickListener()
+						{
+							public void onClick(DialogInterface dialog, int id)
+							{
+								installer.installThread.setDialogResponse(DialogResponse.Exit);
+								//NetHackApp.this.finish();
+							}
+						});
+				dialog = builder.create();
+				break;
+		    }
 		    case DIALOG_EXISTING_EXTERNAL_INSTALLATION_UNAVAILABLE:
 		    {
 				AlertDialog.Builder builder = new AlertDialog.Builder(this);  
@@ -240,20 +276,19 @@ public class NetHackApp extends Activity
 							}
 						});
 				dialog = builder.create();
-				//alert.show();
 				break;
 		    }
 		    case DIALOG_INSTALL_PROGRESS:
 				progressDialog = new ProgressDialog(this);
 				progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-				progressDialog.setMessage(getString(R.string.dialog_msg_install_progress) + appDir);
+				progressDialog.setMessage(getString(R.string.dialog_msg_install_progress) + " " + appDir);
 				progressDialog.setCancelable(false);
 				dialog = progressDialog;
 				break;
 		    case DIALOG_MOVE_INSTALL_PROGRESS:
 				progressDialog = new ProgressDialog(this);
 				progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-				progressDialog.setMessage(getString(R.string.dialog_msg_move_install_progress) + appDir);
+				progressDialog.setMessage(getString(R.string.dialog_msg_move_install_progress) + " " + appDir);
 				progressDialog.setCancelable(false);
 				dialog = progressDialog;
 				break;

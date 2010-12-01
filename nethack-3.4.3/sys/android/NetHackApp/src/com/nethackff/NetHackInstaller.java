@@ -287,6 +287,13 @@ Log.i("NetHackDbg", "isExistingInstallationAvailable - on internal memory");
 			}
 		}
 
+		public NetHackApp.DialogResponse askUserInstallLocation()
+		{
+			setDialogResponse(NetHackApp.DialogResponse.Invalid);
+			activityNetHackApp.handler.sendEmptyMessage(NetHackApp.MSG_SHOW_DIALOG_ASK_INSTALL_LOCATION);
+			waitForResponse();
+			return dialogResponse;
+		}
 		public NetHackApp.DialogResponse askUserIfReinstallOnInternalMemory()
 		{
 			setDialogResponse(NetHackApp.DialogResponse.Invalid);
@@ -555,6 +562,26 @@ Log.i("NetHackDbg", "Existing installation not up to date!");
 			else
 			{
 				boolean installexternally = true;
+
+				if(NetHackFileHelpers.checkExternalStorageReady())
+				{
+					// The SD card appears to be ready in normal order, but it's probably still
+					// best to ask. The main thought behind this is that if some users have problems
+					// using the SD card, they have the choice to install to internal memory.
+					NetHackApp.DialogResponse r = askUserInstallLocation();
+					if(r == NetHackApp.DialogResponse.Yes)
+					{
+						installexternally = true;
+					}
+					else if(r == NetHackApp.DialogResponse.No)
+					{
+						installexternally = false;
+					}
+					else if(r == NetHackApp.DialogResponse.Exit)
+					{
+						return false;
+					}
+				}
 
 				while(installexternally && !NetHackFileHelpers.checkExternalStorageReady())
 				{
