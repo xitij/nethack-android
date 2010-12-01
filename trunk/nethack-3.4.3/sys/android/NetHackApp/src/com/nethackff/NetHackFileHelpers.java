@@ -24,7 +24,7 @@ public class NetHackFileHelpers
 		// to rely on some external command in a hardcoded path... /FF
 		//	doCommand("/system/bin/mkdir", dirname, "");
 
-		boolean status = new File(dirname).mkdir();
+		boolean status = new File(dirname).mkdirs();
 
 		// Probably good to keep the debug spew here for now. /FF
 		if(status)
