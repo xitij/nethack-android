@@ -1541,9 +1541,6 @@ public class NetHackGame implements Runnable, OnGestureListener
 			}
 			if(index >= 0)
 			{
-				// TEMP
-				Log.i("NetHackDbg", "Switching to mode " + index);
-
 				jni.NetHackSwitchCharSet(index);
 			}
 		}
