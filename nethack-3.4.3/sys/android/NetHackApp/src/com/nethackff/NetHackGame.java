@@ -1087,7 +1087,7 @@ public class NetHackGame implements Runnable, OnGestureListener
 				return;
 			}
 
-			messageView.terminal.clearScreen();	// Remove the "Please wait..." stuff.
+			messageView.terminal.clearScreen();	// Probably no longer necessary.
 
 			//	copyFile("/data/data/com.nethackff/dat/save/10035foo.gz", "/sdcard/10035foo.gz");
 
@@ -1981,12 +1981,6 @@ public class NetHackGame implements Runnable, OnGestureListener
 
 		initDisplay();
 		
-		if(!gameInitialized)
-		{
-//			mainView.terminal.write("Please wait, initializing...\n");
-			messageView.terminal.write("Please wait, initializing...\n");
-		}
-
 		gestureScanner = new GestureDetector(this);
 	}
 
