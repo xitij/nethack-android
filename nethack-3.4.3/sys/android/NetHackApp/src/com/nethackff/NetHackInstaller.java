@@ -245,17 +245,10 @@ public class NetHackInstaller
 			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 			if(prefs.getBoolean("InstalledOnExternalMemory", false))
 			{
-Log.i("NetHackDbg", "isExistingInstallationAvailable - on external memory");
 				if(!NetHackFileHelpers.checkExternalStorageReady())
 				{
-Log.i("NetHackDbg", "isExistingInstallationAvailable - external memory not ready");
 					return false;
 				}
-Log.i("NetHackDbg", "isExistingInstallationAvailable - external memory ready?");
-			}
-			else
-			{
-Log.i("NetHackDbg", "isExistingInstallationAvailable - on internal memory");
 			}
 			return true;
 		}
@@ -309,7 +302,6 @@ Log.i("NetHackDbg", "isExistingInstallationAvailable - on internal memory");
 		
 		public int countAllFilesInDirectoryTree(File dirorfile)
 		{
-			Log.i("NetHackDbg", "visit " + dirorfile.getPath());
 			if(dirorfile.isDirectory())
 			{
 				int cnt = 0;
@@ -543,7 +535,6 @@ Log.i("NetHackDbg", "isExistingInstallationAvailable - on internal memory");
 				}
 				else
 				{
-Log.i("NetHackDbg", "Existing installation not up to date!");
 					install(existinginstallationexternal);
 					return true;
 				}
