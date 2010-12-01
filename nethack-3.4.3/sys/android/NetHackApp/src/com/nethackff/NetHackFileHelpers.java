@@ -132,7 +132,9 @@ public class NetHackFileHelpers
 			File externalFileRoot = android.os.Environment.getExternalStorageDirectory();
 			if(externalFileRoot != null)
 			{
-				return externalFileRoot.getAbsolutePath() + "/Android/data/com.nethackff/files";
+				String pkgName = activity.getPackageName();	// "com.nethackff" or something
+
+				return externalFileRoot.getAbsolutePath() + "/Android/data/" + pkgName + "/files";
 			}
 			// Not sure - this "else" case is not good, probably some unexpected SD card unavailability change.
 			// We fall back to the internal path, which may at least give us some chance of recovering.
