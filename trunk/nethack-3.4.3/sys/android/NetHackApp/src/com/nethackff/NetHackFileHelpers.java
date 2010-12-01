@@ -1,5 +1,6 @@
 package com.nethackff;
 
+import android.app.Activity;
 import android.util.Log;
 import android.os.Environment;
 //import java.io.BufferedReader;
@@ -116,5 +117,26 @@ public class NetHackFileHelpers
 		{
 			return false;
 		}			
+	}
+
+	static public String constructAppDirName(Activity activity, boolean installexternal)
+	{
+		if(installexternal)
+		{
+			// This turns out to have been added in API version 8 (Android 2.2), so it won't work
+			// on older devices, unfortunately:
+			//	File externalFile = activityNetHackApp.getExternalFilesDir(null);
+			//	return externalFile.getAbsolutePath();
+			// We use the "official workaround" (see
+			// http://developer.android.com/guide/topics/data/data-storage.html#filesExternalits):
+			File externalFileRoot = android.os.Environment.getExternalStorageDirectory();
+			if(externalFileRoot != null)
+			{
+				return externalFileRoot.getAbsolutePath() + "/Android/data/com.nethackff/files";
+			}
+			// Not sure - this "else" case is not good, probably some unexpected SD card unavailability change.
+			// We fall back to the internal path, which may at least give us some chance of recovering.
+		}
+		return activity.getFilesDir().getAbsolutePath(); 
 	}
 }

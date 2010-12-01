@@ -1062,17 +1062,9 @@ public class NetHackGame implements Runnable, OnGestureListener
 		{
 			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 			boolean existinginstallationexternal = prefs.getBoolean("InstalledOnExternalMemory", false);
-			if(existinginstallationexternal)
-			{
-				File externalFile = activityNetHackApp.getExternalFilesDir(null);
-				// TODO: Deal with case of externalFile = NULL (unexpected SD card unavailability change)
-				appDir = externalFile.getAbsolutePath();
-			}
-			else
-			{
-				appDir = activityNetHackApp.getFilesDir().getAbsolutePath(); 
-			}
 
+			appDir = NetHackFileHelpers.constructAppDirName(activityNetHackApp, existinginstallationexternal);
+			
 			Log.i("NetHackDbg", "Using directory '" + appDir + "' for application files.");
 
 			String nethackdir = getNetHackDir();

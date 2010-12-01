@@ -40,21 +40,10 @@ public class NetHackInstaller
 		}
 		return false;
 	}
-	
 
 	public void setAppDir(boolean installexternal)
 	{
-		if(installexternal)
-		{
-			File externalFile = activityNetHackApp.getExternalFilesDir(null);
-			// TODO: Deal with case of externalFile = NULL (unexpected SD card unavailability change)
-			appDir = externalFile.getAbsolutePath();
-		}
-		else
-		{
-			appDir = activityNetHackApp.getFilesDir().getAbsolutePath(); 
-		}
-		activityNetHackApp.appDir = appDir;
+		activityNetHackApp.appDir = appDir = NetHackFileHelpers.constructAppDirName(activityNetHackApp, installexternal);
 	}
 		
 	public String getAppDir()
