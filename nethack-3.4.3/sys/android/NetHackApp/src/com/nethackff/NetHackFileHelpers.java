@@ -61,7 +61,9 @@ public class NetHackFileHelpers
 		    int a = (Integer) setPermissions.invoke(null, filename, permissions, -1, -1);
 		    if(a != 0)
 		    {
-				Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() returned " + a + " for '" + filename + "', probably didn't work.");
+		    	// This will probably always happen now when running from SD card (or a Samsung phone),
+		    	// so don't generate error spew.
+				//	Log.i("NetHackDbg", "android.os.FileUtils.setPermissions() returned " + a + " for '" + filename + "', probably didn't work.");
 		    }
 		}
 		catch(ClassNotFoundException e)
@@ -119,7 +121,7 @@ public class NetHackFileHelpers
 		}			
 	}
 
-	static public String constructAppDirName(Activity activity, boolean installexternal)
+	static public String constructAppDirName(Activity activity, boolean installexternal, boolean useobsoletepath)
 	{
 		if(installexternal)
 		{
@@ -138,6 +140,10 @@ public class NetHackFileHelpers
 			}
 			// Not sure - this "else" case is not good, probably some unexpected SD card unavailability change.
 			// We fall back to the internal path, which may at least give us some chance of recovering.
+		}
+		else if(useobsoletepath)
+		{
+			return "/data/data/com.nethackff";
 		}
 		return activity.getFilesDir().getAbsolutePath(); 
 	}
