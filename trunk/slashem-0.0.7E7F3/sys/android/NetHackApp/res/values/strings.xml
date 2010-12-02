@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">NetHack Slash\'EM</string>
 	<string name="about">About</string>
-	<string name="about_msg">Android version 1.2.2\nPort by Fredrik Farnstrom\nfarnstrom@gmail.com\nIcon by Rich Jones (rich@anomos.info)\nSee Preferences screen for key bindings.\nTouch the screen to scroll (if needed).\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org and www.slashem.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/\n</string>
+	<string name="about_msg">Android version 1.2.3\nPort by Fredrik Farnstrom\nfarnstrom@gmail.com\nIcon by Rich Jones (rich@anomos.info)\nSee Preferences screen for key bindings.\nTouch the screen to scroll (if needed).\nUse ? to access in-game help.\nFor more info on how to play the game, see www.nethack.org and www.slashem.org.\nFor source code and feedback about the Android port, see\nhttp://code.google.com/p/nethack-android/\n</string>
 	<string name="about_title">NetHack Slash\'EM 0.0.7E7F3</string>
 	<string name="uimodechanged_msg">The new UI mode will take effect the next time you start the application.</string>
 	<string name="uimodechanged_title">UI mode changed</string>
@@ -23,6 +23,20 @@
 	<string name="dialog_Cancel">Cancel</string>
 	<string name="dialog_Success">Success</string>
 	<string name="dialog_Error">Error</string>
+	<string name="dialog_msg_ask_install_location">Please choose where to install data files (SD card is recommended).</string>
+	<string name="dialog_msg_existing_external_installation_unavailable">An existing installation was expected on the SD card, but it doesn\'t seem to be available. Please choose an action.</string>
+	<string name="dialog_msg_install_progress">Installing at</string>
+	<string name="dialog_msg_move_install_progress">Moving to</string>
+	<string name="dialog_msg_move_old_installation">An existing installation was found in internal memory. This version of NetHack normally installs data files on the SD card. Do you want to move the existing installation? Save game files should be preserved.</string>
+	<string name="dialog_msg_sd_card_not_found">The application normally stores data on the SD card, but there was a problem accessing it. Please choose an action.</string>
+	<string name="dialog_button_exit">Exit</string>
+	<string name="dialog_button_install_on_internal_memory">Internal Memory</string>
+	<string name="dialog_button_install_on_sd_card">Install on SD Card</string>
+	<string name="dialog_button_keep_existing_installation">Keep Existing Installation</string>
+	<string name="dialog_button_move_to_sd_card">Move to SD card</string>
+	<string name="dialog_button_retry">Retry</string>
+	<string name="dialog_button_reinstall_on_internal_memory">Reinstall on Internal Memory</string>
+	<string name="dialog_button_use_internal_memory">Use Internal Memory</string>
 	<string name="preferences">Preferences</string>
 	<string-array name="KeyActions">
 		<item>None</item>
