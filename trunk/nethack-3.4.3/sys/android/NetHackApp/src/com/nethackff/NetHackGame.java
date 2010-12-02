@@ -1062,9 +1062,10 @@ public class NetHackGame implements Runnable, OnGestureListener
 		{
 			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 			boolean existinginstallationexternal = prefs.getBoolean("InstalledOnExternalMemory", false);
+			boolean useobsoletepath = prefs.getBoolean("InstalledInObsoletePath", false);
 
-			appDir = NetHackFileHelpers.constructAppDirName(activityNetHackApp, existinginstallationexternal);
-			
+			appDir = NetHackFileHelpers.constructAppDirName(activityNetHackApp, existinginstallationexternal, useobsoletepath);
+
 			Log.i("NetHackDbg", "Using directory '" + appDir + "' for application files.");
 
 			String nethackdir = getNetHackDir();

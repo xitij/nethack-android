@@ -25,6 +25,8 @@ public class NetHackInstaller
 
 	protected AssetManager assetManager;
 
+	boolean useObsoletePath = false;
+
 	public boolean isExistingInstallationUpToDate()
 	{
 		return compareAsset("version.txt");
@@ -43,7 +45,7 @@ public class NetHackInstaller
 
 	public void setAppDir(boolean installexternal)
 	{
-		activityNetHackApp.appDir = appDir = NetHackFileHelpers.constructAppDirName(activityNetHackApp, installexternal);
+		activityNetHackApp.appDir = appDir = NetHackFileHelpers.constructAppDirName(activityNetHackApp, installexternal, useObsoletePath);
 	}
 		
 	public String getAppDir()
@@ -215,15 +217,37 @@ public class NetHackInstaller
 		activityNetHackApp.handler.sendMessage(Message.obtain(activityNetHackApp.handler, NetHackApp.MSG_INSTALL_BEGIN, finalProgress, 0, null));
 		performInstall();
 
-		setInstalledOnExternalMemory(installexternal);
+		storePrefsInstalledOnExternalMemory(installexternal);
+
+		if(installexternal)
+		{
+			// If we just installed externally, we can't be using the obsolete path, so make sure
+			// we clear this out from the prefs database:
+			storePrefsInstalledInObsoletePath(false);
+			useObsoletePath = false;
+		}
 	}
 
-	public void setInstalledOnExternalMemory(boolean installexternal)
+	public void storePrefsInstalledOnExternalMemory(boolean installexternal)
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
 		SharedPreferences.Editor prefsEditor = prefs.edit();
 		prefsEditor.putBoolean("InstalledOnExternalMemory", installexternal);
 		prefsEditor.commit();
+	}
+
+	public void storePrefsInstalledInObsoletePath(boolean obsoletepath)
+	{
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
+		SharedPreferences.Editor prefsEditor = prefs.edit();
+		prefsEditor.putBoolean("InstalledInObsoletePath", obsoletepath);
+		prefsEditor.commit();
+	}
+
+	public boolean readPrefsInstalledInObsoletePath()
+	{
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
+		return prefs.getBoolean("InstalledInObsoletePath", false);
 	}
 
 	public class InstallThread extends Thread implements Runnable
@@ -432,29 +456,25 @@ public class NetHackInstaller
 
 			activityNetHackApp.handler.sendEmptyMessage(NetHackApp.MSG_MOVE_INSTALL_END);
 
-			setInstalledOnExternalMemory(true);
+			storePrefsInstalledOnExternalMemory(true);
+
+			// If we were in the obsolete path before, we have moved from there.
+			storePrefsInstalledInObsoletePath(false);
+			useObsoletePath = false;
 		}
 
-		public boolean checkForOlderVersion()
+		public boolean checkForOlderVersion(boolean checkobsoletelocation)
 		{
+			useObsoletePath = checkobsoletelocation;
+
 			setAppDir(false);
 
 			String destname = getAppDir() + "/" + "version.txt";
-			File newasset = new File(destname);
-			boolean found = false;
-			try
-			{
-				BufferedInputStream out = new BufferedInputStream(new FileInputStream(newasset));
-				out.close();
-				found = true;
-			}
-			catch (IOException ex)
-			{
-			}
+			boolean found = new File(destname).exists();
 
 			if(!found)
 			{
-				// Didn't find an old 'version.txt' file amongst the internal file, doesn't look
+				// Didn't find an old 'version.txt' file amongst the internal files, doesn't look
 				// like we're upgrading from an older version.
 				return true;	// Continue
 			}
@@ -477,7 +497,10 @@ public class NetHackInstaller
 				{
 					// User didn't want to move. Remember that the current installation is in internal
 					// memory. It should be updated to the new version soon, preserving existing saved games.
-					setInstalledOnExternalMemory(false);
+					storePrefsInstalledOnExternalMemory(false);
+
+					// Perhaps we're left in the obsolete path then?
+					storePrefsInstalledInObsoletePath(useObsoletePath);
 				}
 				else	// NetHackApp.DialogResponse.Exit
 				{
@@ -491,17 +514,40 @@ public class NetHackInstaller
 				// internal memory. Since we can't move it to the SD card, just remember that we're
 				// using internal memory for file storage. We could notify the user here, but I expect
 				// this to be a rare situation, and going away as we move to future upgrades.
-				setInstalledOnExternalMemory(false);
+				storePrefsInstalledOnExternalMemory(false);
+
+				// Perhaps we're left in the obsolete path then?
+				storePrefsInstalledInObsoletePath(useObsoletePath);
 			}
 			return true;
 		}
+
 		public boolean performInitialChecks()
 		{
+			useObsoletePath = readPrefsInstalledInObsoletePath();
+
 			if(!doesExistingInstallationExist())
 			{
-				if(!checkForOlderVersion())
+				if(!checkForOlderVersion(false))
 				{
+					// Quit - should only happen if the user said so in a dialog.
 					return false;
+				}
+
+				// At this point, we may have found an old installation and moved it to the SD card,
+				// or found an old installation and left it in place, or we didn't find an old installation
+				// in the place where we looked. If we still haven't found anything, also check the
+				// pre-1.2.2 file location:
+				if(!doesExistingInstallationExist())
+				{
+					// Test for the old path, which was used up until version 1.2.1. Even if people have upgraded
+					// since then, the previous versions I believe have all supported leaving the files installed
+					// there, so we have to be careful to not ruin somebody's old data files now.
+					if(!checkForOlderVersion(true))
+					{
+						// Quit - should only happen if the user said so in a dialog.
+						return false;
+					}
 				}
 			}
 			
