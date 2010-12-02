@@ -8,7 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -371,6 +370,16 @@ public class NetHackApp extends Activity
 	public boolean onKeyUpSuper(int keycode, KeyEvent event)
 	{
 		return super.onKeyUp(keycode, event);	
+	}
+
+	public void onStart()
+	{
+		super.onStart();
+
+		if(game != null)
+		{
+			game.onStart();
+		}
 	}
 
 	public void onPause()
