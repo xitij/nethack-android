@@ -1,3 +1,18 @@
+1.3.3 (December 1, 2010)
+------------------------
+
+- Prefer SD card installation of the application itself on Android 2.2.
+- Allow SD card installation of the application's data files (all Android versions).
+- Generally more robust installation procedure.
+
+1.3.2 (August 26, 2010)
+-----------------------
+
+- Added touchscreen movement options (3x3 grid or travel, plus long press options).
+- Improved context sensitivity when using trackball, for picking up stuff,
+  opening/kick doors, etc.
+- 'number_pad' option works better, allowing use of the trackball.
+
 1.3.1 (July 31, 2010)
 ---------------------
 

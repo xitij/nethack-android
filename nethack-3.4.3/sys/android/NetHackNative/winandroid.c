@@ -21,6 +21,7 @@ void android_putstr(winid window, int attr, const char *str);
 /*void android_display_file(const char *fname, boolean complain);*/
 void FDECL(android_display_file, (const char *, BOOLEAN_P complain));
 int android_select_menu(winid window, int how, menu_item **menu_list);
+int android_nh_poskey(int *x, int *y, int *mod);
 int android_doprev_message();
 char android_yn_function(const char *query, const char *resp, CHAR_P def);
 /*E char FDECL(android_yn_function, (const char *, const char *, CHAR_P));*/
@@ -39,6 +40,11 @@ void android_process_text_window(winid wid, struct WinDesc *wd);
 void FDECL(android_tiled_print_glyph, (winid,XCHAR_P,XCHAR_P,int));
 /*void android_tiled_print_glyph(winid window, xchar x, xchar y, int glyph);*/
 #endif
+
+
+/* TODO: Put in header file (for androidmain.c, right now) */
+void android_process_input(int *chout, int *clickxout, int *clickyout);
+
 
 struct window_procs android_procs = {
     "android",
@@ -89,7 +95,7 @@ struct window_procs android_procs = {
     tty_raw_print,
     tty_raw_print_bold,
     tty_nhgetch,
-    tty_nh_poskey,
+    android_nh_poskey,
     tty_nhbell,
     android_doprev_message,
     android_yn_function,
@@ -274,7 +280,7 @@ static int s_MessageNumColumns = 80;
 static int s_StatusNumColumns = 80;
 static int s_NumMsgLines = 1;
 
-void Java_com_nethackff_NetHackApp_NetHackSetScreenDim(
+void Java_com_nethackff_NetHackJNI_NetHackSetScreenDim(
 		JNIEnv *env, jobject thiz, int msgwidth, int nummsglines,
 		int statuswidth)
 {
@@ -1771,6 +1777,40 @@ static void android_redotoplin(const char *str)
 	android_update_topl(str);
 
 	android_puts("\033A0");
+}
+
+
+int android_nh_poskey(int *x, int *y, int *mod)
+{
+    (void) fflush(stdout);
+    /* Note: if raw_print() and wait_synch() get called to report terminal
+     * initialization problems, then wins[] and ttyDisplay might not be
+     * available yet.  Such problems will probably be fatal before we get
+     * here, but validate those pointers just in case...
+     */
+    if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
+	    wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
+
+	int ch, clickx, clicky;
+
+	android_process_input(&ch, &clickx, &clicky);
+
+	if(clickx >= 0)
+	{
+		/* Not entirely sure about the +1 here, but I think I've seen this
+		   elsewhere in the NH code - column 0 doesn't seem to be used. */
+		*x = clickx + 1;
+		*y = clicky;
+		*mod = CLICK_1;
+		return 0;
+	}
+
+
+	/* See tty_nhgetch() - not sure how much of this we really need to do. */
+    if (!ch) ch = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
+    if (ttyDisplay && ttyDisplay->toplin == 1)
+	ttyDisplay->toplin = 2;
+    return ch;
 }
 
 

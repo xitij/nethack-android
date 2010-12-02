@@ -1,6 +1,10 @@
+/* androidmain.c */
+
 #include "hack.h"
 #include "dlb.h"
 #include "wintty.h"
+
+#include "comm.h"
 
 #include <string.h>
 #include <jni.h>
@@ -11,24 +15,17 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define RECEIVEBUFFSZ 255
-#define SENDBUFFSZ 1023
+static unsigned char s_CharReceiveBuff[RECEIVEBUFFSZ + 1];
+static unsigned char s_SendBuff[SENDBUFFSZ + 1];
+static volatile int s_SendCnt;
 
-static char s_ReceiveBuff[RECEIVEBUFFSZ + 1];
-static char s_SendBuff[SENDBUFFSZ + 1];
-static int s_ReceiveCnt;
-static int s_SendCnt;
+static int s_CharReceiveCnt;
 
-static pthread_mutex_t s_ReceiveMutex;
 static pthread_mutex_t s_SendMutex;
-static sem_t s_ReceiveWaitingForDataSema;
-static sem_t s_ReceiveWaitingForConsumptionSema;
 static sem_t s_SendNotFullSema;
 static sem_t s_CommandPerformedSema;
 
 static int s_SendWaitingForNotFull;
-static int s_ReceiveWaitingForData;
-static int s_ReceiveWaitingForConsumption;
 static int s_WaitingForCommandPerformed;
 
 static int s_PlayerPosShouldRecenter = 0;	/* Protected by s_ReceiveMutex */
@@ -44,6 +41,38 @@ enum
 };
 static AndroidGameState s_GameStateStack[kGameStateStackSize];
 static int s_GameStateStackCount = 0;
+
+enum
+{
+	kInputEventKeys,
+	kInputEventMapTap,
+	kInputEventDir
+};
+
+/* Note: must match enum MoveDir on the Java side. */
+enum MoveDir
+{
+	kMoveDirNone,
+	kMoveDirUpLeft,
+	kMoveDirUp,
+	kMoveDirUpRight,
+	kMoveDirLeft,
+	kMoveDirCenter,
+	kMoveDirRight,
+	kMoveDirDownLeft,
+	kMoveDirDown,
+	kMoveDirDownRight,
+
+	/* Not an actual direction, but a bit we use in the message to indicate
+	   that a context-sensitive interpretation of the direction is allowed. */
+	kMoveDirAllowContextSensitive = 0x80
+};
+
+static void sPushInputEvent(unsigned char eventtype, uint16_t datalen,
+		const void *data)
+{
+}
+
 
 enum
 {
@@ -172,6 +201,7 @@ static const char *s_statenames[] =
 {
 	"Invalid",
 	"ExtCmd",
+	"GetPos",
 	"Init",
 	"Menu",
 	"MoveLoop",
@@ -563,17 +593,8 @@ void android_makelock()
 }
 
 
-
-
-/* TEMP */
-#if 1
-#define SAVESIZE	(PL_NSIZ + 13)	/* save/99999player.e */
-char savename[SAVESIZE]; /* holds relative path of save file from playground */
-int FDECL(TMP_restore_savefile, (char *));
-int TMP_main(int argc, char *argv[]);
-#endif
-
 #define AUTOSAVE_FILENAME "android_autosave.txt"
+
 
 /* The last time we auto-saved (probably due to Activity pause), this
    was the value of the "moves" variable. */
@@ -688,8 +709,170 @@ extern int g_android_prevent_output;
 static int s_ShouldRefresh = 0;
 static int s_SwitchCharSetCmd = -1;
 
-int android_getch(void)
+
+
+
+static void android_push_char(unsigned char c)
 {
+	if(s_CharReceiveCnt >= RECEIVEBUFFSZ)
+	{
+		/* Buffer filled up, should be avoided, but if it happens, dropping
+		   the new character may be more reasonable than dropping the
+		   oldest or doing anything else - trying to wait for consumption
+		   with threading and stuff is probably too much risk to get a
+		   freeze or something. */
+
+		return;
+	}
+
+	s_CharReceiveBuff[s_CharReceiveCnt++] = c;
+}
+
+
+static void android_process_input_event_keys()
+{
+	while(!android_msgq_is_empty())
+	{
+		unsigned char c = android_msgq_pop_byte();
+		if(c)
+		{
+			android_push_char(c);
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
+
+static void android_process_input_event_dir()
+{
+	/* Look-up table for mapping our enum MoveDir to the direction code
+	   that NetHack uses. Perhaps we should change it to just use the same. */
+	static signed char s_nhindex[] =
+	{
+		-1,		/* None */
+		1,		/* UpLeft */
+		2,		/* Up */
+		3,		/* UpRight */
+		0,		/* Left */
+		-1,		/* Center */
+		4,		/* Right */
+		7,		/* DownLeft */
+		6,		/* Down */
+		5		/* DownRight */
+	};
+	
+	/* Get the direction, and map it a NetHack direction code. */
+	unsigned char c = android_msgq_pop_byte();
+
+	/* Check if we are in the regular movement loop. If not, we should
+	   stay away from trying to generate characters for context-sensitive
+	   commands. */
+	int allowcontext = (android_getgamestate() == kAndroidGameStateMoveLoop);
+
+	/* Strip and store the bit for if context-sensitive actions are allowed. */
+	if(!(c & kMoveDirAllowContextSensitive))
+	{
+		allowcontext = 0;
+	}
+	c &= ~kMoveDirAllowContextSensitive;
+
+	int index = -1;
+	if(c < 10)
+	{
+		index = s_nhindex[c];
+	}
+
+	/* Variables for a potential destination position. */
+	int destx = u.ux, desty = u.uy;
+
+	if(index >= 0)
+	{
+		if(!allowcontext)
+		{
+			/* Map the direction to a character, respecting the 'number_pad'
+			   option. */
+			const char *sdp;
+			if(iflags.num_pad)
+				sdp = ndir;
+			else
+				sdp = sdir;
+			android_push_char(sdp[index]);
+			return;
+		}
+
+		/* Compute the desired position after the move. */
+		destx += xdir[index];
+		desty += ydir[index];
+	}
+	else if(c == kMoveDirCenter && !allowcontext)
+	{
+		/* In this case, we are not in the main movement loop, and got the
+		   center direction - treat as a period character. */
+		android_push_char('.');
+		return;
+	}
+
+	/* For the remainder of the cases, we will use click_to_cmd(). This handles
+	   opening/kicking doors, picking up stuff, moving up/down, etc. */
+	if(c != kMoveDirNone)
+	{
+		/* click_to_cmd() does a better job with context-sensitive stuff
+		   when the 'travel' option is on - let's pretend it always is,
+		   in this context. */
+		boolean oldtravelcmd = iflags.travelcmd;
+
+		const char *cmd = click_to_cmd(destx, desty, CLICK_1);
+
+		/* Restore the 'travel' option. */
+		iflags.travelcmd = oldtravelcmd;
+
+		/* Add the characters for the command (probably always just 1, in this
+		   particular case. */
+		while(*cmd)
+		{
+			android_push_char(*cmd++);
+		}
+	}
+}
+
+
+static int android_process_input_event_maptap(int *clickxout, int *clickyout)
+{
+	int x = android_msgq_pop_byte();
+	int y = android_msgq_pop_byte();
+
+	if(clickxout && clickyout)
+	{
+		*clickxout = x;
+		*clickyout = y;
+
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+
+void android_process_input(int *chout, int *clickxout, int *clickyout)
+{
+	if(chout)
+	{
+		*chout = -1;
+	}
+	if(clickxout)
+	{
+		*clickxout = -1;
+	}
+	if(clickyout)
+	{
+		*clickyout = -1;
+	}
+
 	while(1)
 	{
 		pthread_mutex_lock(&s_ReceiveMutex);
@@ -711,11 +894,7 @@ int android_getch(void)
 			int cmd = s_Command;
 			s_Command = kCmdNone;
 
-			if(s_ReceiveWaitingForConsumption)
-			{
-				s_ReceiveWaitingForConsumption = 0;
-				sem_post(&s_ReceiveWaitingForConsumptionSema);
-			}
+			android_msgq_wake_waiting();
 
 			pthread_mutex_unlock(&s_ReceiveMutex);
 
@@ -753,9 +932,9 @@ int android_getch(void)
 
 				/* Not sure about this, we really could use a better way to
 				   force a redraw. */
-				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				if(s_CharReceiveCnt < RECEIVEBUFFSZ)
 				{
-					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+					s_CharReceiveBuff[s_CharReceiveCnt++] = 18;	/* ^R */
 				}
 
 			}
@@ -799,9 +978,9 @@ int android_getch(void)
 						break;
 				}
 
-				if(s_ReceiveCnt < RECEIVEBUFFSZ)
+				if(s_CharReceiveCnt < RECEIVEBUFFSZ)
 				{
-					s_ReceiveBuff[s_ReceiveCnt++] = 18;	/* ^R */
+					s_CharReceiveBuff[s_CharReceiveCnt++] = 18;	/* ^R */
 				}
 
 				continue;
@@ -829,24 +1008,56 @@ int android_getch(void)
 			}
 		}
 
-		if(s_ReceiveCnt > 0)
-		{
-			int ret = s_ReceiveBuff[0], i;
-			/* Hmm, no good! */
-			for(i = 0; i < s_ReceiveCnt - 1; i++)
-			{
-				s_ReceiveBuff[i] = s_ReceiveBuff[i + 1];
-			}
-			s_ReceiveCnt--;
+		int processedany = 0;
+		int done = 0;
 
-			if(s_ReceiveWaitingForConsumption)
+		while(!android_msgq_is_empty())
+		{
+			unsigned char msgtype = android_msgq_pop_byte();
+
+			switch(msgtype)
 			{
-				s_ReceiveWaitingForConsumption = 0;
-				sem_post(&s_ReceiveWaitingForConsumptionSema);
+				case kInputEventKeys:
+					android_process_input_event_keys();
+					break;
+				case kInputEventMapTap:
+					done = android_process_input_event_maptap(clickxout, clickyout);
+					break;
+				case kInputEventDir:
+					android_process_input_event_dir();
+					break;
+				default:
+					exit(1);	/* Probably too aggressive for released builds. */
+					break;
 			}
+
+			processedany = 1;
+		}
+
+		if(processedany)
+		{
+			android_msgq_wake_waiting();
+		}
+
+		if(done)
+		{
+			pthread_mutex_unlock(&s_ReceiveMutex);
+			return;
+		}
+
+		if(s_CharReceiveCnt > 0 && chout)
+		{
+			int ret = s_CharReceiveBuff[0], i;
+			/* Hmm, no good! */
+			for(i = 0; i < s_CharReceiveCnt - 1; i++)
+			{
+				s_CharReceiveBuff[i] = s_CharReceiveBuff[i + 1];
+			}
+			s_CharReceiveCnt--;
 
 			pthread_mutex_unlock(&s_ReceiveMutex);
-			return ret;
+			*chout = ret;
+			return;
 		}
 
 		s_ReceiveWaitingForData = 1;
@@ -855,8 +1066,16 @@ int android_getch(void)
 
 		sem_wait(&s_ReceiveWaitingForDataSema);
 	}
-	/*return EOF;*/
 }
+
+
+int android_getch(void)
+{
+	int ch;
+	android_process_input(&ch, NULL, NULL);
+	return ch;
+}
+
 
 
 static void sSendCmd(int cmd, int sync)
@@ -1092,7 +1311,7 @@ static const int kUiModePureTTY = 1;
 static const int kUiModeAndroidTiled = 2;
 #endif
 
-int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
+int Java_com_nethackff_NetHackJNI_NetHackInit(JNIEnv *env, jobject thiz,
 		int uimode, jstring nethackdir)
 {
 	char *p;
@@ -1123,7 +1342,10 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	s_SendWaitingForNotFull = 0;
 	s_ReceiveWaitingForData = 0;
 	s_ReceiveWaitingForConsumption = 0;
-	s_ReceiveCnt = 0;
+	s_CharReceiveCnt = 0;
+
+	android_msgq_init();
+
 	s_SendCnt = 0;
 	s_Quit = 0;	
 	s_ReadyForSave = 0;
@@ -1191,7 +1413,7 @@ int Java_com_nethackff_NetHackApp_NetHackInit(JNIEnv *env, jobject thiz,
 	return 1;
 }
 
-void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
+void Java_com_nethackff_NetHackJNI_NetHackShutdown(JNIEnv *env, jobject thiz)
 {
 	if(g_ThreadHandle)
 	{
@@ -1216,14 +1438,14 @@ void Java_com_nethackff_NetHackApp_NetHackShutdown(JNIEnv *env, jobject thiz)
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackHasQuit(JNIEnv *env, jobject thiz)
+int Java_com_nethackff_NetHackJNI_NetHackHasQuit(JNIEnv *env, jobject thiz)
 {
 	return s_Quit;
 }
 
 extern int dosave0();
 
-int Java_com_nethackff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
+int Java_com_nethackff_NetHackJNI_NetHackSave(JNIEnv *env, jobject thiz)
 {
 	if(!s_ReadyForSave)
 	{
@@ -1236,7 +1458,7 @@ int Java_com_nethackff_NetHackApp_NetHackSave(JNIEnv *env, jobject thiz)
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
+void Java_com_nethackff_NetHackJNI_NetHackRefreshDisplay(
 		JNIEnv *env, jobject thiz)
 {
 	/* Do we need to do anything to check if we are in a state where
@@ -1251,7 +1473,7 @@ void Java_com_nethackff_NetHackApp_NetHackRefreshDisplay(
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
+void Java_com_nethackff_NetHackJNI_NetHackSwitchCharSet(
 		JNIEnv *env, jobject thiz, int charset)
 {
 	int cmd = -1;
@@ -1286,7 +1508,7 @@ void Java_com_nethackff_NetHackApp_NetHackSwitchCharSet(
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackSetTilesEnabled(
+void Java_com_nethackff_NetHackJNI_NetHackSetTilesEnabled(
 		JNIEnv *env, jobject thiz, int tilesenabled)
 {
 	int sync = 1;	/* Maybe less risk for timing-related display bugs this way? */
@@ -1300,7 +1522,7 @@ void Java_com_nethackff_NetHackApp_NetHackSetTilesEnabled(
 	}
 }
 
-int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
+int Java_com_nethackff_NetHackJNI_NetHackGetPlayerPosX(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1315,7 +1537,7 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosX(JNIEnv *env,
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
+int Java_com_nethackff_NetHackJNI_NetHackGetPlayerPosY(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1330,7 +1552,7 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosY(JNIEnv *env,
 }
 
 
-int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
+int Java_com_nethackff_NetHackJNI_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 		jobject thiz)
 {
 	int ret;
@@ -1348,54 +1570,66 @@ int Java_com_nethackff_NetHackApp_NetHackGetPlayerPosShouldRecenter(JNIEnv *env,
 }
 
 
-void Java_com_nethackff_NetHackApp_NetHackTerminalSend(JNIEnv *env, jobject thiz,
+void Java_com_nethackff_NetHackJNI_NetHackSendDir(JNIEnv *env, jobject thiz,
+		int dir, int allowcontext)
+{
+	android_msgq_begin_message();
+	android_msgq_push_byte((unsigned char)kInputEventDir);
+
+	unsigned char c = (unsigned char)dir;
+	if(allowcontext)
+	{
+		c |= kMoveDirAllowContextSensitive;
+	}
+	android_msgq_push_byte(c);
+
+	android_msgq_end_message();
+}
+
+
+void Java_com_nethackff_NetHackJNI_NetHackTerminalSend(JNIEnv *env, jobject thiz,
 		jstring str)
 {
 	const char *nativestr = (*env)->GetStringUTFChars(env, str, 0);
 
-	pthread_mutex_lock(&s_ReceiveMutex);
+	android_msgq_begin_message();
+
+	android_msgq_push_byte((unsigned char)kInputEventKeys);
 
 	const char *ptr = nativestr;
 	for(; *ptr;)
 	{
-		if(s_ReceiveCnt < RECEIVEBUFFSZ)
+		unsigned int c = *ptr++;
+
+		/* For the meta keys to work, we need to convert the UTF
+		   encoding back to 8 bit chars, which we do here. */
+		if((c & 0xe0) == 0xc0)
 		{
-			unsigned int c = *ptr++;
-
-			/* For the meta keys to work, we need to convert the UTF
-			   encoding back to 8 bit chars, which we do here. */
-			if((c & 0xe0) == 0xc0)
-			{
-				unsigned int d = *ptr++;
-				c = ((c << 6) & 0xc0) | (d & 0x3f);
-			}
-
-			s_ReceiveBuff[s_ReceiveCnt++] = (char)c;
+			unsigned int d = *ptr++;
+			c = ((c << 6) & 0xc0) | (d & 0x3f);
 		}
-		else
-		{
-			s_ReceiveWaitingForConsumption = 1;
 
-			pthread_mutex_unlock(&s_ReceiveMutex);
-
-			sem_wait(&s_ReceiveWaitingForConsumptionSema);
-
-			pthread_mutex_lock(&s_ReceiveMutex);
-		}
+		android_msgq_push_byte((unsigned char)c);
 	}
 
-	if(s_ReceiveWaitingForData)
-	{
-		s_ReceiveWaitingForData = 0;
-		sem_post(&s_ReceiveWaitingForDataSema);
-	}
-
-	pthread_mutex_unlock(&s_ReceiveMutex);
+	android_msgq_end_message();
 
 	(*env)->ReleaseStringUTFChars(env, str, nativestr);
 }
 
-jstring Java_com_nethackff_NetHackApp_NetHackTerminalReceive(JNIEnv *env,
+
+void Java_com_nethackff_NetHackJNI_NetHackMapTap(JNIEnv *env,
+		jobject thiz, int x, int y)
+{
+	android_msgq_begin_message();
+	android_msgq_push_byte((char)kInputEventMapTap);
+	android_msgq_push_byte((unsigned char)x);
+	android_msgq_push_byte((unsigned char)y);
+	android_msgq_end_message();
+}
+
+
+jstring Java_com_nethackff_NetHackJNI_NetHackTerminalReceive(JNIEnv *env,
 		jobject thiz)
 {
 	pthread_mutex_lock(&s_SendMutex);
@@ -1433,399 +1667,4 @@ wd_message()
 		You("are in non-scoring discovery mode.");
 }
 
-/*------------------------------------------------------------------*/
-/* TEMP */
-
-/*	SCCS Id: @(#)recover.c	3.4	1999/10/23	*/
-/*	Copyright (c) Janet Walz, 1992.				  */
-/* NetHack may be freely redistributed.  See license for details. */
-
-/*
- *  Utility for reconstructing NetHack save file from a set of individual
- *  level files.  Requires that the `checkpoint' option be enabled at the
- *  time NetHack creates those level files.
- */
-#include "config.h"
-#if !defined(O_WRONLY) && !defined(LSC) && !defined(AZTEC_C)
-#include <fcntl.h>
-#endif
-#ifdef WIN32
-#include <errno.h>
-#include "win32api.h"
-#endif
-
-#ifdef VMS
-extern int FDECL(vms_creat, (const char *,unsigned));
-extern int FDECL(vms_open, (const char *,int,unsigned));
-#endif	/* VMS */
-
-#if 1
-int FDECL(TMP_restore_savefile, (char *));
-void FDECL(TMP_set_levelfile_name, (int));
-int FDECL(TMP_open_levelfile, (int));
-int NDECL(TMP_create_savefile);
-void FDECL(TMP_copy_bytes, (int,int));
-#endif
-
-#ifndef WIN_CE
-#define Fprintf	(void)fprintf1
-#else
-#define Fprintf	(void)nhce_message
-static void nhce_message(FILE*, const char*, ...);
-#endif
-
-/* TEMP */
-int fprintf1(FILE *stream, const char *fmt, ...)
-{
-	char buff[1024];
-	int r;
-
-	va_list args;
-	va_start(args, fmt);
-	r = vsnprintf(buff, sizeof(buff), fmt, args);
-	va_end(args);
-
-	android_puts(buff);
-
-	return r;
-}
-
-#define Close	(void)close
-
-
-#if defined(EXEPATH)
-char *FDECL(exepath, (char *));
-#endif
-
-#if defined(__BORLANDC__) && !defined(_WIN32)
-extern unsigned _stklen = STKSIZ;
-#endif
-#if 0
-char savename[SAVESIZE]; /* holds relative path of save file from playground */
-#endif
-
-int
-TMP_main(argc, argv)
-int argc;
-char *argv[];
-{
-	int argno;
-
-	const char *dir = (char *)0;
-#ifdef AMIGA
-	char *startdir = (char *)0;
-#endif
-
-
-	if (!dir) dir = getenv("NETHACKDIR");
-	if (!dir) dir = getenv("HACKDIR");
-#if defined(EXEPATH)
-	if (!dir) dir = exepath(argv[0]);
-#endif
-	if (argc == 1 || (argc == 2 && !strcmp(argv[1], "-"))) {
-	    Fprintf(stderr,
-		"Usage: %s [ -d directory ] base1 [ base2 ... ]\n", argv[0]);
-#if defined(WIN32) || defined(MSDOS)
-	    if (dir) {
-	    	Fprintf(stderr, "\t(Unless you override it with -d, recover will look \n");
-	    	Fprintf(stderr, "\t in the %s directory on your system)\n", dir);
-	    }
-#endif
-	    exit(EXIT_FAILURE);
-	}
-
-	argno = 1;
-	if (!strncmp(argv[argno], "-d", 2)) {
-		dir = argv[argno]+2;
-		if (*dir == '=' || *dir == ':') dir++;
-		if (!*dir && argc > argno) {
-			argno++;
-			dir = argv[argno];
-		}
-		if (!*dir) {
-		    Fprintf(stderr,
-			"%s: flag -d must be followed by a directory name.\n",
-			argv[0]);
-		    exit(EXIT_FAILURE);
-		}
-		argno++;
-	}
-#if defined(SECURE) && !defined(VMS)
-	if (dir
-# ifdef HACKDIR
-		&& strcmp(dir, HACKDIR)
-# endif
-		) {
-		(void) setgid(getgid());
-		(void) setuid(getuid());
-	}
-#endif	/* SECURE && !VMS */
-
-#ifdef HACKDIR
-	if (!dir) dir = HACKDIR;
-#endif
-
-#ifdef AMIGA
-	startdir = getcwd(0,255);
-#endif
-	if (dir && chdir((char *) dir) < 0) {
-		Fprintf(stderr, "%s: cannot chdir to %s.\n", argv[0], dir);
-		exit(EXIT_FAILURE);
-	}
-
-	while (argc > argno) {
-		if (TMP_restore_savefile(argv[argno]) == 0)
-		{
-#if 0
-		    Fprintf(stderr, "recovered \"%s\" to %s\n",
-			    argv[argno], savename);
-#endif
-		}
-		argno++;
-	}
-#ifdef AMIGA
-	if (startdir) (void)chdir(startdir);
-#endif
-	exit(EXIT_SUCCESS);
-	/*NOTREACHED*/
-	return 0;
-}
-
-static char TMP_lock[256];
-
-void
-TMP_set_levelfile_name(lev)
-int lev;
-{
-	char *tf;
-
-	tf = rindex(TMP_lock, '.');
-	if (!tf) tf = TMP_lock + strlen(TMP_lock);
-	(void) sprintf(tf, ".%d", lev);
-#ifdef VMS
-	(void) strcat(tf, ";1");
-#endif
-}
-
-int
-TMP_open_levelfile(lev)
-int lev;
-{
-	int fd;
-
-	TMP_set_levelfile_name(lev);
-#if defined(MICRO) || defined(WIN32) || defined(MSDOS)
-	fd = open(TMP_lock, O_RDONLY | O_BINARY);
-#else
-	fd = open(TMP_lock, O_RDONLY, 0);
-#endif
-	return fd;
-}
-
-int
-TMP_create_savefile()
-{
-	int fd;
-
-#if defined(MICRO) || defined(WIN32) || defined(MSDOS)
-	fd = open(savename, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, FCMASK);
-#else
-	fd = creat(savename, FCMASK);
-#endif
-	return fd;
-}
-
-void
-copy_bytes(ifd, ofd)
-int ifd, ofd;
-{
-	char buf[BUFSIZ];
-	int nfrom, nto;
-
-	do {
-		nfrom = read(ifd, buf, BUFSIZ);
-		nto = write(ofd, buf, nfrom);
-		if (nto != nfrom) {
-			Fprintf(stderr, "file copy failed!\n");
-			exit(EXIT_FAILURE);
-		}
-	} while (nfrom == BUFSIZ);
-}
-
-int
-TMP_restore_savefile(basename)
-char *basename;
-{
-	int gfd, lfd, sfd;
-	int lev, savelev, hpid;
-	xchar levc;
-	struct version_info version_data;
-
-	/* level 0 file contains:
-	 *	pid of creating process (ignored here)
-	 *	level number for current level of save file
-	 *	name of save file nethack would have created
-	 *	and game state
-	 */
-	(void) strcpy(TMP_lock, basename);
-	gfd = TMP_open_levelfile(0);
-	if (gfd < 0) {
-#if defined(WIN32) && !defined(WIN_CE)
- 	    if(errno == EACCES) {
-	  	Fprintf(stderr,
-			"\nThere are files from a game in progress under your name.");
-		Fprintf(stderr,"\nThe files are locked or inaccessible.");
-		Fprintf(stderr,"\nPerhaps the other game is still running?\n");
-	    } else
-	  	Fprintf(stderr,
-			"\nTrouble accessing level 0 (errno = %d).\n", errno);
-#endif
-	    Fprintf(stderr, "Cannot open level 0 for %s.\n", basename);
-	    return(-1);
-	}
-	if (read(gfd, (genericptr_t) &hpid, sizeof hpid) != sizeof hpid) {
-	    Fprintf(stderr, "%s\n%s%s%s\n",
-	     "Checkpoint data incompletely written or subsequently clobbered;",
-		    "recovery for \"", basename, "\" impossible.");
-	    Close(gfd);
-	    return(-1);
-	}
-	if (read(gfd, (genericptr_t) &savelev, sizeof(savelev))
-							!= sizeof(savelev)) {
-	    Fprintf(stderr,
-	    "Checkpointing was not in effect for %s -- recovery impossible.\n",
-		    basename);
-	    Close(gfd);
-	    return(-1);
-	}
-	if ((read(gfd, (genericptr_t) savename, sizeof savename)
-		!= sizeof savename) ||
-	    (read(gfd, (genericptr_t) &version_data, sizeof version_data)
-		!= sizeof version_data)) {
-	    Fprintf(stderr, "Error reading %s -- can't recover.\n", TMP_lock);
-	    Close(gfd);
-	    return(-1);
-	}
-
-	/* save file should contain:
-	 *	version info
-	 *	current level (including pets)
-	 *	(non-level-based) game state
-	 *	other levels
-	 */
-	sfd = TMP_create_savefile();
-	if (sfd < 0) {
-	    Fprintf(stderr, "Cannot create savefile %s.\n", savename);
-	    Close(gfd);
-	    return(-1);
-	}
-
-	lfd = TMP_open_levelfile(savelev);
-	if (lfd < 0) {
-	    Fprintf(stderr, "Cannot open level of save for %s.\n", basename);
-	    Close(gfd);
-	    Close(sfd);
-	    return(-1);
-	}
-
-	if (write(sfd, (genericptr_t) &version_data, sizeof version_data)
-		!= sizeof version_data) {
-	    Fprintf(stderr, "Error writing %s; recovery failed.\n", savename);
-	    Close(gfd);
-	    Close(sfd);
-	    return(-1);
-	}
-
-	copy_bytes(lfd, sfd);
-	Close(lfd);
-	(void) unlink(TMP_lock);
-
-	copy_bytes(gfd, sfd);
-	Close(gfd);
-	TMP_set_levelfile_name(0);
-	(void) unlink(TMP_lock);
-
-	for (lev = 1; lev < 256; lev++) {
-		/* level numbers are kept in xchars in save.c, so the
-		 * maximum level number (for the endlevel) must be < 256
-		 */
-		if (lev != savelev) {
-			lfd = TMP_open_levelfile(lev);
-			if (lfd >= 0) {
-				/* any or all of these may not exist */
-				levc = (xchar) lev;
-				write(sfd, (genericptr_t) &levc, sizeof(levc));
-				copy_bytes(lfd, sfd);
-				Close(lfd);
-				(void) unlink(TMP_lock);
-			}
-		}
-	}
-
-	Close(sfd);
-
-	return(0);
-}
-
-#ifdef EXEPATH
-# ifdef __DJGPP__
-#define PATH_SEPARATOR '/'
-# else
-#define PATH_SEPARATOR '\\'
-# endif
-
-#define EXEPATHBUFSZ 256
-char exepathbuf[EXEPATHBUFSZ];
-
-char *exepath(str)
-char *str;
-{
-	char *tmp, *tmp2;
-	int bsize;
-
-	if (!str) return (char *)0;
-	bsize = EXEPATHBUFSZ;
-	tmp = exepathbuf;
-#if !defined(WIN32)
-	strcpy (tmp, str);
-#else
-# if defined(WIN_CE)
-	{
-	  TCHAR wbuf[EXEPATHBUFSZ];
-	  GetModuleFileName((HANDLE)0, wbuf, EXEPATHBUFSZ);
-	  NH_W2A(wbuf, tmp, bsize);
-	}
-# else
-	*(tmp + GetModuleFileName((HANDLE)0, tmp, bsize)) = '\0';
-# endif
-#endif
-	tmp2 = strrchr(tmp, PATH_SEPARATOR);
-	if (tmp2) *tmp2 = '\0';
-	return tmp;
-}
-#endif /* EXEPATH */
-
-#ifdef AMIGA
-#include "date.h"
-const char amiga_version_string[] = AMIGA_VERSION_STRING;
-#endif
-
-#ifdef WIN_CE
-void nhce_message(FILE* f, const char* str, ...)
-{
-    va_list ap;
-	TCHAR wbuf[NHSTR_BUFSIZE];
-	char buf[NHSTR_BUFSIZE];
-
-    va_start(ap, str);
-	vsprintf(buf, str, ap);
-    va_end(ap);
-
-	MessageBox(NULL, NH_A2W(buf, wbuf, NHSTR_BUFSIZE), TEXT("Recover"), MB_OK);
-}
-#endif
-
-/*recover.c*/
-
-
-/* End of file */
+/* End of file androidmain.c */

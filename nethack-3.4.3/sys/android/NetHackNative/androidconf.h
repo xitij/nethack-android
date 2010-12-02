@@ -74,12 +74,15 @@ typedef enum
 {
 	kAndroidGameStateInvalid,
 
+	/* Note: if making changes here, keep s_statenames[] in 'androidmain.c'
+	   up to date. */
+
 	kAndroidGameStateExtCmd,
+	kAndroidGameStateGetPos,
 	kAndroidGameStateInit,
 	kAndroidGameStateMenu,
 	kAndroidGameStateMoveLoop,
 	kAndroidGameStateText,
-
 	kAndroidGameStateWaitingForResponse,
 
 	kAndroidNumGameStates
