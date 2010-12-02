@@ -194,7 +194,7 @@ needed from 2nd page: <>^_[
 		{
 			String s = "";
 			s += c;
-			netHackApp.NetHackTerminalSend(s);
+			netHackApp.game.jni.NetHackTerminalSend(s);
 		}
 	}
 	

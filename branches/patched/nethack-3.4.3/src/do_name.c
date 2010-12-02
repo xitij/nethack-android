@@ -68,6 +68,10 @@ const char *goal;
 #ifdef MAC
     lock_mouse_cursor(TRUE);
 #endif
+#ifdef ANDROID
+	/* This is ugly, but couldn't find a better way. */
+	android_pushgamestate(kAndroidGameStateGetPos);
+#endif
     for (;;) {
 	c = nh_poskey(&tx, &ty, &sidx);
 	if (c == '\033') {
@@ -181,6 +185,9 @@ const char *goal;
 	curs(WIN_MAP,cx,cy);
 	flush_screen(0);
     }
+#ifdef ANDROID
+	android_popgamestate();
+#endif
 #ifdef MAC
     lock_mouse_cursor(FALSE);
 #endif
