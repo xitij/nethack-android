@@ -548,6 +548,13 @@ public class NetHackInstaller
 						// Quit - should only happen if the user said so in a dialog.
 						return false;
 					}
+
+					// If we still didn't find any existing installation, make sure we don't try
+					// to install the new version in the obsolete path!
+					if(!doesExistingInstallationExist())
+					{
+						useObsoletePath = false;	
+					}
 				}
 			}
 			
