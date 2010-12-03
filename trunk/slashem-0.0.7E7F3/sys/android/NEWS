@@ -1,3 +1,10 @@
+1.2.3 (December 2, 2010)
+------------------------
+
+- Prefer SD card installation of the application itself on Android 2.2.
+- Allow SD card installation of the application's data files (all Android versions).
+- Generally more robust installation procedure.
+
 1.2.2 (August 26, 2010)
 -----------------------
 
