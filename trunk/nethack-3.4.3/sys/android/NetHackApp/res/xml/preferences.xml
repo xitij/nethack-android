@@ -102,7 +102,10 @@
 		<CheckBoxPreference android:key="StickyShift"
 			android:title="Sticky Shift Keys"
 			android:defaultValue="false"/>
-		<PreferenceScreen
+		<Preference
+		    android:key="keyBindings"
+			android:title="Key Bindings"/>
+		<!-- PreferenceScreen
 			android:title="Key Bindings">
 			<ListPreference
 				android:title="Back Button"
@@ -168,7 +171,7 @@
 				android:entries="@array/KeyActions"
 				android:entryValues="@array/KeyActionValues"/>
 
-		</PreferenceScreen>
+		</PreferenceScreen>-->
 
 		<CheckBoxPreference android:key="KeyboardShownInPortrait"
 			android:title="Virtual Keyboard in Portrait"

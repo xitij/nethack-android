@@ -8,6 +8,7 @@
 	<string name="uimodechanged_title">UI mode changed</string>
 	<string name="menu_exportconfig">Export Config</string>
 	<string name="menu_importconfig">Import Config</string>
+	<string name="menu_editconfig">Edit Config</string>
 	<string name="configexport_msg">This will make a copy of your NetHack configuration file, on your SD card or elsewhere, so you can edit and re-import.</string>
 	<string name="configexport_title">Export Configuration File.</string>
 	<string name="configexport_failed">Failed to copy to</string>
@@ -148,4 +149,19 @@
 		<item>Landscape</item>
 		<item>Unspecified</item>
 	</string-array>
+	
+	<string name="keyMapPreferences">keyMapPreferences</string>
+	<string name="add_key_binding">Add Key Binding</string>
+	<string name="dialog_get_key_title">Key to bind</string>
+	<string name="dialog_get_key_default_message">(press a key to change)</string>
+	<string name="dialog_get_nethack_key_message">Choose a character to bind the system key to</string>
+	<string name="dialog_key_binding_change">Change</string>
+	<string name="dialog_key_binding_delete">Delete</string>
+	<string name="please_select_a_character">Please select a character</string>
+	<string name="please_select_a_key">Please select a key</string>
+	<string name="cant_bind_menu_key">Can\'t bind MENU key</string>
+	<string name="bind_to_action">Bind to action</string>
+	<string name="bind_to_character">Bind to character</string>
+	<string name="reset_to_defaults">Reset to defaults</string>
+	<string name="clear_all">Clear all</string>
 </resources>
