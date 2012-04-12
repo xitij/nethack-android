@@ -6,9 +6,6 @@
 	<string name="about_title">NetHack 3.4.3</string>
 	<string name="uimodechanged_msg">The new UI mode will take effect the next time you start the application.</string>
 	<string name="uimodechanged_title">UI mode changed</string>
-	<string name="menu_exportconfig">Export Config</string>
-	<string name="menu_importconfig">Import Config</string>
-	<string name="menu_editconfig">Edit Config</string>
 	<string name="configexport_msg">This will make a copy of your NetHack configuration file, on your SD card or elsewhere, so you can edit and re-import.</string>
 	<string name="configexport_title">Export Configuration File.</string>
 	<string name="configexport_failed">Failed to copy to</string>
@@ -149,7 +146,15 @@
 		<item>Landscape</item>
 		<item>Unspecified</item>
 	</string-array>
+	<string-array name="ConfigOptionsEntries">
+	    <item>@string/edit_config</item>
+	    <item>@string/import_config</item>
+	    <item>@string/export_config</item>
+	</string-array>
 	
+	<string name="edit_config">Edit Config</string>
+	<string name="import_config">Import Config</string>
+	<string name="export_config">Export Config</string>
 	<string name="keyMapPreferences">keyMapPreferences</string>
 	<string name="add_key_binding">Add Key Binding</string>
 	<string name="dialog_get_key_title">Key to bind</string>
