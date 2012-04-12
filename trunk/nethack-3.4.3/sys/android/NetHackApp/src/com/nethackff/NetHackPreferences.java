@@ -20,6 +20,20 @@ public class NetHackPreferences extends PreferenceActivity
 
 		setTileSetPreference(tileSetList);
 		
+		setKeyBindPreferenceIntent();
+		
+		setConfigOptionsPreferenceIntent();
+	}
+
+	private void setConfigOptionsPreferenceIntent()
+	{
+		Preference configOptions = findPreference("configOptions");
+		Intent intent = new Intent(getApplicationContext(), ConfigOptions.class);
+		configOptions.setIntent(intent);
+	}
+
+	private void setKeyBindPreferenceIntent()
+	{
 		Preference keyBindPreference = findPreference("keyBindings");
 		Intent intent = new Intent(getApplicationContext(), KeyBindingListActivity.class);
 		keyBindPreference.setIntent(intent);

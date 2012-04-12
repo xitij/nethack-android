@@ -16,6 +16,10 @@
 			android:label="@string/app_name">
 		</activity>
 		<activity
+            android:name=".ConfigOptions"
+            android:label="Nethack Config Options">
+        </activity>
+		<activity
 			android:name=".KeyBindingListActivity"
 			android:label="Key Bindings">
 		</activity>
