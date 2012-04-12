@@ -1,19 +1,12 @@
 package com.nethackff;
 
-import android.app.Activity;
-//import android.app.ActivityManager;
-//import android.app.AlertDialog;
-//import android.app.AlertDialog.Builder;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.ResolveInfo;
-import android.content.res.AssetManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -21,11 +14,6 @@ import android.content.res.Resources.NotFoundException;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.Rect;
-import android.graphics.Typeface;
-import android.inputmethodservice.Keyboard;
-import android.inputmethodservice.KeyboardView;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -37,36 +25,26 @@ import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
-import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnKeyListener;
-import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 //import android.widget.ScrollView;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.Thread;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.LinkedList;
+import java.util.Map;
 
 //public class NetHackGameActivity extends Activity implements Runnable, OnGestureListener
 public class NetHackGame implements Runnable, OnGestureListener
@@ -185,19 +163,6 @@ public class NetHackGame implements Runnable, OnGestureListener
 		Unspecified
 	}
 	
-	enum KeyAction
-	{
-		None,
-		VirtualKeyboard,
-		AltKey,
-		CtrlKey,
-		ShiftKey,
-		EscKey,
-		ZoomIn,
-		ZoomOut,
-		ForwardToSystem		// Forward for O/S to handle.
-	}
-	
 	enum ColorMode
 	{
 		Invalid,
@@ -264,49 +229,10 @@ public class NetHackGame implements Runnable, OnGestureListener
 	KeyAction optKeyBindShiftRight = KeyAction.ShiftKey;
 	KeyAction optKeyBindVolumeUp = KeyAction.ZoomIn;
 	KeyAction optKeyBindVolumeDown = KeyAction.ZoomOut;
+	
+	Map<String, ?> keyMappings;
 
 	String optTileSetName;	
-
-	public KeyAction getKeyActionFromKeyCode(int keyCode)
-	{
-		KeyAction keyAction = KeyAction.None;
-		switch(keyCode)
-		{
-			case KeyEvent.KEYCODE_ALT_LEFT:
-				keyAction = optKeyBindAltLeft;
-				break;
-			case KeyEvent.KEYCODE_ALT_RIGHT:
-				keyAction = optKeyBindAltRight;
-				break;
-			case KeyEvent.KEYCODE_BACK:
-				keyAction = optKeyBindBack;
-				break;
-			case KeyEvent.KEYCODE_CAMERA:
-				keyAction = optKeyBindCamera;
-				break;
-			case KeyEvent.KEYCODE_MENU:
-				keyAction = optKeyBindMenu;
-				break;
-			case KeyEvent.KEYCODE_SEARCH:
-				keyAction = optKeyBindSearch;
-				break;
-			case KeyEvent.KEYCODE_SHIFT_LEFT:
-				keyAction = optKeyBindShiftLeft; 	
-				break;
-			case KeyEvent.KEYCODE_SHIFT_RIGHT:
-				keyAction = optKeyBindShiftRight; 	
-				break;
-			case KeyEvent.KEYCODE_VOLUME_UP:
-				keyAction = optKeyBindVolumeUp;
-				break;
-			case KeyEvent.KEYCODE_VOLUME_DOWN:
-				keyAction = optKeyBindVolumeDown;
-				break;
-			default:
-				break;
-		}
-		return keyAction;		
-	}
 
 	// Note: must match enum MoveDir in androidmain.c
 	enum MoveDir
@@ -325,84 +251,55 @@ public class NetHackGame implements Runnable, OnGestureListener
 
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
-		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
-
-		if(keyAction == KeyAction.VirtualKeyboard)
-		{
-//			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
-//			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
-			boolean newval = !optKeyboardShownInConfig[screenConfig.ordinal()];
-			optKeyboardShownInConfig[screenConfig.ordinal()] = newval;
-
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
-			SharedPreferences.Editor prefsEditor = prefs.edit();
-			if(screenConfig == ScreenConfig.Portrait)
-			{
-				prefsEditor.putBoolean("KeyboardShownInPortrait", newval);
-			}
-			else
-			{
-				prefsEditor.putBoolean("KeyboardShownInLandscape", newval);
-			}
-			prefsEditor.commit();
-			updateLayout();
-
-			// Take this as an opportunity to scroll to the player, as we may have exposed
-			// or obscured a part of the map view.
-			getMapView().pendingRedraw = true;
-			scrollWithPlayerRefresh = true;
-
-			return true;
-		}
-
-		if(keyAction == KeyAction.ZoomIn || keyAction == KeyAction.ZoomOut)
-		{
-			NetHackView view = getMapView();
-			if(keyAction == KeyAction.ZoomIn)
-			{
-				view.zoomIn();
-				scrollWithPlayerRefresh = true;
-			}
-			else if(keyAction == KeyAction.ZoomOut)
-			{
-				view.zoomOut();
-				scrollWithPlayerRefresh = true;
-			}
-			else
-			{
-				return true;	
-			}
-		}
-
-		if(keyAction == KeyAction.ForwardToSystem)
-		{
-			return activityNetHackApp.onKeyDownSuper(keyCode, event);
-		}
-
-		if(keyCode == KeyEvent.KEYCODE_MENU)
-		{
-			return activityNetHackApp.onKeyDownSuper(keyCode, event);
-		}
-
-		if(keyAction == KeyAction.AltKey)
-		{
-			altKey.keyDown();
-			return true;
-		}
-		if(keyAction == KeyAction.CtrlKey)
-		{
-			ctrlKey.keyDown();
-			return true;
-		}
-		if(keyAction == KeyAction.ShiftKey)
-		{
-			shiftKey.keyDown();
-			return true;
-		}
+		Object keyMapping = keyMappings.get(Integer.toString(keyCode));
 		char c = 0;
-		if(keyAction == KeyAction.EscKey)
+		if (keyMapping != null)
 		{
-			c = 27;
+			if (keyMapping instanceof String)
+			{
+				String keyMappingString = (String) keyMapping;
+				// If the keymap preference is a string, we check if we're mapping it to a system action
+				if (keyMappingString.equals(KeyAction.VirtualKeyboard.name()))
+				{
+					showOrHideKeyboard();
+					return true;
+				}
+				if (keyMappingString.equals(KeyAction.ZoomIn.name()) || keyMappingString.equals(KeyAction.ZoomOut.name()))
+				{
+					zoomInOrOut(KeyAction.valueOf((String) keyMapping));
+					return true;
+				}
+				//CTRL is listed here as a system action, because for all API versions < 11 there is no keyevent for CTRL
+				if (keyMappingString.equals(KeyAction.CtrlKey.name()))
+				{
+					ctrlKey.keyDown();
+					return true;
+				}
+				
+				if (keyMappingString.equals(KeyAction.ForwardToSystem.name()))
+				{
+					return activityNetHackApp.onKeyDownSuper(keyCode, event);
+				}
+				if (keyMappingString.equals(KeyAction.EscKey.name()))
+				{
+					c = 27;
+				}
+				if (keyMappingString.equals(KeyAction.AltKey.name()))
+				{
+					altKey.keyDown();
+					return true;
+				}
+				if (keyMappingString.equals(KeyAction.ShiftKey.name()))
+				{
+					shiftKey.keyDown();
+					return true;
+				}
+				//Otherwise, we check if it's mapping to a character
+				if (keyMappingString.length() == 1)
+				{
+					c = ((String) keyMapping).charAt(0);
+				}
+			}
 		}
 		if(optMoveWithTrackball)
 		{
@@ -467,37 +364,75 @@ public class NetHackGame implements Runnable, OnGestureListener
 
 			s += c;
 			jni.NetHackTerminalSend(s);
+			return true;
 		}
+		Log.d("######", "keyCode: " + keyCode + " made it to the end");
+		return activityNetHackApp.onKeyDownSuper(keyCode, event);
 
-		return true;
+	}
+	private void zoomInOrOut(KeyAction keyAction) {
+		NetHackView view = getMapView();
+		if(keyAction == KeyAction.ZoomIn)
+		{
+			view.zoomIn();
+			scrollWithPlayerRefresh = true;
+		}
+		else if(keyAction == KeyAction.ZoomOut)
+		{
+			view.zoomOut();
+			scrollWithPlayerRefresh = true;
+		}
+	}
+	private void showOrHideKeyboard() {
+		//			InputMethodManager inputManager = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
+		//			inputManager.showSoftInput(mainView.getRootView(), InputMethodManager.SHOW_FORCED);
+					boolean newval = !optKeyboardShownInConfig[screenConfig.ordinal()];
+					optKeyboardShownInConfig[screenConfig.ordinal()] = newval;
+		
+					SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
+					SharedPreferences.Editor prefsEditor = prefs.edit();
+					if(screenConfig == ScreenConfig.Portrait)
+					{
+						prefsEditor.putBoolean("KeyboardShownInPortrait", newval);
+					}
+					else
+					{
+						prefsEditor.putBoolean("KeyboardShownInLandscape", newval);
+					}
+					prefsEditor.commit();
+					updateLayout();
+		
+					// Take this as an opportunity to scroll to the player, as we may have exposed
+					// or obscured a part of the map view.
+					getMapView().pendingRedraw = true;
+					scrollWithPlayerRefresh = true;
 	}
 
 	public boolean onKeyUp(int keyCode, KeyEvent event)
 	{
-		KeyAction keyAction = getKeyActionFromKeyCode(keyCode);
-
-		if(keyAction == KeyAction.CtrlKey)
+		Object keyMapping = keyMappings.get(Integer.toString(keyCode));
+		if (keyMapping != null && keyMapping instanceof String)
 		{
-			ctrlKey.keyUp();
-		}
-		if(keyAction == KeyAction.AltKey)
-		{
-			altKey.keyUp();
-		}
-		if(keyAction == KeyAction.ShiftKey)
-		{
-			shiftKey.keyUp();
-		}
-
-		if(keyAction == KeyAction.None)
-		{
-			if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU)
+			String keyMappingString = (String) keyMapping;
+			// If the keymap preference is a string, we check if we're mapping it to a system action
+			//CTRL is listed here as a system action, because for all API versions < 11 there is no keyevent for CTRL
+			if (keyMappingString.equals(KeyAction.CtrlKey.name()))
 			{
-				return activityNetHackApp.onKeyUpSuper(keyCode, event);
+				ctrlKey.keyUp();
+				return true;
+			}
+			if (keyMappingString.equals(KeyAction.AltKey.name()))
+			{
+				altKey.keyUp();
+				return true;
+			}
+			if (keyMappingString.equals(KeyAction.ShiftKey.name()))
+			{
+				shiftKey.keyUp();
+				return true;
 			}
 		}
-
-		return true;
+		return activityNetHackApp.onKeyUpSuper(keyCode, event);
 	}
 
 	private boolean finishRequested = false;
@@ -590,7 +525,7 @@ public class NetHackGame implements Runnable, OnGestureListener
 	{
 		Display display = ((WindowManager)activityNetHackApp.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 		int sizeX = display.getWidth();
-		int sizeY = display.getHeight();
+//		int sizeY = display.getHeight();
 
 		messageView.setSizeXFromPixels(sizeX);
 		messageView.setSizeY(messageRows);
@@ -644,9 +579,9 @@ public class NetHackGame implements Runnable, OnGestureListener
 
 		initViewsCommon(false);	
 
-		Display display = ((WindowManager)activityNetHackApp.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-		int sizeX = display.getWidth();
-		int sizeY = display.getHeight();
+//		Display display = ((WindowManager)activityNetHackApp.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+//		int sizeX = display.getWidth();
+//		int sizeY = display.getHeight();
 
 		screenLayout.removeAllViews();
 		screenLayout = new LinearLayout(activityNetHackApp);
@@ -1765,7 +1700,7 @@ public class NetHackGame implements Runnable, OnGestureListener
 
 	public void useTileSet(TileSetInfo info)
 	{
-		int tilesizex = 0, tilesizey = 0;
+//		int tilesizex = 0, tilesizey = 0;
 //			tileBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.x11tiles);
 
 		Uri path = Uri.parse("android.resource://" + info.packageName + "/drawable/" + info.bitmapName);
@@ -1845,7 +1780,7 @@ public class NetHackGame implements Runnable, OnGestureListener
 
 		List<ApplicationInfo> appsList = activityNetHackApp.getBaseContext().getPackageManager().getInstalledApplications(0);
 		Iterator<ApplicationInfo> appsIter = appsList.iterator(); 
-		int tilesizex = 1, tilesizey = 1;
+//		int tilesizex = 1, tilesizey = 1;
 		while(appsIter.hasNext())
 		{ 
 			ApplicationInfo curr = appsIter.next(); 
@@ -2146,27 +2081,25 @@ public class NetHackGame implements Runnable, OnGestureListener
 				configImportExportDialog(false);
 				return true;
 			}
+			case R.id.editconfig:
+			{
+				File file = new File(getNetHackDir() + "/.nethackrc");
+				Uri uri = Uri.fromFile(file);
+				Intent editConfigIntent = new Intent(Intent.ACTION_VIEW ,uri);
+				editConfigIntent.setDataAndType(uri, "text/plain"); 
+				activityNetHackApp.startActivity(editConfigIntent);
+				return true;
+			}
 		}
 		return false;  
-	}
-
-	private KeyAction getKeyActionEnumFromString(String s)
-	{
-		return KeyAction.valueOf(s);
 	}
 	
 	private void getPrefs()
 	{
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activityNetHackApp.getBaseContext());
-		optKeyBindBack = getKeyActionEnumFromString(prefs.getString("BackButtonFunc", "ForwardToSystem"));
-		optKeyBindCamera = getKeyActionEnumFromString(prefs.getString("CameraButtonFunc", "VirtualKeyboard"));
-		optKeyBindSearch = getKeyActionEnumFromString(prefs.getString("SearchButtonFunc", "CtrlKey"));
-		optKeyBindAltLeft = getKeyActionEnumFromString(prefs.getString("LeftAltKeyFunc", "AltKey"));
-		optKeyBindAltRight = getKeyActionEnumFromString(prefs.getString("RightAltKeyFunc", "AltKey"));
-		optKeyBindShiftLeft = getKeyActionEnumFromString(prefs.getString("LeftShiftKeyFunc", "ShiftKey"));
-		optKeyBindShiftRight = getKeyActionEnumFromString(prefs.getString("RightShiftKeyFunc", "ShiftKey"));
-		optKeyBindVolumeUp = getKeyActionEnumFromString(prefs.getString("VolumeUpButtonFunc", "ZoomIn"));
-		optKeyBindVolumeDown = getKeyActionEnumFromString(prefs.getString("VolumeDownButtonFunc", "ZoomOut"));
+		
+		SharedPreferences keyMapPrefs = activityNetHackApp.getSharedPreferences(activityNetHackApp.getString(R.string.keyMapPreferences), Context.MODE_PRIVATE);
+		keyMappings = keyMapPrefs.getAll();
 
 		altKey.sticky = prefs.getBoolean("StickyAlt", false);
 		ctrlKey.sticky = prefs.getBoolean("StickyCtrl", false);
