@@ -1,9 +1,7 @@
 package com.nethackff;
 
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
@@ -28,15 +26,11 @@ import android.view.GestureDetector.OnGestureListener;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.View.OnKeyListener;
 import android.view.ViewGroup.LayoutParams;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 //import android.widget.ScrollView;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.Thread;
@@ -1932,105 +1926,7 @@ public class NetHackGame implements Runnable, OnGestureListener
 		}
 
 		startCommThread();
-	}
-
-	public void configExport(String outname)
-	{
-		try
-		{
-			NetHackFileHelpers.copyFileRaw(getNetHackDir() + "/.nethackrc", outname);
-
-			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
-			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Success));
-			alert.setMessage(activityNetHackApp.getString(R.string.configexport_success) + " '" + outname + "'.");
-			alert.show();
-		}
-		catch(IOException e)
-		{
-			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
-			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Error));
-			alert.setMessage(activityNetHackApp.getString(R.string.configexport_failed) + " '" + outname + "'.");
-			alert.show();
-		}
-	}
-
-	public void configImport(String inname)
-	{
-		try
-		{
-			NetHackFileHelpers.copyFileRaw(inname, getNetHackDir() + "/.nethackrc"); 
-
-			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
-			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Success));
-			alert.setMessage(activityNetHackApp.getString(R.string.configimport_success) + " '" + inname + "'. " + activityNetHackApp.getString(R.string.configimport_success2));
-			alert.show();
-		}
-		catch(IOException e)
-		{
-			AlertDialog.Builder alert = new AlertDialog.Builder(activityNetHackApp);  
-			alert.setTitle(activityNetHackApp.getString(R.string.dialog_Error));
-			alert.setMessage(activityNetHackApp.getString(R.string.configimport_failed) + " '" + inname + "'. " + activityNetHackApp.getString(R.string.configimport_failed2));
-			alert.show();
-		}
-	}
-
-	public void configImportExport(String filename, boolean cfgimport)
-	{
-		if(cfgimport)
-		{
-			configImport(filename);
-		}
-		else
-		{
-			configExport(filename);
-		}
-	}
-	
-	public void configImportExportDialog(final boolean cfgimport)
-	{
-		final AlertDialog.Builder dialog = new AlertDialog.Builder(activityNetHackApp);
-		if(cfgimport)
-		{
-			dialog.setTitle(activityNetHackApp.getString(R.string.configimport_title));
-			dialog.setMessage(activityNetHackApp.getString(R.string.configimport_msg));
-		}
-		else
-		{
-			dialog.setTitle(activityNetHackApp.getString(R.string.configexport_title));
-			dialog.setMessage(activityNetHackApp.getString(R.string.configexport_msg));
-		}
-		final EditText input = new EditText(activityNetHackApp);
-		input.getText().append(activityNetHackApp.getString(R.string.config_defaultfile));
-
-		dialog.setView(input);
-		dialog.setPositiveButton(activityNetHackApp.getString(R.string.dialog_OK), new DialogInterface.OnClickListener()
-		{
-			public void onClick(DialogInterface d, int whichbutton)
-			{
-				String value = input.getText().toString();
-				configImportExport(value, cfgimport);
-			}
-		});
-		dialog.setNegativeButton(activityNetHackApp.getString(R.string.dialog_Cancel), new DialogInterface.OnClickListener()
-		{
-			public void onClick(DialogInterface d, int whichbutton) {}
-		});
-		
-		input.setOnKeyListener(new OnKeyListener()
-		{
-			public boolean onKey(View v, int keyCode, KeyEvent event)
-			{
-				if(keyCode == KeyEvent.KEYCODE_ENTER)
-				{
-					return true;
-				}
-				return false;
-			}
-		});
-
-		dialog.show();
-
-	}
+	}	
 
 	public boolean onOptionsItemSelected(MenuItem item)
 	{  
@@ -2069,25 +1965,6 @@ public class NetHackGame implements Runnable, OnGestureListener
 				bundle.putStringArray("TileSetInfo", tilesetinfo);
 				intent.putExtras(bundle);
 				activityNetHackApp.startActivity(intent);
-				return true;
-			}
-			case R.id.importconfig:
-			{
-				configImportExportDialog(true);
-				return true;
-			}
-			case R.id.exportconfig:
-			{
-				configImportExportDialog(false);
-				return true;
-			}
-			case R.id.editconfig:
-			{
-				File file = new File(getNetHackDir() + "/.nethackrc");
-				Uri uri = Uri.fromFile(file);
-				Intent editConfigIntent = new Intent(Intent.ACTION_VIEW ,uri);
-				editConfigIntent.setDataAndType(uri, "text/plain"); 
-				activityNetHackApp.startActivity(editConfigIntent);
 				return true;
 			}
 		}
