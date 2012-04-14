@@ -1225,8 +1225,11 @@ public class NetHackGame implements Runnable, OnGestureListener
 			DisplayMetrics metrics = new DisplayMetrics();
 			activityNetHackApp.getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
-			int loconscreen[] = new int[2];
-			mapview.getLocationOnScreen(loconscreen);
+			int[] loconscreen = new int[2];
+			if (mapview.getWindowToken() != null)
+			{
+				mapview.getLocationOnScreen(loconscreen);
+			}
 
 			float xx = e.getRawX()/(float)metrics.widthPixels;
 			float yy = (e.getRawY() - loconscreen[1])/(float)mapview.getHeight();
