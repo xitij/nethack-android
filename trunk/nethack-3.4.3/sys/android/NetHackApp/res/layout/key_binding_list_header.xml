@@ -9,5 +9,4 @@
     android:textAppearance="?android:attr/textAppearanceLarge"
     android:textColor="@android:color/white" 
     android:minHeight="?android:attr/listPreferredItemHeight"
-    android:clickable="true"
-    android:onClick="onAddKeyBindingClick"/>
+    android:clickable="true"/>
