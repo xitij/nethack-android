@@ -24,6 +24,7 @@ import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.TwoLineListItem;
 
@@ -59,12 +60,23 @@ public class KeyBindingListActivity extends ListActivity
 		super.onCreate(savedInstanceState);
 
 		inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		getListView().addHeaderView(inflater.inflate(R.layout.key_binding_list_header, null));
+		View headerView = inflater.inflate(R.layout.key_binding_list_header, null);
+		headerView.setOnClickListener(new View.OnClickListener()
+		{
+			
+			@Override
+			public void onClick(View v)
+			{
+				showDialog(KeyBindDialogType.GET_KEY.ordinal());
+			}
+		});
+		getListView().addHeaderView(headerView);
 
 		keyMapPrefs = getSharedPreferences(getString(R.string.keyMapPreferences), Context.MODE_PRIVATE);
 
 		adapter = new KeyBindingListAdapter(this);
 		setListAdapter(adapter);
+		
 	}
 
 	@Override
@@ -133,59 +145,60 @@ public class KeyBindingListActivity extends ListActivity
 
 	private Dialog createCharacterBindingDialog()
 	{
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setView(inflater.inflate(R.layout.bind_to_nethack_key_dialog, null));
-
-		builder.setNegativeButton(R.string.dialog_Cancel, cancelOnClickListener);
-		builder.setPositiveButton(R.string.dialog_OK, null);
-		builder.setTitle(getBindingKeyToCharacterString());
-		final AlertDialog nethackKeyDialog = builder.create();
-		nethackKeyDialog.setOnShowListener(new DialogInterface.OnShowListener() 
+		final Dialog characterBindingDialog = new Dialog(this);
+		characterBindingDialog.setContentView(R.layout.character_binding_dialog);
+		characterBindingDialog.setTitle(getBindingKeyToCharacterString());
+		final EditText characterField = (EditText) characterBindingDialog.findViewById(R.id.character_field);
+		characterField.addTextChangedListener(new TextWatcher()
 		{
-
-			public void onShow(DialogInterface dialog) 
+			@Override
+			public void onTextChanged(CharSequence s, int start, int before, int count)
 			{
-				final EditText characterField = (EditText) nethackKeyDialog.findViewById(R.id.character_field);
-				characterField.addTextChangedListener(new TextWatcher()
-				{
-					@Override
-					public void onTextChanged(CharSequence s, int start, int before, int count)
-					{
-						//Don't need this
-					}
-
-					@Override
-					public void beforeTextChanged(CharSequence s, int start, int count, int after)
-					{
-						//Don't need this
-					}
-
-					@Override
-					public void afterTextChanged(Editable s)
-					{
-						characterField.selectAll();
-					}
-				});
-				Button positiveButton = nethackKeyDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-				positiveButton.setOnClickListener(new View.OnClickListener() 
-				{
-					public void onClick(View view) 
-					{
-						if (characterField.getText().length() == 0)
-						{
-							Toast.makeText(KeyBindingListActivity.this, R.string.please_select_a_character, Toast.LENGTH_SHORT).show();
-							return;
-						}
-
-						Editable bindChar = characterField.getText();
-						bindKeyCode(bindChar.toString());
-						nethackKeyDialog.dismiss();
-					}
-				});
-				characterField.requestFocus();
+				//Not needed
+			}
+			
+			@Override
+			public void beforeTextChanged(CharSequence s, int start, int count, int after)
+			{
+				//Not needed
+			}
+			
+			@Override
+			public void afterTextChanged(Editable s)
+			{
+				characterField.selectAll();
 			}
 		});
-		return nethackKeyDialog;
+		Button positiveButton = (Button) characterBindingDialog.findViewById(R.id.positiveButton);
+		positiveButton.setOnClickListener(new View.OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				if (characterField.getText().length() == 0)
+				{
+					Toast.makeText(KeyBindingListActivity.this, R.string.please_select_a_character, Toast.LENGTH_SHORT).show();
+					return;
+				}
+
+				Editable bindChar = characterField.getText();
+				bindKeyCode(bindChar.toString());
+				characterBindingDialog.dismiss();
+			}
+		});
+		Button negativeButton = (Button) characterBindingDialog.findViewById(R.id.negativeButton);
+		negativeButton.setOnClickListener(new View.OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				currentlySelectedKeyCode = -1;
+				characterBindingDialog.dismiss();
+			}
+		});
+		
+
+		return characterBindingDialog;
 	}
 
 	private Dialog createGetActionDialog()
@@ -206,113 +219,106 @@ public class KeyBindingListActivity extends ListActivity
 
 	private Dialog createGetKeyDialog()
 	{
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		if (currentlySelectedKeyCode == -1)
+		final Dialog getKeyDialog = new Dialog(this);
+		getKeyDialog.setContentView(R.layout.get_key_dialog);
+		getKeyDialog.setTitle(R.string.dialog_get_key_title);
+		Button positiveButton = (Button) getKeyDialog.findViewById(R.id.positiveButton);
+		positiveButton.setOnClickListener(new View.OnClickListener()
 		{
-			builder.setMessage(getString(R.string.dialog_get_key_default_message));
-		}
-		else
+			@Override
+			public void onClick(View v)
+			{
+				if (!validKeySelected(getKeyDialog))
+				{
+					return;
+				}
+				showDialog(KeyBindDialogType.GET_KEY_BINDING_ACTION.ordinal());
+				getKeyDialog.dismiss();
+			}
+		});
+		Button neutralButton = (Button) getKeyDialog.findViewById(R.id.neutralButton);
+		neutralButton.setOnClickListener(new View.OnClickListener()
 		{
-			builder.setMessage(KeyCodeSymbolicNames.keyCodeToString(currentlySelectedKeyCode));
-		}
-		builder.setTitle(R.string.dialog_get_key_title);
-		builder.setPositiveButton(R.string.bind_to_action, null);
-		builder.setNeutralButton(R.string.bind_to_character, null);
-		builder.setNegativeButton(R.string.dialog_Cancel, cancelOnClickListener);
-
-		final AlertDialog getKeyDialog = builder.create();
+			@Override
+			public void onClick(View view)
+			{
+				if (!validKeySelected(getKeyDialog))
+				{
+					return;
+				}
+				showDialog(KeyBindDialogType.GET_KEY_BINDING_NETHACK_KEY.ordinal());
+				getKeyDialog.dismiss();
+			}
+		});
+		
+		Button negativeButton = (Button) getKeyDialog.findViewById(R.id.negativeButton);
+		negativeButton.setOnClickListener(new View.OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				currentlySelectedKeyCode = -1;
+				getKeyDialog.dismiss();
+			}
+		});
 		getKeyDialog.setOnKeyListener(new Dialog.OnKeyListener()
 		{
 			public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent event)
 			{
-				getKeyDialog.setMessage(KeyCodeSymbolicNames.keyCodeToString(keyCode));
+				TextView message = (TextView) getKeyDialog.findViewById(android.R.id.message);
+				message.setText(KeyCodeSymbolicNames.keyCodeToString(keyCode));
 
 				currentlySelectedKeyCode = keyCode;
 				return true;
 			}
 		});
-		getKeyDialog.setOnShowListener(new DialogInterface.OnShowListener() 
-		{
-
-			public void onShow(DialogInterface dialog) 
-			{
-				Button positiveButton = getKeyDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-				positiveButton.setOnClickListener(new View.OnClickListener() 
-				{
-					@Override
-					public void onClick(View view) 
-					{
-						if (!validKeySelected(getKeyDialog))
-						{
-							return;
-						}
-						showDialog(KeyBindDialogType.GET_KEY_BINDING_ACTION.ordinal());
-						getKeyDialog.dismiss();
-					}
-				});
-				Button neutralButton = getKeyDialog.getButton(AlertDialog.BUTTON_NEUTRAL);
-				neutralButton.setOnClickListener(new View.OnClickListener()
-				{
-					@Override
-					public void onClick(View view)
-					{
-						if (!validKeySelected(getKeyDialog))
-						{
-							return;
-						}
-						showDialog(KeyBindDialogType.GET_KEY_BINDING_NETHACK_KEY.ordinal());
-						getKeyDialog.dismiss();
-					}
-				});
-			}
-
-			private boolean validKeySelected(final AlertDialog getKeyDialog)
-			{
-				if (currentlySelectedKeyCode == -1)
-				{
-					Toast.makeText(KeyBindingListActivity.this, R.string.please_select_a_key, Toast.LENGTH_SHORT).show();
-					return false;
-				}
-				if (currentlySelectedKeyCode == KeyEvent.KEYCODE_MENU)
-				{
-					Toast.makeText(KeyBindingListActivity.this,R.string.cant_bind_menu_key , Toast.LENGTH_SHORT).show();
-
-					currentlySelectedKeyCode = -1;
-					getKeyDialog.setMessage(getString(R.string.dialog_get_key_default_message));
-
-					return false;
-				}
-				return true;
-			}
-		});
 		return getKeyDialog;
+	}
+	private boolean validKeySelected(final Dialog getKeyDialog)
+	{
+		if (currentlySelectedKeyCode == -1)
+		{
+			Toast.makeText(KeyBindingListActivity.this, R.string.please_select_a_key, Toast.LENGTH_SHORT).show();
+			return false;
+		}
+		if (currentlySelectedKeyCode == KeyEvent.KEYCODE_MENU)
+		{
+			Toast.makeText(KeyBindingListActivity.this,R.string.cant_bind_menu_key , Toast.LENGTH_SHORT).show();
+
+			currentlySelectedKeyCode = -1;
+			TextView message = (TextView) getKeyDialog.findViewById(android.R.id.message);
+			message.setText(R.string.dialog_get_key_default_message);
+
+			return false;
+		}
+		return true;
 	}
 
 	@Override
 	protected void onPrepareDialog(int id, Dialog dialog)
 	{
-		AlertDialog alertDialog = (AlertDialog) dialog;
 		if (id == KeyBindDialogType.GET_KEY.ordinal())
 		{
+			TextView message = (TextView) dialog.findViewById(android.R.id.message);
 			if (currentlySelectedKeyCode == -1)
 			{
-				alertDialog.setMessage(getString(R.string.dialog_get_key_default_message));
+				message.setText(R.string.dialog_get_key_default_message);
 				return;
 			}
-			alertDialog.setMessage(KeyCodeSymbolicNames.keyCodeToString(currentlySelectedKeyCode));
+			message.setText(KeyCodeSymbolicNames.keyCodeToString(currentlySelectedKeyCode));
 			return;
 		}
 		else if (id == KeyBindDialogType.GET_KEY_BINDING_ACTION.ordinal())
 		{
-			alertDialog.setTitle(getBindingKeyToActionString());
+			dialog.setTitle(getBindingKeyToActionString());
 		}
 		else if (id == KeyBindDialogType.GET_KEY_BINDING_NETHACK_KEY.ordinal())
 		{
-			alertDialog.setTitle(getBindingKeyToCharacterString());
+			dialog.setTitle(getBindingKeyToCharacterString());
 		}
 		else if (id == KeyBindDialogType.SHOW_KEY_BINDING_OPTIONS.ordinal())
 		{
-			alertDialog.setTitle(getKeyIsBoundToValueString());
+			dialog.setTitle(getKeyIsBoundToValueString());
 		}
 
 	}
