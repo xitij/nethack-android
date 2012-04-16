@@ -3,6 +3,8 @@ package com.nethackff;
 import java.io.File;
 import java.io.IOException;
 
+import com.nethackff.configeditor.ConfigEditor;
+
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.DialogInterface;
@@ -56,6 +58,7 @@ public class ConfigOptions extends ListActivity
 		Uri uri = Uri.fromFile(file);
 		Intent editConfigIntent = new Intent(Intent.ACTION_VIEW ,uri);
 		editConfigIntent.setDataAndType(uri, "text/plain"); 
+		editConfigIntent.setClass(this, ConfigEditor.class);
 		startActivity(editConfigIntent);
 	}
 	
