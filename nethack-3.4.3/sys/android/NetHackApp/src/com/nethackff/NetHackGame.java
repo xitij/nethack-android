@@ -360,7 +360,6 @@ public class NetHackGame implements Runnable, OnGestureListener
 			jni.NetHackTerminalSend(s);
 			return true;
 		}
-		Log.d("######", "keyCode: " + keyCode + " made it to the end");
 		return activityNetHackApp.onKeyDownSuper(keyCode, event);
 
 	}

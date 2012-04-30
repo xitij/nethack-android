@@ -35,12 +35,8 @@ import com.nethackff.R;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -50,7 +46,6 @@ import android.text.Spannable;
 import android.text.TextWatcher;
 import android.text.method.ArrowKeyMovementMethod;
 import android.text.style.ClickableSpan;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -107,61 +102,6 @@ public class ConfigEditor extends Activity
 	public boolean mTextUpperCaseFont;
 	public int mTextColor;
 	public int mBackgroundPadding;
-
-	/**
-	 * A custom EditText that draws lines between each line of text that is
-	 * displayed. 
-	 */
-	public static class LinedEditText extends EditText
-	{
-		private static final int LINE_COLOR = 0xFF000080;
-		private Rect mRect;
-		private Paint mPaint;
-
-		// we need this constructor for LayoutInflater
-		public LinedEditText(Context context, AttributeSet attrs)
-		{
-			super(context, attrs);
-
-			mRect = new Rect();
-			mPaint = new Paint();
-			mPaint.setStyle(Paint.Style.STROKE);
-		}
-
-		@Override
-		protected void onDraw(Canvas canvas)
-		{
-			mPaint.setColor(LINE_COLOR);
-
-			int count = getLineCount();
-			Rect r = mRect;
-			Paint paint = mPaint;
-
-			int height = getHeight();
-			int line_height = getLineHeight();
-			int page_size = height / line_height + 1;
-
-			int baseline = 0;
-			int left = 0;
-			int right = 0;
-			for (int i = 0; i < count; i++)
-			{
-				baseline = getLineBounds(i, r);
-				left = r.left;
-				right = r.right;
-				left = getLeft();
-				right = getRight();
-				canvas.drawLine(left, baseline + 1, right, baseline + 1, paint);
-			}
-			for (int i = count; i < page_size; i++)
-			{
-				baseline += line_height;
-				canvas.drawLine(left, baseline + 1, right, baseline + 1, paint);
-			}
-
-			super.onDraw(canvas);
-		}
-	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
