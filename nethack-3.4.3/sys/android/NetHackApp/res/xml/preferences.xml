@@ -119,7 +119,27 @@
     <PreferenceCategory android:title="Nethack Config File" >
         <Preference
             android:key="configOptions"
-            android:title="Config Options..." />
+            android:title="Edit Config" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Backup">
+        <Preference
+            android:key="backupConfig"
+            android:title="Backup Config File"/>
+        <Preference 
+            android:key="backupPreferences"
+            android:title="Backup Preferences"/>
+        <Preference
+            android:key="backupKeyBindings"
+            android:title="Backup Key Bindings"/>
+        <Preference 
+            android:key="importConfig"
+            android:title="Import Config File"/>
+        <Preference
+            android:key="importPreferences"
+            android:title="Import Preferences"/>
+        <Preference 
+            android:key="importKeyBindings"
+            android:title="Import Key Bindings"/>
     </PreferenceCategory>
 
 </PreferenceScreen>

@@ -425,7 +425,7 @@ public class ConfigEditor extends Activity
 			BufferedWriter out = new BufferedWriter(fstream);
 			out.write(text);
 			out.close();
-			Toast.makeText(this, R.string.note_saved, Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, R.string.config_saved, Toast.LENGTH_SHORT).show();
 		}
 		catch (IOException e)
 		{
