@@ -190,7 +190,7 @@
 	<string name="please_select_a_character">Please select a character</string>
 	<string name="please_select_a_key">Please select a key</string>
 	<string name="cant_bind_menu_key">Can\'t bind MENU key</string>
-	<string name="bind_to_action">Bind to action</string>
+	<string name="bind_to_action">Bind to other key</string>
 	<string name="bind_to_character">Bind to character</string>
 	<string name="reset_to_defaults">Reset to defaults</string>
 	<string name="clear_all">Clear all</string>
