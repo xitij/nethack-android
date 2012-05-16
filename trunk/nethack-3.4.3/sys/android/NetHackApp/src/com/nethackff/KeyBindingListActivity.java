@@ -226,20 +226,6 @@ public class KeyBindingListActivity extends ListActivity
 		positiveButton.setOnClickListener(new View.OnClickListener()
 		{
 			@Override
-			public void onClick(View v)
-			{
-				if (!validKeySelected(getKeyDialog))
-				{
-					return;
-				}
-				showDialog(KeyBindDialogType.GET_KEY_BINDING_ACTION.ordinal());
-				getKeyDialog.dismiss();
-			}
-		});
-		Button neutralButton = (Button) getKeyDialog.findViewById(R.id.neutralButton);
-		neutralButton.setOnClickListener(new View.OnClickListener()
-		{
-			@Override
 			public void onClick(View view)
 			{
 				if (!validKeySelected(getKeyDialog))
@@ -247,6 +233,21 @@ public class KeyBindingListActivity extends ListActivity
 					return;
 				}
 				showDialog(KeyBindDialogType.GET_KEY_BINDING_NETHACK_KEY.ordinal());
+				getKeyDialog.dismiss();
+			}
+		});
+		
+		Button neutralButton = (Button) getKeyDialog.findViewById(R.id.neutralButton);
+		neutralButton.setOnClickListener(new View.OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				if (!validKeySelected(getKeyDialog))
+				{
+					return;
+				}
+				showDialog(KeyBindDialogType.GET_KEY_BINDING_ACTION.ordinal());
 				getKeyDialog.dismiss();
 			}
 		});
@@ -325,7 +326,7 @@ public class KeyBindingListActivity extends ListActivity
 
 	private String getBindingKeyToActionString()
 	{
-		return "Binding " + KeyCodeSymbolicNames.keyCodeToString(currentlySelectedKeyCode) + " to action: ";
+		return "Binding " + KeyCodeSymbolicNames.keyCodeToString(currentlySelectedKeyCode) + " to other key: ";
 	}
 
 	private String getKeyIsBoundToValueString()

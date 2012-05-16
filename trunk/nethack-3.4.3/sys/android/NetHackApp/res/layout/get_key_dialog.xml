@@ -26,14 +26,14 @@
         <Button
             android:id="@+id/positiveButton"
             android:layout_width="0dp"
-            android:text="@string/bind_to_action"
+            android:text="@string/bind_to_character"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
         <Button
             android:id="@+id/neutralButton"
             android:layout_width="0dp"
-            android:text="@string/bind_to_character"
+            android:text="@string/bind_to_action"
             android:layout_height="wrap_content"
             android:layout_weight="1" />
 
