@@ -17,7 +17,8 @@ public class ConfigUtil
 		IMPORT_PREFERENCES,
 		EXPORT_PREFERENCES,
 		IMPORT_KEYBINDINGS,
-		EXPORT_KEYBINDINGS
+		EXPORT_KEYBINDINGS,
+		EXPORT_EVERYTHING
 	}
 	public static void importExportDialog(final Context context, final ImportExportOperation operation)
 	{
@@ -54,6 +55,11 @@ public class ConfigUtil
 		case EXPORT_KEYBINDINGS:
 			input.getText().append(context.getString(R.string.keybindings_defaultfile));
 			builder.setTitle(R.string.keybindings_export_title);
+			builder.setMessage(R.string.keybindings_export_message);
+			break;
+		case EXPORT_EVERYTHING:
+			input.getText().append(context.getString(R.string.backup_default_directory));
+			builder.setTitle(R.string.backup_everything);
 			builder.setMessage(R.string.keybindings_export_message);
 			break;
 		}
@@ -94,9 +100,12 @@ public class ConfigUtil
 		case EXPORT_KEYBINDINGS:
 			keybindingsExport(context, filename);
 			break;
+		case EXPORT_EVERYTHING:
+			everythingExport(context, filename);
+			break;
 		}
 	}
-	
+
 	private static void configImport(Context context, String inname)
 	{
 		try
@@ -217,6 +226,36 @@ public class ConfigUtil
 			AlertDialog.Builder alert = new AlertDialog.Builder(context);  
 			alert.setTitle(R.string.dialog_Error);
 			alert.setMessage(context.getString(R.string.configexport_failed) + " '" + outname + "'.");
+			alert.show();
+		}
+	}
+	
+	private static void everythingExport(Context context, String outdir)
+	{
+		if (!outdir.endsWith("/"))
+		{
+			outdir += "/";
+		}
+		
+		try
+		{
+			String lKeyMapPreferencesPath = context.getApplicationContext().getFilesDir().getAbsolutePath() + "/../shared_prefs/keyMapPreferences.xml";
+			NetHackFileHelpers.copyFileRaw(lKeyMapPreferencesPath,  outdir + "keyMapPreferences.xml");
+			
+			String lPreferencesPath = context.getApplicationContext().getFilesDir().getAbsolutePath() + "/../shared_prefs/com.nethackff_preferences.xml";
+			NetHackFileHelpers.copyFileRaw(lPreferencesPath,  outdir + "com.nethackff_preferences.xml");
+
+			NetHackFileHelpers.copyFileRaw(getNetHackDir() + "/.nethackrc", outdir + "NetHack.cnf");
+			AlertDialog.Builder alert = new AlertDialog.Builder(context);  
+			alert.setTitle(R.string.dialog_Success);
+			alert.setMessage(context.getString(R.string.everything_export_success) + " '" + outdir + "'.");
+			alert.show();
+		}
+		catch(IOException e)
+		{
+			AlertDialog.Builder alert = new AlertDialog.Builder(context);  
+			alert.setTitle(R.string.dialog_Error);
+			alert.setMessage(context.getString(R.string.configexport_failed) + " '" + outdir + "'.");
 			alert.show();
 		}
 	}

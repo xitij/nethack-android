@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.Preference;
-import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 
 public class NetHackPreferences extends PreferenceActivity
@@ -30,112 +29,19 @@ public class NetHackPreferences extends PreferenceActivity
 		
 		setConfigOptionsPreferenceIntent();
 		
-		setConfigBackupPreferenceListener();
-		
-		setPreferencesBackupPreferenceListener();
-		
-		setBackupKeyBindingsPreferenceListener();
-		
-		setImportConfigPreferenceListener();
-		
-		setImportPreferencesPreferenceListener();
-		
-		setImportKeyBindingsPreferenceListener();
+		setBackupImportSettingsIntent();
 	}
 
-	private void setImportKeyBindingsPreferenceListener()
+	private void setBackupImportSettingsIntent()
 	{
-		Preference importKeyBindings = findPreference("importKeyBindings");
-		importKeyBindings.setOnPreferenceClickListener(new OnPreferenceClickListener()
-		{
-			
-			@Override
-			public boolean onPreferenceClick(Preference preference)
-			{
-				ConfigUtil.importExportDialog(NetHackPreferences.this, ConfigUtil.ImportExportOperation.IMPORT_KEYBINDINGS);
-				return true;
-			}
-		});
-	}
-
-	private void setImportPreferencesPreferenceListener()
-	{
-		Preference importPreferences = findPreference("importPreferences");
-		importPreferences.setOnPreferenceClickListener(new OnPreferenceClickListener()
-		{
-			
-			@Override
-			public boolean onPreferenceClick(Preference preference)
-			{
-				ConfigUtil.importExportDialog(NetHackPreferences.this, ConfigUtil.ImportExportOperation.IMPORT_PREFERENCES);
-				return true;
-			}
-		});
-	}
-
-	private void setImportConfigPreferenceListener()
-	{
-		Preference importConfig = findPreference("importConfig");
-		importConfig.setOnPreferenceClickListener(new OnPreferenceClickListener()
-		{
-			
-			@Override
-			public boolean onPreferenceClick(Preference preference)
-			{
-				ConfigUtil.importExportDialog(NetHackPreferences.this, ConfigUtil.ImportExportOperation.IMPORT_CONFIG);
-				return true;
-			}
-		});
-	}
-
-	private void setBackupKeyBindingsPreferenceListener()
-	{
-		Preference backupPreferences = findPreference("backupKeyBindings");
-		backupPreferences.setOnPreferenceClickListener(new OnPreferenceClickListener()
-		{
-			
-			@Override
-			public boolean onPreferenceClick(Preference preference)
-			{
-				ConfigUtil.importExportDialog(NetHackPreferences.this, ConfigUtil.ImportExportOperation.EXPORT_KEYBINDINGS);
-				return true;
-			}
-		});
-	}
-
-	private void setPreferencesBackupPreferenceListener()
-	{
-		Preference backupPreferences = findPreference("backupPreferences");
-		backupPreferences.setOnPreferenceClickListener(new OnPreferenceClickListener()
-		{
-			
-			@Override
-			public boolean onPreferenceClick(Preference preference)
-			{
-				ConfigUtil.importExportDialog(NetHackPreferences.this, ConfigUtil.ImportExportOperation.EXPORT_PREFERENCES);
-				return true;
-			}
-		});
-	}
-
-	private void setConfigBackupPreferenceListener()
-	{
-		Preference backupConfig = findPreference("backupConfig");
-		backupConfig.setOnPreferenceClickListener(new OnPreferenceClickListener()
-		{
-			
-			@Override
-			public boolean onPreferenceClick(Preference preference)
-			{
-				ConfigUtil.importExportDialog(NetHackPreferences.this, ConfigUtil.ImportExportOperation.EXPORT_CONFIG);
-				return true;
-			}
-		});
+		Preference backupImportSettings = findPreference("backupImportSettings");
+		Intent backupImportSettingsIntent = new Intent(this, BackupImportSettings.class);
+		backupImportSettings.setIntent(backupImportSettingsIntent);
 	}
 
 	private void setConfigOptionsPreferenceIntent()
 	{
-		Preference configOptions = findPreference("configOptions");
+		Preference configOptions = findPreference("editConfig");
 		File file = new File(ConfigUtil.getNetHackDir() + "/.nethackrc");
 		Uri uri = Uri.fromFile(file);
 		Intent editConfigIntent = new Intent(Intent.ACTION_VIEW ,uri);
