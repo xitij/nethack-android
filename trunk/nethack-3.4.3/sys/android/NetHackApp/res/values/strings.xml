@@ -26,7 +26,10 @@
 	<string name="keybindings_import_title">Import Key Bindings</string>
 	<string name="keybindings_import_message">This will copy a NetHack keybindings file from your SD card or elsewhere, to where the game can read it.</string>
 	<string name="keybindings_import_success">Key Bindings imported from</string>
-	<string name="keybindings_export_success">Key Bindings exported from</string>
+	<string name="keybindings_export_success">Key Bindings exported to</string>
+	<string name="everything_export_success">Everything exported to</string>
+	<string name="export_everything_message">This will make a copy of your NetHack settings files, on your SD card or elsewhere.</string>
+	<string name="backup_default_directory">/sdcard/</string>
 	<string name="config_defaultfile">/sdcard/NetHack.cnf</string>
 	<string name="preferences_defaultfile">/sdcard/com.nethackff_preferences.xml</string>
 	<string name="keybindings_defaultfile">/sdcard/keyMapPreferences.xml</string>
@@ -48,6 +51,13 @@
 	<string name="dialog_button_retry">Retry</string>
 	<string name="dialog_button_reinstall_on_internal_memory">Reinstall on Internal Memory</string>
 	<string name="dialog_button_use_internal_memory">Use Internal Memory</string>
+	<string name="backup_everything">Backup Everything</string>
+	<string name="backup_config">Backup Config</string>
+	<string name="backup_preferences">Backup Preferences</string>
+	<string name="backup_keybindings">Backup Keybindings</string>
+	<string name="import_config">Import Config</string>
+	<string name="import_preferences">Import Preferences</string>
+	<string name="import_keybindings">Import Keybindings</string>
 	<string name="preferences">Preferences</string>
 	<string-array name="KeyActions">
 		<item>None</item>
@@ -159,15 +169,17 @@
 		<item>Landscape</item>
 		<item>Unspecified</item>
 	</string-array>
-	<string-array name="ConfigOptionsEntries">
-	    <item>@string/edit_config</item>
+	<string-array name="BackupSettingsEntries">
+	    <item>@string/backup_everything</item>
+	    <item>@string/backup_config</item>
+	    <item>@string/backup_preferences</item>
+	    <item>@string/backup_keybindings</item>
 	    <item>@string/import_config</item>
-	    <item>@string/export_config</item>
+	    <item>@string/import_preferences</item>
+	    <item>@string/import_keybindings</item>
 	</string-array>
 	
 	<string name="edit_config">Edit Config</string>
-	<string name="import_config">Import Config</string>
-	<string name="export_config">Export Config</string>
 	<string name="keyMapPreferences">keyMapPreferences</string>
 	<string name="add_key_binding">Add Key Binding</string>
 	<string name="dialog_get_key_title">Key to bind</string>
